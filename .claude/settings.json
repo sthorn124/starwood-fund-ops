@@ -37,8 +37,7 @@
       "mcp__appian__deleteWebApi",
       "mcp__appian__removeGroupMember",
       "mcp__appian__updateObjectSecurity",
-      "mcp__appian__updatePortal",
-      "mcp__appian__updateSite"
+      "mcp__appian__updatePortal"
     ]
   }
 }
