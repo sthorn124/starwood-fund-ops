@@ -10,14 +10,6 @@ Open items by class. Sessions add discovered items unprompted as they surface, a
 
 ## Before demo
 
-- **Dev MCP update, Phase 2 (re-verify).** Phase 1 is done: 26.6.95 is installed at `~/appian-dev-mcp-server-20260911-210447`, the registration points at it, and sail reports 26.6.95.
-  - *Owner:* Scott (relaunch and SSO), then the session.
-  - *Steps:*
-    1. Fully quit and relaunch Claude.
-    2. Say "continue the update procedure".
-    3. Complete the browser SSO and MFA sign-in if a window opens.
-    4. The session then confirms that `getDevMcpVersionInfo` reports build `20260911-210447` on both halves, re-verifies `reference/toolchain.md` §1, §2, §4 and §12, refreshes the pins, and commits `toolchain: re-verified against Dev MCP 26.6.95`.
-  - *Trigger:* the next session.
 - **Spec artifacts are not on GitHub.** `.gitignore` excludes `*.pdf` and `*.xlsx`, so the three spec files exist only on this machine.
   - *Owner:* Scott.
   - *Steps:* upload them to the claude.ai Project, or rule that they are force-added to the repo.
@@ -34,6 +26,13 @@ Open items by class. Sessions add discovered items unprompted as they surface, a
 
 ## Deferred
 
+- **Correct appian-supplemental §3 on group membership.** It still states that `getGroup` and `listGroupMembers` return 403. That is the pre-26.6.90 behaviour. Reads work on 26.6.90 and on 26.6.95 (measured live 2026-09-21), and the repo's `reference/mcp-capability-boundaries.md` already records it.
+  - *Owner:* Scott (the skill's owner).
+  - *Change:* edit the skill in the template repo, then re-sync the user-level copy and this repo's `skills/appian-supplemental/SKILL.md`, keeping the two identical (`CLAUDE.md` §2 step 6).
+  - *Trigger:* the next template sync, or earlier if a session is misled by the stale text.
+- **Measure whether `createProcessModel(errorAlertGroupUuid)` persists** on 26.6.95. Read the model back after creating it.
+  - *Owner:* the build session.
+  - *Trigger:* the first draw approval process model created.
 - **Inventory the remaining object types** of `Starwood Demo` (rules, constants, integrations, documents, agents and so on), names only.
   - *Owner:* the build session.
   - *Trigger:* the first session that designs draw approval objects which reuse intake objects.
@@ -47,3 +46,4 @@ Open items by class. Sessions add discovered items unprompted as they surface, a
 
 - ✅ 2026-09-21 — **Service accounts in `SD Administrators`:** ruled an exception. `scott.mcp` and `NoahMCPServiceAccount` stay in the group, because `scott.mcp` backs the chat runtime connector and removal risk is not worth it on a demo instance. The ruling is recorded at the end of `CLAUDE.md` §6.
 - ✅ 2026-09-21 — **Host application:** `Starwood Demo` (`dd3bb740-b105-421b-a866-29d542a144da`) is confirmed. `Capital Calls & Distributions` is another client's app and out of scope; do not read from it or reference it. Recorded in `PROJECT_INSTRUCTIONS.md` and `CLAUDE.md`.
+- ✅ 2026-09-21 — **Dev MCP updated from 26.6.90 to 26.6.95 and re-verified.** Both halves report build `20260911-210447`, and sail reports 26.6.95. The pins in `reference/toolchain.md` §1 and §12 are refreshed.

@@ -4,7 +4,31 @@ Setup and environment knowledge for an Appian build driven through the Dev MCP f
 
 ## 1. Dev MCP registration and authentication
 
-**Verified against DevMCP 26.6.90.** The server reports its own version through its `getDevMcpVersionInfo` tool, which reads the plugin's `/meta` endpoint and the bundle's `BUILD-INFO.txt` and compares them; on the verified machine both halves came from the same build — plugin `Appian Dev MCP` 26.6.90 (App Market status up to date), build stamp `20260903-195919`, `mcp_src_sha a037e2a260ba8fee`, built from a detached branch rather than the mainline. The bundle's package version string (`lcp-mcp-server` 0.1.0 in `pyproject.toml` and `__init__.py`) did not change between the two generations and is not a discriminator; the build stamp is. The MCP initialize handshake names the server `Appian-DevMCP-Server` and carries no product version. Installed at `~/appian-dev-mcp-server` on 2026-09-12 from `appian-dev-mcp-server-bundle.tar.gz` per the 26.8 documentation; `src/lcp_mcp_server/browser_auth.py` hashes to sha256 `bcf11935a9eca9c6ad48fbc0f0167924013d6dd2b4ecbdd1607ba04bfd45d385`. This section and §2 describe that build. **On server update, say "run the update procedure" — Claude Code executes `maintenance/dev-mcp-update.md`**, which installs the new bundle side by side, re-verifies this section and §2 against the new server's source, re-checks the server-behaviour entries in the taxonomy and the capability boundaries, and refreshes this pin. The auth default, the environment variable names, the state directory layout, the expiry handling, and the logout behaviour are all read from the source, and every one of them changed between the previous generation and this one, which is why the procedure exists. The preflight (`CLAUDE.md` §2) compares `getDevMcpVersionInfo`'s report with this pin every session, and `sail --version` with the sail pin in §12, because sail ships in the same bundle.
+**Verified against DevMCP 26.6.95.**
+- **Source of the version:** the server's own `getDevMcpVersionInfo` tool, which reads the plugin's `/meta` endpoint and the bundle's `BUILD-INFO.txt` and compares the two.
+- **What it reported on the verified machine, 2026-09-21:** both halves came from the same build, and the tool said "No action needed".
+  - Plugin `Appian Dev MCP` 26.6.95, App Market status up to date.
+  - Build stamp `20260911-210447`, `mcp_src_sha 71a81a27e39421db`, `plugin_src_sha 29c65279f1df2529`.
+  - Built from a detached branch rather than the mainline.
+- **The build stamp is the discriminator.** The bundle's package version string (`lcp-mcp-server` 0.1.0 in `pyproject.toml` and `__init__.py`) has not changed across three generations. The MCP initialize handshake names the server `Appian-DevMCP-Server` and carries no product version.
+- **Install:** `~/appian-dev-mcp-server-20260911-210447`, installed 2026-09-21 from `appian-dev-mcp-server-bundle (1).tar.gz`. `src/lcp_mcp_server/browser_auth.py` hashes to sha256 `bcf11935a9eca9c6ad48fbc0f0167924013d6dd2b4ecbdd1607ba04bfd45d385`.
+- **Rollback:** the 26.6.90 install (build `20260903-195919`, `mcp_src_sha a037e2a260ba8fee`) remains at `~/appian-dev-mcp-server`.
+- **What changed from 26.6.90 to 26.6.95.** The pieces this section and §2 describe are unchanged:
+  - `browser_auth.py` is byte-identical.
+  - `config.py` reads the same environment variables. The only changes are that the internal property `beta_base_url` became `lcp_base_url` and one line was reformatted.
+  - The 157-tool inventory is identical by name.
+  - The behavioural changes are recorded in `mcp-capability-boundaries.md` ("Changed in DevMCP 26.6.95").
+- This section and §2 describe the 26.6.95 build.
+
+**On server update, say "run the update procedure".** Claude Code then executes `maintenance/dev-mcp-update.md`, which:
+- installs the new bundle side by side;
+- re-verifies this section and §2 against the new server's source;
+- re-checks the server-behaviour entries in the taxonomy and the capability boundaries;
+- refreshes this pin.
+
+**Why the procedure exists.** The auth default, the environment variable names, the state directory layout, the expiry handling, and the logout behaviour are all read from the source, and every one of them changed between the generation before 26.6.90 and 26.6.90.
+
+**Every session:** the preflight (`CLAUDE.md` §2) compares `getDevMcpVersionInfo`'s report with this pin, and `sail --version` with the sail pin in §12, because sail ships in the same bundle.
 
 - **What it is.** The Appian Dev MCP is a local server package (`lcp-mcp-server`, Python module `lcp_mcp_server`) run with `uv`. It is downloaded as a bundle that matches the site's DevMCP plugin, from one of two paths behind the site's login. The documented downloads page, `/suite/plugins/servlet/stateless/downloads`, is the operator-facing entry. The direct bundle link, `/suite/plugins/servlet/stateless/lcp-mcp-bundle`, is the one `getDevMcpVersionInfo` prints (`maintenance/dev-mcp-update.md` Step 0). The bundle is then unpacked into a directory of your choosing: `~/appian-dev-mcp-server` in the documentation and on the verified machine (the two source builds ran the previous generation from `~/lcp-mcp-server`). It talks to the site through the plugin's stateless servlet at `/suite/plugins/servlet/stateless/lcp-api`. Setup instructions are Appian's own: `https://docs.appian.com/suite/help/26.8/devmcp.html`. Install is `uv sync` then `uv run playwright install chromium`; the documented `uv sync --extra browser` step errors on this bundle ("Extra `browser` is not defined") because Playwright is a core dependency that the first sync already installs, so the error is harmless. Where the Playwright download is blocked, `LCP_BROWSER_CHANNEL=chrome` or `msedge` uses a system browser instead.
 - **Where it is registered.** In Claude Code's user-level configuration (`~/.claude.json`, global `mcpServers`, or `claude mcp add`), not per project; every project folder on the machine inherits it. The documented block, which is also the complete one for a single-user SSO site:
@@ -140,10 +164,17 @@ When a human must run something in an external console (a warehouse worksheet, a
 
 ## 12. The sail CLI: persona sessions from the terminal
 
-**Verified against sail 26.6.90.**
+**Verified against sail 26.6.95.**
 
-- The binary: `~/appian-dev-mcp-server/bin/sail-darwin-arm64`, sha256 `43c346d87153f97c24243d4661478904ce47fbac0868724e8db6366d339a1c37`.
-- It shipped in the DevMCP 26.6.90 bundle installed per §1, and `sail --version` reports `sail version 26.6.90`, the bundle's own version [S1].
+- **The binary:** `~/appian-dev-mcp-server-20260911-210447/bin/sail-darwin-arm64`, 8,944,338 bytes, sha256 `5ccd5559a074f9246a9d6f921d913d7de6f943ef875ade932ebef3457f901bca`.
+  - It is linked as `~/.local/bin/sail` by the bundle's `setup-mac.sh`.
+  - It shipped in the DevMCP 26.6.95 bundle installed per §1.
+  - `sail --version` reports `sail version 26.6.95`, the bundle's own version.
+- **Re-verified 2026-09-21:**
+  - The complete help surface is byte-identical to 26.6.90's: `--help` for the root and for all nine subcommands (`pages`, `load`, `show`, `navigate`, `interact`, `back`, `login`, `logout`, `completion`), 328 lines each.
+  - The command table below therefore stands unchanged.
+- **Measured on 26.6.90 only:** the behaviour entries below. No persona session was live on the machine, so they were not re-measured against 26.6.95.
+- **Rollback:** the 26.6.90 binary (sha256 `43c346d8…a1c37`) remains in `~/appian-dev-mcp-server/bin/`.
 - The preflight (`CLAUDE.md` §2) runs `sail --version` beside `getDevMcpVersionInfo` every session. The update procedure (`maintenance/dev-mcp-update.md`) re-links and re-verifies sail along with the server, because they ship in one bundle.
 - Everything below was read from `--help`, read from the bundle's setup scripts, or measured in the evaluation recorded in `examples/persona-verification-walkthrough.md`. Nothing is taken from the binary's symbols, which misreported the surface [S3].
 
