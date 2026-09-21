@@ -190,3 +190,32 @@ Worked examples: `examples/agent-eval-walkthrough.md` (the specimen discipline) 
 ```
 
 Add, in the build's own words: vocabulary canon (exact stored values and display labels); data model and relationships; naming prefix and groups; business rules implemented once as shared rules; demo repeatability rules (session tagging, reset and verify-ready actions, reserved id ranges); known data artifacts that are deliberately not fixed, each with what shows, why, and what to say; the files in the repo and what each is for.
+
+---
+
+# Project: Starwood — draw approval (added to the subscription-intake app)
+
+This build adds the **draw approval** flow to an existing Appian app on `ny.appiancloud.com`, the subscription-intake demo app (`Starwood Demo`). Draw approval covers capital call draws for renovation and development projects. **"Draw approval" is the canonical name for the new flow.** Use it, in exactly that wording, in every object, document, and commit. The intake app existed before this repo did, so its state lives on the instance. `BASELINE_INVENTORY.md` records it as found on 2026-09-21.
+
+## Build parameters
+
+| Parameter | Value | Read by |
+|---|---|---|
+| Application UUID | `dd3bb740-b105-421b-a866-29d542a144da` (application `Starwood Demo`, URL identifier `HiQyLQ`) | §2 step 2 (design read) |
+| App prefix | `SD`, as read from the application on 2026-09-21. Existing objects also carry `SA` / `SA_` (for example `SA Fund` and `SA_NewSubscriptionUploadForm`), and two are unprefixed (`Subscription Agreement` and `Subscription Agreement Analysts`). New draw approval objects use `SD`. | §13 naming; no preflight step reads it |
+| Design account | `scott.thorn@appian.com`. This is the username recorded in the Dev MCP session file for `ny.appiancloud.com` on 2026-09-21. It has not yet been confirmed with a `loggedInUser()` probe, because the plan gate forbids creating objects. | §2 step 8 (identity check) |
+| Security groups | Existing: `SD Users` contains `SD Administrators`, `SD Fund Operations Manager`, `SD Fund Operations Analyst` and `SD Compliance Reviewer`. `Subscription Agreement Analysts` and `SD Compliance Reviewers` are not nested under `SD Users`. The draw approval groups are **unset**: their roles and nesting are Phase 0 decisions. | §2 step 8 (group readback) |
+| Per-session ritual | none. No time-anchored fixtures exist yet. | §2 step 7 |
+| Persona site stub | **unset**. The application contains no site (`listApplicationObjects` returned sites: 0 on 2026-09-21), so there is nothing for personas to load through sail yet. | §2 step 9 (sail liveness) |
+
+## MCP servers this build uses, and the runtime connector
+
+- **Named servers.** This build uses `appian` (the Dev MCP, which is the designer identity) and `appian-public-docs` (docs search). Every other server in the session is ignored, per `reference/toolchain.md` §4.
+- **The runtime connector is present in Code sessions, inherited from the desktop app.** It was checked on 2026-09-21:
+  - The server is `appian-runtime`, kind `desktop`, with 10 snake_case tools (`appian_*` plus `ping`).
+  - It is registered in the desktop app's own `claude_desktop_config.json` through `mcp-remote` to `https://ny.appiancloud.com/mcp`. `~/.claude.json` does not declare it, so `claude mcp list` does not show it.
+  - Per the operator, it runs as the **`scott.mcp` service account**. This session did not call it, so that identity has not been confirmed by observation.
+- **The runtime connector is not the designer identity. Never use it for build work.** Its tools are banned in this build by name: `mcp__appian-runtime__*`. That covers tests, break-tests, and "just to check" reads (§6).
+  - The naming split holds today: `appian` has 157 camelCase design tools and `appian-runtime` has 10 runtime tools, with no collision.
+  - Re-check the names after any desktop-app update (`reference/toolchain.md` §2).
+- **Open issue: the service account has scope in this application.** `scott.mcp` and `NoahMCPServiceAccount` are members of `SD Administrators`, and so they are also in `SD Users`. This contradicts §6, which says a service account is granted no group membership in the application. The finding is recorded in `TODO.md`. This session did not change it.
