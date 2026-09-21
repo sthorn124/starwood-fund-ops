@@ -2,7 +2,7 @@
 
 What has actually been built in the environment, with object identifiers and the decisions behind them. Append after every build step; never rewrite a closed entry — a correction is a new entry that names what it corrects. Entry shape: date and title; scope line (the identity and group memberships every readback ran under); what changed, by object; decisions and why; verified (how, with counts and scope); not verified (and the browser checklist that covers it); promotion checkpoint. The contract is `CLAUDE.md` §7; the promotion loop is §9.
 
-**Promotion checkpoint: current through 2026-09-21 — Phase 0 rulings and Dev MCP update attempt — level with the log tail.** A session touching promotion refuses to call itself complete if this checkpoint lags the log tail by more than one session.
+**Promotion checkpoint: current through 2026-09-21 — Dev MCP update, Phase 1 (install) — level with the log tail.** A session touching promotion refuses to call itself complete if this checkpoint lags the log tail by more than one session.
 
 ## Promotion candidates (staging)
 
@@ -119,3 +119,46 @@ Promotion checkpoint: current through 2026-09-21 — Instantiation and read-only
 **Promotion.** 0 new candidates. The staged `listGroupMembers` candidate is unchanged; its trigger has not fired.
 
 Promotion checkpoint: current through 2026-09-21 — Phase 0 rulings and Dev MCP update attempt.
+
+### 2026-09-21 — Dev MCP update, Phase 1 (install): 26.6.90 → 26.6.95
+
+**Scope.**
+- **This is maintenance.** There was no build work and no instance writes.
+- **No Dev MCP calls this session.** The version report used is the one from the previous entry: plugin 26.6.95, build `20260911-210447`, `mcpSrcSha` `71a81a27e39421db`.
+
+**This supersedes the previous entry's Step 0 blocker.** The operator downloaded the bundle.
+
+**Steps, per `maintenance/dev-mcp-update.md` Phase 1:**
+- **Bundle:** `~/Downloads/appian-dev-mcp-server-bundle (1).tar.gz`, downloaded 2026-09-21 17:26, 11,910,499 bytes, sha256 `a342f936…883544`.
+  - The name carries a browser suffix. It was identified by content rather than by asking the operator: its `BUILD-INFO.txt` shows `build_timestamp=20260911-210447` and `mcp_src_sha=71a81a27e39421db`, identical to the plugin's report.
+  - The old Sep 12 bundle (stamp `20260903-195919`) is also still in Downloads. Neither bundle was deleted.
+- **Prerequisites:** Python 3.14.6 and uv 0.11.28. The bundle's `pyproject.toml` requires Python `>=3.13`, which is met. The package version is still `0.1.0`, so the build stamp is the discriminator.
+- **Side-by-side install.**
+  - *Locations:* `NEW_INSTALL` is `~/appian-dev-mcp-server-20260911-210447`. `pyproject.toml` sits at the archive root, alongside `bin/`, `lib/`, `sdk/` and `src/lcp_mcp_server`. `OLD_INSTALL` (`~/appian-dev-mcp-server`) is untouched and kept as the rollback.
+  - *Sync:* `uv sync` succeeded and the `.venv` exists. `import lcp_mcp_server, playwright` succeeded.
+  - *Browser:* `sync --extra browser` failed with "Extra `browser` is not defined". That is harmless, because Playwright is a core dependency. Playwright Chromium 153.0.8010.12 was installed, and a headless launch test returned the page title.
+- **sail:** `NEW_INSTALL/bin/setup-mac.sh` cleared the quarantine flag and repointed `~/.local/bin/sail` from the old bundle's binary to `NEW_INSTALL/bin/sail-darwin-arm64` (sha256 `5ccd5559…901bca`).
+  - `sail --version` now reports `sail version 26.6.95`, and `sail --help` runs.
+  - The old binary remains in `OLD_INSTALL/bin/` for rollback.
+- **Registration.**
+  - *Scan:* the only Dev MCP registration is the global `appian` entry in `~/.claude.json`. A depth-2 scan under `~` found no project `.mcp.json` carrying the Dev MCP. The desktop config's `appian-runtime` entry is a different server and was not touched.
+  - *Change:* on the operator's approval, `~/.claude.json` was backed up to `~/.claude.json.bak-2026-09-21-devmcp-update`, and only `mcpServers.appian.args[2]` (`--directory`) was changed, to `NEW_INSTALL`. A structural diff against the backup shows that single change. The env is unchanged (`LCP_URL=https://ny.appiancloud.com`).
+  - *Config compatibility:* the new `config.py` differs from the old one only by a reformatted `LCP_API_PATH` line and a renamed property (`beta_base_url` → `lcp_base_url`). The environment variables read are unchanged.
+
+**Verified.**
+- The bundle's build stamp matches the plugin's.
+- Imports succeed and the headless browser launches.
+- `sail --version` reports 26.6.95.
+- The registration was read back from the file.
+
+**Not verified.**
+- That the running server is the new one. The running session keeps the server process it started with.
+- That `getDevMcpVersionInfo` reports plugin and bundle in sync.
+
+Both are Phase 2 checks and need a fresh session after a full quit and relaunch.
+
+**Pins:** `reference/toolchain.md` §1 and §12 are not yet refreshed. That is Phase 2, step 4.
+
+**Promotion.** 0 new. The staged `listGroupMembers` candidate carries over, and Phase 2's boundary sweep (group membership) should re-check it under the new server.
+
+Promotion checkpoint: current through 2026-09-21 — Dev MCP update, Phase 1 (install).

@@ -10,14 +10,14 @@ Open items by class. Sessions add discovered items unprompted as they surface, a
 
 ## Before demo
 
-- **Dev MCP bundle out of sync with the plugin.** The plugin is 26.6.95 and the local bundle is the 26.6.90 build (20260903).
-  - *Owner:* Scott.
-  - *Status 2026-09-21:* the update procedure was started and stopped at Step 0. The only bundle in `~/Downloads` (`appian-dev-mcp-server-bundle.tar.gz`, Sep 12) carries the installed build stamp `20260903-195919`, so there was nothing new to install.
+- **Dev MCP update, Phase 2 (re-verify).** Phase 1 is done: 26.6.95 is installed at `~/appian-dev-mcp-server-20260911-210447`, the registration points at it, and sail reports 26.6.95.
+  - *Owner:* Scott (relaunch and SSO), then the session.
   - *Steps:*
-    1. Sign in and download the 26.6.95 bundle to `~/Downloads`, from `https://ny.appiancloud.com/suite/plugins/servlet/stateless/downloads` or the direct link `…/lcp-mcp-bundle`.
-    2. Say "run the update procedure". Phase 1 installs the new bundle beside the old one, relinks sail, and changes the registration on your approval.
-    3. Fully quit and relaunch, then say "continue the update procedure". Phase 2 checks that the versions match.
-  - *Trigger:* your next session, once the bundle is downloaded.
+    1. Fully quit and relaunch Claude.
+    2. Say "continue the update procedure".
+    3. Complete the browser SSO and MFA sign-in if a window opens.
+    4. The session then confirms that `getDevMcpVersionInfo` reports build `20260911-210447` on both halves, re-verifies `reference/toolchain.md` §1, §2, §4 and §12, refreshes the pins, and commits `toolchain: re-verified against Dev MCP 26.6.95`.
+  - *Trigger:* the next session.
 - **Spec artifacts are not on GitHub.** `.gitignore` excludes `*.pdf` and `*.xlsx`, so the three spec files exist only on this machine.
   - *Owner:* Scott.
   - *Steps:* upload them to the claude.ai Project, or rule that they are force-added to the repo.

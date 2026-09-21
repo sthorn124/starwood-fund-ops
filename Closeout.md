@@ -1,77 +1,59 @@
-# Closeout — 2026-09-21 — Phase 0 rulings recorded; Dev MCP update blocked at bundle download
+# Closeout — 2026-09-21 — Dev MCP update Phase 1: 26.6.95 installed side by side, relaunch pending
 
-## Scope and identity
+## Scope
 
-- **This was a ruling session.** No build work was done and nothing on the instance was written.
-- **The one Dev MCP read** was `getDevMcpVersionInfo`, as `scott.thorn@appian.com` (from the session file). That account is a member of `SD Administrators` and `SD Users`.
-- **Not used:** the runtime connector `appian-runtime` and sail.
+- **This was a maintenance session.** There was no build work, no instance writes, and no Dev MCP calls.
+- **What ran:** `maintenance/dev-mcp-update.md` Phase 1. The session stopped at the mandatory phase boundary.
 
-## Ruling 1: the service accounts in `SD Administrators` are an exception, not removed
+## What changed on this machine
 
-- `scott.mcp` and `NoahMCPServiceAccount` stay in `SD Administrators`, and so in `SD Users`.
-- **Reason:** `scott.mcp` backs the chat runtime connector. On a demo instance, removing it is a risk not worth taking.
-- **Where it is recorded:**
-  - an exception block dated 2026-09-21 at the end of `CLAUDE.md` §6, next to the clause it contradicts;
-  - the project section's former "Open issue" bullet, which now points to that block.
-- **What the exception covers:** only the membership.
-  - The runtime connector (`mcp__appian-runtime__*`) still never runs design-session work.
-  - A read through any service account runs with administrator scope, so it proves nothing about what a persona sees.
-- **Logged** in `BUILD_LOG.md`. The TODO item is closed.
+| Item | Before | After |
+|---|---|---|
+| Dev MCP install | `~/appian-dev-mcp-server` (build `20260903-195919`, 26.6.90) | New: `~/appian-dev-mcp-server-20260911-210447` (build `20260911-210447`, 26.6.95). The old install is kept as the rollback. |
+| `~/.claude.json` → `mcpServers.appian` `--directory` | `/Users/scott.thorn/appian-dev-mcp-server` | `/Users/scott.thorn/appian-dev-mcp-server-20260911-210447`. This was the only change. The backup is `~/.claude.json.bak-2026-09-21-devmcp-update`. |
+| `sail` link (`~/.local/bin/sail`) | old bundle, 26.6.90 | new bundle, `sail version 26.6.95` |
+| Playwright Chromium | — | 153.0.8010.12 installed; the headless launch test passed |
 
-## Ruling 2: the host application
+**Not touched:** the desktop app's `appian-runtime` entry, the old install, and both bundles in `~/Downloads`.
 
-- Draw approval lives in **`Starwood Demo`** (`dd3bb740-b105-421b-a866-29d542a144da`), which is confirmed.
-- `Capital Calls & Distributions` belongs to a different client and is out of scope for this build. Do not read from it or reference it.
-- **Recorded** in `PROJECT_INSTRUCTIONS.md` (header facts), the `CLAUDE.md` project section, and `BUILD_LOG.md`. The latter corrects the previous entry's wording, "out of scope unless ruled otherwise".
-- The client-validation TODO item is closed.
+## How the bundle was identified
 
-## Dev MCP update: not done, stopped at Step 0
-
-**Ordering check:**
-- The plugin is 26.6.95, build `20260911-210447`, and App Market reports it `UP_TO_DATE`.
-- The local server is build `20260903-195919`, the 26.6.90 pin, and is still out of sync.
-- An update is therefore warranted.
-
-**Where it stopped:**
-- The only Dev MCP bundle in `~/Downloads` is `appian-dev-mcp-server-bundle.tar.gz` (Sep 12). Its `BUILD-INFO.txt` shows `build_timestamp=20260903-195919`, which is the installed generation. Installing it would reinstall 26.6.90, so the procedure stops there by its own rule.
-- The 26.6.95 bundle sits behind the site login. Downloading it is an operator step.
-
-**Why versions could not be verified as matching this session:** even with the bundle, the procedure runs in two phases with a full app relaunch between them. The running session keeps the old server process, so Phase 2's version match can only be checked in a fresh session.
-
-**Nothing was changed:**
-- The install directory, the `~/.claude.json` registration, and the sail link are untouched.
-- The pins in `reference/toolchain.md` §1 and §12 are unchanged.
-
-**Phase 1 prerequisites are already confirmed:**
-- Python 3.14.6 and uv 0.11.28.
-- The registration is the documented shape (`uv run --directory /Users/scott.thorn/appian-dev-mcp-server python -m lcp_mcp_server`, env `LCP_URL` only).
-
-**To finish the update:**
-1. Sign in and download the bundle to `~/Downloads`, from `https://ny.appiancloud.com/suite/plugins/servlet/stateless/downloads` or the direct link `https://ny.appiancloud.com/suite/plugins/servlet/stateless/lcp-mcp-bundle`.
-2. Say "run the update procedure". Phase 1 installs the bundle side by side, relinks sail, and changes the registration on your approval.
-3. Fully quit and relaunch the app, then say "continue the update procedure". Phase 2 verifies that the versions match and refreshes the pins.
+- The file is `appian-dev-mcp-server-bundle (1).tar.gz`, downloaded today.
+- It carries a browser suffix, so it was identified by content: its `BUILD-INFO.txt` shows `build_timestamp=20260911-210447` and `mcp_src_sha=71a81a27e39421db`, identical to the plugin's own report.
 
 ## Verified
 
-- The version report, from `getDevMcpVersionInfo`.
-- The bundle's build stamp, read from the tarball without extracting it.
-- The ruling text, read back in `CLAUDE.md`, `PROJECT_INSTRUCTIONS.md` and `TODO.md`.
+- The bundle's build stamp matches the plugin's.
+- `import lcp_mcp_server, playwright` succeeds.
+- The headless Chromium launch works.
+- `sail --version` reports 26.6.95, and `sail --help` runs.
+- The registration was read back from the file: a structural diff against the backup shows only the `--directory` change.
+- The new `config.py` reads the same environment variables.
+- The `--extra browser` error is harmless, because Playwright is a core dependency.
 
-## Not verified
+## Not verified (Phase 2)
 
-- A version match after an update, because no update took place.
+- That the running server is the new build, because this session still runs the old server process.
+- That `getDevMcpVersionInfo` reports plugin and bundle in sync.
+- The re-verification of `reference/toolchain.md` §1, §2, §4 and §12 against the new source and help, the capability-boundary sweep, and the pin refresh.
+
+## Next step
+
+Fully quit and relaunch Claude Code now; the running session keeps the old server. In the new session, say "continue the update procedure". The first Dev MCP tool call will open a browser sign-in window: complete SSO and MFA there, and the session is captured under `~/.appian-devmcp/`.
+
+## Rollback
+
+- Point `mcpServers.appian` `--directory` back at `~/appian-dev-mcp-server`, or restore the dated backup of `~/.claude.json`.
+- Re-run `~/appian-dev-mcp-server/bin/setup-mac.sh` to point sail back at the old binary.
+- Relaunch.
 
 ## Promotion candidates
 
-0 new. The staged `listGroupMembers` candidate carries over unchanged. The checkpoint is current through this entry.
+0 new. The staged `listGroupMembers` candidate carries over. Phase 2's sweep of group-membership boundaries should re-check it under the new server.
 
 ## TODO changes
 
-- **Closed and moved to Done (2026-09-21):**
-  - service accounts in `SD Administrators`, ruled an exception;
-  - which application hosts draw approval, ruled `Starwood Demo`.
-- **Updated:** "Dev MCP bundle out of sync" now carries the Step 0 blocker and the three steps to finish.
-- **Still open:** Blocking: the Phase 0 plan. Before demo: the spec artifacts not on GitHub, and persona accounts with sail logins.
+- **Replaced** "Dev MCP bundle out of sync" (the Step 0 blocker) with "Dev MCP update, Phase 2 (re-verify)", triggered by the next session after a relaunch.
 
 ## BUILD_PLAN.md changes
 
