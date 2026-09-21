@@ -8,6 +8,7 @@
 - **Client:** Starwood
 - **Appian instance:** `ny.appiancloud.com`
 - **Application:** `Starwood Demo`, the existing subscription-intake app. Its UUID is `dd3bb740-b105-421b-a866-29d542a144da`.
+- **Host application, ruled 2026-09-21:** draw approval lives in `Starwood Demo` (`dd3bb740-b105-421b-a866-29d542a144da`), which is confirmed. `Capital Calls & Distributions` on the same instance belongs to a different client and is out of scope for this build. Do not read from it or reference it.
 - **App prefix:** `SD`
 - **Flow name:** **draw approval**. This is the canonical name. Use it consistently in all objects, docs, and commits.
 - **Spec source:** the three artifacts in the repo root are the authoritative spec for the new approval email layout and for the Sep/Oct 2026 enhancement scope.

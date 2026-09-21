@@ -1,76 +1,78 @@
-# Closeout — 2026-09-21 — Instantiation: build repo for the existing intake app, draw approval flow to follow
+# Closeout — 2026-09-21 — Phase 0 rulings recorded; Dev MCP update blocked at bundle download
 
 ## Scope and identity
 
-- **Design reads:** Dev MCP `appian` (157 tools) as `scott.thorn@appian.com`, taken from the session file and not probed. The account is a member of `SD Administrators` and `SD Users`.
-- **Instance and application:** `ny.appiancloud.com`, application `Starwood Demo` (`dd3bb740-b105-421b-a866-29d542a144da`, prefix `SD`).
-- **Not used:** the runtime connector `appian-runtime` was present but not called. No sail persona sessions exist.
-- **Plan gate:** STOP. `BUILD_PLAN.md` is still the stub, so this session made reads only.
+- **This was a ruling session.** No build work was done and nothing on the instance was written.
+- **The one Dev MCP read** was `getDevMcpVersionInfo`, as `scott.thorn@appian.com` (from the session file). That account is a member of `SD Administrators` and `SD Users`.
+- **Not used:** the runtime connector `appian-runtime` and sail.
 
-## What changed
+## Ruling 1: the service accounts in `SD Administrators` are an exception, not removed
 
-**On the instance:** nothing.
+- `scott.mcp` and `NoahMCPServiceAccount` stay in `SD Administrators`, and so in `SD Users`.
+- **Reason:** `scott.mcp` backs the chat runtime connector. On a demo instance, removing it is a risk not worth taking.
+- **Where it is recorded:**
+  - an exception block dated 2026-09-21 at the end of `CLAUDE.md` §6, next to the clause it contradicts;
+  - the project section's former "Open issue" bullet, which now points to that block.
+- **What the exception covers:** only the membership.
+  - The runtime connector (`mcp__appian-runtime__*`) still never runs design-session work.
+  - A read through any service account runs with administrator scope, so it proves nothing about what a persona sees.
+- **Logged** in `BUILD_LOG.md`. The TODO item is closed.
 
-**In the repo:**
-- `CLAUDE.md`: a project section with the filled Build parameters block and an MCP-servers note. The note says the runtime connector is inherited from the desktop app, runs as the `scott.mcp` service account per the operator, and is banned for build work.
-- `BASELINE_INVENTORY.md`: new. Lists the record types (16), process models (15), interfaces (14), sites (0) and groups (7) by name.
-- `PROJECT_INSTRUCTIONS.md`: new, stage one.
-- `BUILD_LOG.md`: the first entry and one staged promotion candidate.
-- `TODO.md`: new items.
-- `BUILD_PLAN.md`: untouched, because Phase 0 happens in the claude.ai Project.
+## Ruling 2: the host application
 
-## Preflight results
+- Draw approval lives in **`Starwood Demo`** (`dd3bb740-b105-421b-a866-29d542a144da`), which is confirmed.
+- `Capital Calls & Distributions` belongs to a different client and is out of scope for this build. Do not read from it or reference it.
+- **Recorded** in `PROJECT_INSTRUCTIONS.md` (header facts), the `CLAUDE.md` project section, and `BUILD_LOG.md`. The latter corrects the previous entry's wording, "out of scope unless ruled otherwise".
+- The client-validation TODO item is closed.
 
-| Step | Result |
-|---|---|
-| 1. Plan gate | **STOP.** The plan is the stub, so no build work was done. |
-| 2. Design surface | Present, with 157 tools. `listRecordTypes` returned 16 types. |
-| 3. Degraded? | No. |
-| 4. Versions | **Drift.** The plugin is 26.6.95. The local bundle is the 26.6.90 build (20260903-195919), and the server says the bundle is out of sync with the plugin. sail reports 26.6.90. Bundle downloads: `https://ny.appiancloud.com/suite/plugins/servlet/stateless/downloads` and `…/lcp-mcp-bundle`. To update, say "run the update procedure". |
-| 5. Servers | `appian` is the user-config Dev MCP, with camelCase tools. `appian-runtime` is inherited from the desktop app (10 `appian_*` tools plus `ping`, via `mcp-remote` to `/mcp`). The names are separate, so there is no shadow or merge. |
-| 6. Skill sync | The repo copy and the installed copy are identical. |
-| 7. Ritual | None. |
-| 8. Identity and groups | The designer is `scott.thorn@appian.com`, matching the Design account parameter. The groups exist and their nesting was read back. Only `SD Administrators`, `SD Users` and `SD Compliance Reviewers` have members. **Service accounts `scott.mcp` and `NoahMCPServiceAccount` are in `SD Administrators`**, which contradicts §6. |
-| 9. sail personas | `~/.sail` and `~/.sail-designer` hold no sessions. There are no live personas, and the persona site stub is unset because the application has no site. |
+## Dev MCP update: not done, stopped at Step 0
 
-## Spec artifacts
+**Ordering check:**
+- The plugin is 26.6.95, build `20260911-210447`, and App Market reports it `UP_TO_DATE`.
+- The local server is build `20260903-195919`, the 26.6.90 pin, and is still out of sync.
+- An update is therefore warranted.
 
-All three are present and readable:
-- `current approval email sample blacklined.pdf` (1 page).
-- `New approval email sample blacklined.pdf` (1 page).
-- `Draw workflow enhancements simple overview 9-12-26.xlsx`: one sheet with seven workflow steps. The Sep/Oct enhancements cover:
-  - ingesting the budget excel into data tables, with plain-language failure alerts and an AI comparison against a prior good upload;
-  - showing the budget on the UI and in the approval email;
-  - letting the asset manager edit the budget;
-  - the new approval email format.
+**Where it stopped:**
+- The only Dev MCP bundle in `~/Downloads` is `appian-dev-mcp-server-bundle.tar.gz` (Sep 12). Its `BUILD-INFO.txt` shows `build_timestamp=20260903-195919`, which is the installed generation. Installing it would reinstall 26.6.90, so the procedure stops there by its own rule.
+- The 26.6.95 bundle sits behind the site login. Downloading it is an operator step.
 
-**They are gitignored (`*.pdf`, `*.xlsx`) and not on GitHub.**
+**Why versions could not be verified as matching this session:** even with the bundle, the procedure runs in two phases with a full app relaunch between them. The running session keeps the old server process, so Phase 2's version match can only be checked in a fresh session.
+
+**Nothing was changed:**
+- The install directory, the `~/.claude.json` registration, and the sail link are untouched.
+- The pins in `reference/toolchain.md` §1 and §12 are unchanged.
+
+**Phase 1 prerequisites are already confirmed:**
+- Python 3.14.6 and uv 0.11.28.
+- The registration is the documented shape (`uv run --directory /Users/scott.thorn/appian-dev-mcp-server python -m lcp_mcp_server`, env `LCP_URL` only).
+
+**To finish the update:**
+1. Sign in and download the bundle to `~/Downloads`, from `https://ny.appiancloud.com/suite/plugins/servlet/stateless/downloads` or the direct link `https://ny.appiancloud.com/suite/plugins/servlet/stateless/lcp-mcp-bundle`.
+2. Say "run the update procedure". Phase 1 installs the bundle side by side, relinks sail, and changes the registration on your approval.
+3. Fully quit and relaunch the app, then say "continue the update procedure". Phase 2 verifies that the versions match and refreshes the pins.
+
+## Verified
+
+- The version report, from `getDevMcpVersionInfo`.
+- The bundle's build stamp, read from the tarball without extracting it.
+- The ruling text, read back in `CLAUDE.md`, `PROJECT_INSTRUCTIONS.md` and `TODO.md`.
 
 ## Not verified
 
-- The designer identity by a `loggedInUser()` probe, which would require creating an object.
-- The runtime connector's executing identity.
-- The fine print of the new email's tables, because the render was low resolution.
-- Object types other than the five inventoried.
-
-## Rulings needed
-
-1. **Service-account membership in `SD Administrators`:** remove it, or record it as an exception.
-2. **Spec artifacts:** upload them to the Project, or force-add them to git.
-3. **Which application draw approval lives in:** `Starwood Demo` is assumed; there is also a separate `Capital Calls & Distributions` app.
+- A version match after an update, because no update took place.
 
 ## Promotion candidates
 
-1 found: `listGroupMembers` works over the Dev MCP on this instance, which contradicts supplemental §3. It is listed as STAGED; none were promoted. The checkpoint is current through this entry.
+0 new. The staged `listGroupMembers` candidate carries over unchanged. The checkpoint is current through this entry.
 
 ## TODO changes
 
-Added:
-- **Blocking:** the Phase 0 plan.
-- **Before demo:** service-account scope, the Dev MCP bundle update, the spec artifacts not being on GitHub, and persona accounts with sail logins.
-- **Client validation:** which application hosts draw approval.
-- **Deferred:** the remaining-object inventory and the identity probe.
+- **Closed and moved to Done (2026-09-21):**
+  - service accounts in `SD Administrators`, ruled an exception;
+  - which application hosts draw approval, ruled `Starwood Demo`.
+- **Updated:** "Dev MCP bundle out of sync" now carries the Step 0 blocker and the three steps to finish.
+- **Still open:** Blocking: the Phase 0 plan. Before demo: the spec artifacts not on GitHub, and persona accounts with sail logins.
 
 ## BUILD_PLAN.md changes
 
-None. It stays a stub pending Phase 0.
+None. It is still a stub pending Phase 0.

@@ -111,6 +111,12 @@ When the docs MCP is unavailable (its session expires), say so, and settle the q
   - Import into a throwaway data directory, and discard it by deleting that directory, never by `logout`.
 - **The design account is usually full-scope**, so a design-account render, count, or click proves nothing about what a persona sees [S32]. Persona checks run through sail as the persona, from sessions the operator logged in, for content, state, and behaviour. Geometry, and whatever sail cannot reach, stay browser checks owned by a human (§4).
 
+> **Project exception to §6, ruled 2026-09-21 (Phase 0).** Two service accounts, `scott.mcp` and `NoahMCPServiceAccount`, **stay in `SD Administrators`**, and so in `SD Users`. They are not removed.
+> - **Reason:** `scott.mcp` backs the chat runtime connector. On a demo instance, removing it is a risk not worth taking.
+> - **What the exception covers:** only that membership. It does not relax the rest of §6. The runtime connector (`mcp__appian-runtime__*`) still never runs design-session work.
+> - **For readbacks:** a read through any service account runs with administrator scope in this application, and it proves nothing about what a persona sees.
+> - **For draw approval security:** these two accounts are expected members of the admin group, not a defect.
+
 ## 7. The BUILD_LOG contract
 
 - **Append-only session log** of what has actually been built in the environment: object names and UUIDs, versions, the decisions behind them and why, what was verified and how (with the account scope of every readback), what was not verified, and findings. Append after every build step. Corrections are new entries that name what they correct; superseded candidates in the staging section carry a bracketed in-place marker (`[RESOLVED …]`, `[REVERSED …]`, `[TRIAL REASSIGNED …]`) so a reader of that section alone never chases a dead trigger.
@@ -197,6 +203,8 @@ Add, in the build's own words: vocabulary canon (exact stored values and display
 
 This build adds the **draw approval** flow to an existing Appian app on `ny.appiancloud.com`, the subscription-intake demo app (`Starwood Demo`). Draw approval covers capital call draws for renovation and development projects. **"Draw approval" is the canonical name for the new flow.** Use it, in exactly that wording, in every object, document, and commit. The intake app existed before this repo did, so its state lives on the instance. `BASELINE_INVENTORY.md` records it as found on 2026-09-21.
 
+**Host application, ruled 2026-09-21 (Phase 0):** draw approval lives in `Starwood Demo` (`dd3bb740-b105-421b-a866-29d542a144da`). The instance's `Capital Calls & Distributions` app belongs to a different client and is **out of scope**. Do not read from it or reference it.
+
 ## Build parameters
 
 | Parameter | Value | Read by |
@@ -218,4 +226,4 @@ This build adds the **draw approval** flow to an existing Appian app on `ny.appi
 - **The runtime connector is not the designer identity. Never use it for build work.** Its tools are banned in this build by name: `mcp__appian-runtime__*`. That covers tests, break-tests, and "just to check" reads (§6).
   - The naming split holds today: `appian` has 157 camelCase design tools and `appian-runtime` has 10 runtime tools, with no collision.
   - Re-check the names after any desktop-app update (`reference/toolchain.md` §2).
-- **Open issue: the service account has scope in this application.** `scott.mcp` and `NoahMCPServiceAccount` are members of `SD Administrators`, and so they are also in `SD Users`. This contradicts §6, which says a service account is granted no group membership in the application. The finding is recorded in `TODO.md`. This session did not change it.
+- **Service accounts in `SD Administrators`: a ruled exception.** `scott.mcp` and `NoahMCPServiceAccount` keep their membership by ruling on 2026-09-21. The ruling and its reason sit at the end of §6.

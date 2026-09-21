@@ -10,14 +10,14 @@ Open items by class. Sessions add discovered items unprompted as they surface, a
 
 ## Before demo
 
-- **Service accounts hold application scope.** `scott.mcp` and `NoahMCPServiceAccount` are members of `SD Administrators`, and so of `SD Users`. `CLAUDE.md` §6 says a service account gets no membership in the application. This may be intentional for the existing intake MCP process models (`SD Start Intake (MCP)` and the others).
-  - *Owner:* Scott.
-  - *Decision needed:* remove them, or record the exception in `CLAUDE.md`.
-  - *Trigger:* before the first draw approval security design.
 - **Dev MCP bundle out of sync with the plugin.** The plugin is 26.6.95 and the local bundle is the 26.6.90 build (20260903).
   - *Owner:* Scott.
-  - *Steps:* download the bundle from `https://ny.appiancloud.com/suite/plugins/servlet/stateless/lcp-mcp-bundle`, then say "run the update procedure" (`maintenance/dev-mcp-update.md`).
-  - *Trigger:* the next session start.
+  - *Status 2026-09-21:* the update procedure was started and stopped at Step 0. The only bundle in `~/Downloads` (`appian-dev-mcp-server-bundle.tar.gz`, Sep 12) carries the installed build stamp `20260903-195919`, so there was nothing new to install.
+  - *Steps:*
+    1. Sign in and download the 26.6.95 bundle to `~/Downloads`, from `https://ny.appiancloud.com/suite/plugins/servlet/stateless/downloads` or the direct link `…/lcp-mcp-bundle`.
+    2. Say "run the update procedure". Phase 1 installs the new bundle beside the old one, relinks sail, and changes the registration on your approval.
+    3. Fully quit and relaunch, then say "continue the update procedure". Phase 2 checks that the versions match.
+  - *Trigger:* your next session, once the bundle is downloaded.
 - **Spec artifacts are not on GitHub.** `.gitignore` excludes `*.pdf` and `*.xlsx`, so the three spec files exist only on this machine.
   - *Owner:* Scott.
   - *Steps:* upload them to the claude.ai Project, or rule that they are force-added to the repo.
@@ -32,10 +32,6 @@ Open items by class. Sessions add discovered items unprompted as they surface, a
 
 ## Client validation questions
 
-- **Which application should draw approval live in?** It is assumed to go into `Starwood Demo` (prefix `SD`), next to subscription intake. The instance also holds a separate `Capital Calls & Distributions` app (CCD).
-  - *Owner:* Scott.
-  - *Trigger:* Phase 0.
-
 ## Deferred
 
 - **Inventory the remaining object types** of `Starwood Demo` (rules, constants, integrations, documents, agents and so on), names only.
@@ -48,3 +44,6 @@ Open items by class. Sessions add discovered items unprompted as they surface, a
 *(Each item names its trigger.)*
 
 ## Done
+
+- ✅ 2026-09-21 — **Service accounts in `SD Administrators`:** ruled an exception. `scott.mcp` and `NoahMCPServiceAccount` stay in the group, because `scott.mcp` backs the chat runtime connector and removal risk is not worth it on a demo instance. The ruling is recorded at the end of `CLAUDE.md` §6.
+- ✅ 2026-09-21 — **Host application:** `Starwood Demo` (`dd3bb740-b105-421b-a866-29d542a144da`) is confirmed. `Capital Calls & Distributions` is another client's app and out of scope; do not read from it or reference it. Recorded in `PROJECT_INSTRUCTIONS.md` and `CLAUDE.md`.
