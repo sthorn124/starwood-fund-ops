@@ -1,0 +1,14 @@
+# Build-fork ignore list. Binaries never belong in a build repo: decks, documents,
+# spreadsheets, PDFs and images are added to Appian by hand in Designer and kept
+# out of git (see reference/toolchain.md §8). MCP registration is per machine.
+*.pptx
+*.docx
+*.xlsx
+*.pdf
+*.png
+*.jpg
+.mcp.json
+uploads/
+scratch/
+# macOS Finder metadata
+.DS_Store
