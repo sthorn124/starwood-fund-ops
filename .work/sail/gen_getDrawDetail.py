@@ -2,7 +2,7 @@ from refs import *
 d = lambda n: fld(DRAW, n)
 fields = ["id","drawNumber","amount","cashEquityNeeded","fundingDate","drawType","purpose","budgetStatus",
           "overBudgetReason","generalComments","contingencyExplanation","status","currentStep","activeStepProcessId",
-          "createdAt","updatedAt","treasuryNotifiedAt","receivedDate","submittedBy","investmentId"]
+          "createdAt","updatedAt","treasuryNotifiedAt","receivedDate","submittedBy","investmentId","extractionInstanceId","ingestionProcessId"]
 sel = ",\n          ".join(d(n) for n in fields)
 sel += ",\n          " + rel_fld(DRAW,"investment",INV,"investmentName")
 sel += ",\n          " + rel_fld(DRAW,"investment",INV,"investmentDescription")
@@ -46,13 +46,20 @@ a!localVariables(
     not(a!isNullOrEmpty(local!current)),
     tostring(a!defaultValue(index(local!current, "status", ""), "")) = "In Progress"
   ),
-  local!currentGroup: if(local!inProgress, rule!SD_getDrawApprovalGroup(role: index(local!current, "role", "")), null),
+  /* an Ingesting draw (Phase 3) is the accountant group's: its reconciliation task is open on the ingestion process,
+     whose id the shell carries in ingestionProcessId (activeStepProcessId stays free for the approval steps) */
+  local!ingesting: and(local!found, local!statusText = "Ingesting"),
+  local!currentGroup: if(
+    local!inProgress,
+    rule!SD_getDrawApprovalGroup(role: index(local!current, "role", "")),
+    if(local!ingesting, cons!SD_DRAW_DEMO_APPROVERS_GROUP, null)
+  ),
   local!viewerIsAssignee: if(
     a!isNullOrEmpty(local!currentGroup),
     false,
     a!defaultValue(a!isUserMemberOfGroup(username: loggedInUser(), groups: local!currentGroup), false)
   ),
-  local!activeProcess: if(local!found, local!draw[{d("activeStepProcessId")}], null),
+  local!activeProcess: if(local!found, if(local!ingesting, local!draw[{d("ingestionProcessId")}], local!draw[{d("activeStepProcessId")}]), null),
   local!openTaskId: if(
     and(local!viewerIsAssignee, not(a!isNullOrEmpty(local!activeProcess))),
     rule!SD_getOpenTaskId(processId: tointeger(local!activeProcess)),
@@ -84,15 +91,20 @@ a!localVariables(
     totalSteps: count(local!approvals),
     approvedCount: local!approvedCount,
     inProgress: local!inProgress,
-    currentRole: if(a!isNullOrEmpty(local!current), null, index(local!current, "role", null)),
+    ingesting: local!ingesting,
+    currentRole: if(local!ingesting, "Accountant reconciliation", if(a!isNullOrEmpty(local!current), null, index(local!current, "role", null))),
     currentApprover: if(a!isNullOrEmpty(local!current), null, index(local!current, "approverName", null)),
-    currentActivatedAt: local!activatedAt,
+    currentActivatedAt: if(local!ingesting, local!draw[{d("receivedDate")}], local!activatedAt),
     currentGroup: local!currentGroup,
     viewerIsAssignee: local!viewerIsAssignee,
     openTaskId: local!openTaskId,
     awaitingViewer: and(local!viewerIsAssignee, not(a!isNullOrEmpty(local!openTaskId))),
     daysToFunding: if(a!isNullOrEmpty(local!fundingDate), null, tointeger(todate(local!fundingDate) - today())),
-    daysAtStep: if(a!isNullOrEmpty(local!activatedAt), null, max(0, tointeger(today() - todate(local!activatedAt))))
+    daysAtStep: if(
+      local!ingesting,
+      if(a!isNullOrEmpty(local!draw[{d("receivedDate")}]), 0, max(0, tointeger(today() - todate(local!draw[{d("receivedDate")}])))),
+      if(a!isNullOrEmpty(local!activatedAt), null, max(0, tointeger(today() - todate(local!activatedAt))))
+    )
   )
 )
 """

@@ -40,8 +40,9 @@ a!localVariables(
   local!fund,
   local!investment,
   local!type,
-  local!funds: a!localVariables(local!names: a!forEach(items: local!rows, expression: tostring(a!defaultValue(fv!item.fundName, ""))), if(a!isNullOrEmpty(local!names), {{}}, union(local!names, local!names))),
-  local!investments: a!localVariables(local!names: a!forEach(items: local!rows, expression: tostring(a!defaultValue(fv!item.investmentName, ""))), if(a!isNullOrEmpty(local!names), {{}}, union(local!names, local!names))),
+  /* an Ingesting shell has no investment or fund yet; "" is not a legal dropdown choice value, so blanks are dropped */
+  local!funds: a!localVariables(local!names: a!forEach(items: local!rows, expression: tostring(a!defaultValue(fv!item.fundName, ""))), local!named: if(a!isNullOrEmpty(local!names), {{}}, index(local!names, wherecontains(false, a!forEach(items: local!names, expression: fv!item = "")), {{}})), if(a!isNullOrEmpty(local!named), {{}}, union(local!named, local!named))),
+  local!investments: a!localVariables(local!names: a!forEach(items: local!rows, expression: tostring(a!defaultValue(fv!item.investmentName, ""))), local!named: if(a!isNullOrEmpty(local!names), {{}}, index(local!names, wherecontains(false, a!forEach(items: local!names, expression: fv!item = "")), {{}})), if(a!isNullOrEmpty(local!named), {{}}, union(local!named, local!named))),
   /* row subsets are selected with wherecontains over a boolean list: an a!forEach that returns {{}} for skipped
      items yields N nulls when every item is skipped, which counted as 6 "awaiting" rows for a viewer with none */
   local!filtered: if(a!isNullOrEmpty(local!rows), {{}}, index(
@@ -142,7 +143,7 @@ a!localVariables(
                '''if(
                   a!isNullOrEmpty(local!firstAwaiting),
                   "Nothing waiting on you",
-                  "Draw #" & a!defaultValue(local!firstAwaiting.drawNumber, "") & " · " & a!defaultValue(local!firstAwaiting.currentRole, "") & " step · " & if(a!defaultValue(local!firstAwaiting.daysAtStep, 0) = 0, "today", local!firstAwaiting.daysAtStep & if(local!firstAwaiting.daysAtStep = 1, " day", " days"))
+                  if(a!isNullOrEmpty(local!firstAwaiting.drawNumber), "New draw (ingesting)", "Draw #" & local!firstAwaiting.drawNumber) & " · " & a!defaultValue(local!firstAwaiting.currentRole, "") & if(a!defaultValue(local!firstAwaiting.ingesting, false), " · ", " step · ") & if(a!defaultValue(local!firstAwaiting.daysAtStep, 0) = 0, "today", local!firstAwaiting.daysAtStep & if(local!firstAwaiting.daysAtStep = 1, " day", " days"))
                 )''', 'count(local!awaiting) > 0')},
           {kpi('"In Approval"', money('sum(a!forEach(items: local!inApproval, expression: a!defaultValue(fv!item.amount, 0)))'),
                'count(local!inApproval) & if(count(local!inApproval) = 1, " draw", " draws")')},
@@ -174,8 +175,8 @@ a!localVariables(
                 contents: a!dropdownField(
                   labelPosition: "COLLAPSED",
                   placeholder: "Status: All",
-                  choiceLabels: {{"In Progress", "Approved", "Rejected"}},
-                  choiceValues: {{"In Progress", "Approved", "Rejected"}},
+                  choiceLabels: {{"Ingesting", "In Progress", "Approved", "Rejected"}},
+                  choiceValues: {{"Ingesting", "In Progress", "Approved", "Rejected"}},
                   value: local!status,
                   saveInto: local!status,
                   marginBelow: "NONE"
@@ -243,7 +244,7 @@ a!localVariables(
                 value: a!richTextDisplayField(
                   value: {{
                     a!richTextItem(
-                      text: "#" & fv!row.drawNumber,
+                      text: if(a!isNullOrEmpty(fv!row.drawNumber), "New draw", "#" & fv!row.drawNumber),
                       link: a!recordLink(recordType: {rt(DRAW)}, identifier: fv!row.id),
                       linkStyle: "STANDALONE",
                       style: "STRONG"
@@ -313,7 +314,15 @@ a!localVariables(
                         if(
                           local!s = "Rejected",
                           a!richTextItem(text: "Rejected at step " & a!defaultValue(fv!row.currentStep, "?"), color: "#B42318"),
-                          a!richTextItem(text: "—", color: "#6B7280")
+                          if(
+                            local!s = "Ingesting",
+                            {{
+                              a!richTextItem(text: "Doc Center extraction · Accountant reconciliation"),
+                              char(10),
+                              a!richTextItem(text: "received " & if(a!isNullOrEmpty(fv!row.receivedDate), "—", text(todate(fv!row.receivedDate), "MMM D")), color: "#6B7280", size: "SMALL")
+                            }},
+                            a!richTextItem(text: "—", color: "#6B7280")
+                          )
                         )
                       )
                     )

@@ -16,6 +16,12 @@ Open items by class. Sessions add discovered items unprompted as they surface, a
 - **Demo start (2026-09-22).** After the reset, start `SD Draw Approval Process` on draw 66 and wait ~10 s: the Draws page shows "Awaiting My Action 1" and YOUR ACTION on #66 for `sd.assetmanager` only while that task is live. The task currently live is 536874206 (step process 536909940).
   - *Owner:* the presenter or the session.
   - *Trigger:* before every rehearsal and the demo.
+- **Ingestion demo reset (2026-09-22).** The verified ingested draw is `SD Draw` **74** (shows as #67, In Progress at step 1, task live on step process 38746). Before a rehearsal either keep it as the "already-ingested" specimen or clear it: `listRecordData` the children by `drawId` 74, then `python3 scripts/seed_draw66.py --cleanup-ingested draw=74 lines=6617-6632 approvals=6610-6618 qiu=6611-6620 docs=6608` and apply its CSVs with `deleteRecordData` children first. Then run **Receive Capital Call** as `sd.accountant` with `THSV_Draw67_Budget_Template.xlsx`; the Ingesting row appears within ~10 s, the reconciliation task ~80 s after submit.
+  - *Owner:* the presenter or the session.
+  - *Trigger:* before every rehearsal that shows ingestion.
+- **Cancel the stranded build-time process instances** (they hold no data; the rows were deleted): launcher runs 268476637, 38725, 38732 and 536909956 / 268476640 (the two `testProcessModel` launcher runs), their `SD Receive Capital Call` children (the ones for draws 67–73, including 38740's predecessors), the Doc Center `AIA Extraction Run Model Version` instances for documents 55245/55247/55252 whose Save Extraction child paused on the `[]` bug, and the two orphan approval-process runs 38744/38745 (both completed). Process Monitoring, filter by model name, cancel; do not resume.
+  - *Owner:* Scott.
+  - *Trigger:* before the demo (they show in Process Monitoring only).
 - **`sd.accountant`'s display name is "Priya Ramen"; the mockups and the spec say "Priya Raman".** The seed now uses the account's spelling (ruled by the Phase 2b brief: persona rows carry the accounts' display names), so the UI reads "Ramen".
   - *Owner:* Scott.
   - *Steps:* either correct the account's last name in Admin Console (then rerun the seed's approval rows) or accept "Ramen".
@@ -33,11 +39,28 @@ Open items by class. Sessions add discovered items unprompted as they surface, a
   - *Trigger:* before the first rehearsal.
 - **Geometry of the three built pages against the mockups** (card widths, the four KPI cards in one row on desktop, grid column widths, the navy band, the strip's button alignment). Owner: Scott. Log in as `sd.assetmanager`, compare the Draws page, #66 Summary and the task form with `mockups/draw-list.html`, `draw-summary.html`, `task-approval.html`. Note deltas in `TODO.md`; the mockups are not changed by build sessions.
   - *Trigger:* before the first rehearsal.
-- **Document download links** appear only once real files are attached (Phase 3); the three seeded rows render names as text. Owner: the Phase 3 session. *Trigger:* Phase 3 ingestion.
+- **The accountant's reconciliation task, end to end as the persona (sail cannot open a task; this session completed it over the Dev MCP as the designer).** Owner: Scott.
+  1. Reset per "Ingestion demo reset" above, then as `sd.accountant` open `/suite/sites/subscription-agreement-analyst/receive-capital-call`, attach `THSV_Draw67_Budget_Template.xlsx`, click **Receive**.
+  2. Open Draws within a few seconds: expect a first row "New draw" with **YOUR ACTION**, status **Ingesting**, step cell "Doc Center extraction · Accountant reconciliation · received Sep 22", KPI "AWAITING MY ACTION 1 · New draw (ingesting) · Accountant reconciliation · today". Refresh after ~80 s; the Summary of that draw shows the blue strip "Doc Center extraction is ready for your reconciliation…" and a **Reconcile Extraction** button.
+  3. Click it. Expect the form "Reconcile extracted draw #67": Draw Number 67, Investment Name "Tamarack Hotel & Spa Vail" with "Matches investment #1 on file.", Fund, Draw Type PIP/Renovation, Funding Date 11/16/2026, Draw Amount 2604252.23, Cash/Equity "Yes", On Budget, N/A, Submitted By "Vail Peak Management LLC (Property Manager)", Purpose and Contingency texts, General Comments blank; the grid with 16 rows (Hard Costs first, Start-up/Marketing last, Operating Deficits current draw −21509); the right card "SOURCE DOCUMENT" with the xlsx as a download link, "Doc Center reports no per-field confidence for spreadsheet extraction…", "Current draw lines $2,604,252.23 vs draw amount $2,604,252.23" and the green **Ties ✓** chip.
+  4. Click **Confirm & assemble draw** without edits. Within ~15 s the draw shows #67 · In Progress · step 1 of 9 · Accountant · Priya Ramen; Documents tab row "Extracted & Confirmed · Doc Center extraction confirmed by **Priya Ramen** MM/DD/YYYY"; Budget Detail 16 lines; QIU "model as of" today; Funding History #67, #65, #64, #63.
+  5. Optional (the brief's "if time"): run again, change Draw Amount to 2604252.00 before confirming, expect the fact strip to read $2,604,252.00 and the Amount Verification chip **Does not tie**.
+  - *Trigger:* before the first rehearsal.
+- **Document download as a persona** (S9): on #67's Documents tab as `sd.accountant`, click `THSV_Draw67_Budget_Template.xlsx`; expect the 7,650-byte workbook. Owner: Scott. *Trigger:* with the check above.
+- **Geometry of the two Phase 3 forms** (start form drop zone; the reconciliation form's two-column header and nine-column DENSE grid at desktop width — the numeric columns must not wrap). Owner: Scott. *Trigger:* with the check above.
 
 ## Client validation questions
 
+- **Funding History on an ingested draw:** the view lists the last three *approved* draws (65/64/63 for #67); the Phase 3 brief expected 66/65/64 (66 is still in approval). Which reading does the client want — funded history, or all prior draws with their status? *Owner:* the Project. *Trigger:* the next mockup pass.
+- **General Comments is not extracted from the template** (Doc Center's save step rejects the model's `[]` for a blank cell; the field was removed from the extraction model). Does any real template carry General Comments, and should it be re-added with a filled specimen? *Trigger:* the first real template with the cell filled.
+
 ## Deferred
+
+- **Second ingestion run with an edited value** (brief item 5, "if time"): folded into the browser check above, step 5. *Trigger:* that check.
+- **Backup documents on an ingested draw** (contractor / A&E invoices) — the pipeline attaches only the template. *Trigger:* Phase 5/6 scoping.
+- **The frozen intake launcher** `SD Receive Capital Call (Intake Form)` cannot be edited over the Dev MCP (start form). A change means delete, recreate, re-point the site page — or edit in Designer. *Trigger:* the next change to the start form or its mapping.
+- **Doc Center `generalComments` field** removed from model 85 — re-add when a template carries the cell (see Client validation). *Trigger:* that template.
+- **`SD_getDrawListRows` sort for Ingesting rows:** an ingesting shell sorts first only for its assignees, otherwise last with "New draw". Decide whether Ingesting should always sort first. *Trigger:* the first rehearsal.
 
 - **Draw personas can see the intake pages.** `SD Draw Approvers` is a viewer of the whole `SASite`, so `sd.accountant` / `sd.assetmanager` also see Dashboard, New Subscription and Subscription Records. A visibility expression on those pages (member of `Subscription Agreement Analysts`) would hide them; not done this session because the brief limited security changes to reaching the Draws page.
   - *Owner:* Scott (ruling), then the build session.

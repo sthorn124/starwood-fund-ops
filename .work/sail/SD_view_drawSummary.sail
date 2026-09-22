@@ -213,15 +213,19 @@ a!localVariables(
                 labelPosition: "COLLAPSED",
                 value: {
                   a!richTextItem(
-                    text: "Your approval is pending — " & a!defaultValue(index(local!d, "currentRole", ""), "") & ", step " & a!defaultValue(local!currentStep, "?") & " of " & local!totalSteps,
+                    text: if(
+                      a!defaultValue(index(local!d, "ingesting", false), false),
+                      "Doc Center extraction is ready for your reconciliation — confirm the header and budget lines to assemble the draw",
+                      "Your approval is pending — " & a!defaultValue(index(local!d, "currentRole", ""), "") & ", step " & a!defaultValue(local!currentStep, "?") & " of " & local!totalSteps
+                    ),
                     style: "STRONG",
                     color: "#16294D"
                   ),
                   char(10),
                   a!richTextItem(
                     text: {
-                      "With you since " & if(a!isNullOrEmpty(index(local!d, "currentActivatedAt", null)), "—", text(todate(index(local!d, "currentActivatedAt", null)), "MMM D")),
-                      " · funds scheduled " & rule!SD_fmtRelativeDays(days: index(local!d, "daysToFunding", null))
+                      if(a!defaultValue(index(local!d, "ingesting", false), false), "Received ", "With you since ") & if(a!isNullOrEmpty(index(local!d, "currentActivatedAt", null)), "—", text(todate(index(local!d, "currentActivatedAt", null)), "MMM D")),
+                      if(a!isNullOrEmpty(index(local!d, "daysToFunding", null)), "", " · funds scheduled " & rule!SD_fmtRelativeDays(days: index(local!d, "daysToFunding", null)))
                     },
                     color: "#6B7280",
                     size: "SMALL"
@@ -236,7 +240,7 @@ a!localVariables(
                 a!cardLayout(
                   contents: a!richTextDisplayField(
                     labelPosition: "COLLAPSED",
-                    value: a!richTextItem(text: "Review & Approve", color: "#FFFFFF", style: "STRONG"),
+                    value: a!richTextItem(text: if(a!defaultValue(index(local!d, "ingesting", false), false), "Reconcile Extraction", "Review & Approve"), color: "#FFFFFF", style: "STRONG"),
                     align: "CENTER",
                     marginBelow: "NONE"
                   ),

@@ -12,7 +12,7 @@ a!localVariables(
         labelPosition: "COLLAPSED",
         value: {
           a!richTextItem(text: "Draws › ", color: "#6B7280", size: "SMALL"),
-          a!richTextItem(text: "Draw #" & a!defaultValue(index(local!d, "drawNumber", "?"), "?"), color: "#16294D", size: "SMALL", style: "STRONG")
+          a!richTextItem(text: if(a!isNullOrEmpty(index(local!d, "drawNumber", null)), "New draw (ingesting)", "Draw #" & index(local!d, "drawNumber", "?")), color: "#16294D", size: "SMALL", style: "STRONG")
         },
         marginBelow: "LESS"
       ),

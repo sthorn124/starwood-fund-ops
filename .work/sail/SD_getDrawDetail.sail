@@ -32,6 +32,8 @@ a!localVariables(
           'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{039b9281-34a3-468c-881e-20a4ce03d900}receivedDate',
           'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{18a40650-1ce5-4cc4-8132-6018cd1064a9}submittedBy',
           'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{09edf0b2-28a3-4a7f-b9dc-ae2afefa24d0}investmentId',
+          'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{1c798a00-4519-49c1-9c04-27e7fb78a9d3}extractionInstanceId',
+          'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{e418c5aa-c0db-4e02-8fb9-a4ce72ccdcef}ingestionProcessId',
           'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.relationships.{58a1018a-d85c-42b9-94ed-b51a9f0ef3d2}investment.fields.{e79c63ed-a43c-4951-b679-e2578ed5cbf6}investmentName',
           'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.relationships.{58a1018a-d85c-42b9-94ed-b51a9f0ef3d2}investment.fields.{fc86153c-eedd-41de-a0dd-a20def74fd2d}investmentDescription',
           'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.relationships.{58a1018a-d85c-42b9-94ed-b51a9f0ef3d2}investment.relationships.{1b588a74-afbc-4756-aacf-69483491d566}fund.fields.{fb775e5a-1ed9-4ce9-85ca-bb1b43767475}fundName'
@@ -58,13 +60,20 @@ a!localVariables(
     not(a!isNullOrEmpty(local!current)),
     tostring(a!defaultValue(index(local!current, "status", ""), "")) = "In Progress"
   ),
-  local!currentGroup: if(local!inProgress, rule!SD_getDrawApprovalGroup(role: index(local!current, "role", "")), null),
+  /* an Ingesting draw (Phase 3) is the accountant group's: its reconciliation task is open on the ingestion process,
+     whose id the shell carries in ingestionProcessId (activeStepProcessId stays free for the approval steps) */
+  local!ingesting: and(local!found, local!statusText = "Ingesting"),
+  local!currentGroup: if(
+    local!inProgress,
+    rule!SD_getDrawApprovalGroup(role: index(local!current, "role", "")),
+    if(local!ingesting, cons!SD_DRAW_DEMO_APPROVERS_GROUP, null)
+  ),
   local!viewerIsAssignee: if(
     a!isNullOrEmpty(local!currentGroup),
     false,
     a!defaultValue(a!isUserMemberOfGroup(username: loggedInUser(), groups: local!currentGroup), false)
   ),
-  local!activeProcess: if(local!found, local!draw['recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{a132be23-f941-4d59-a22c-b57e29900ea6}activeStepProcessId'], null),
+  local!activeProcess: if(local!found, if(local!ingesting, local!draw['recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{e418c5aa-c0db-4e02-8fb9-a4ce72ccdcef}ingestionProcessId'], local!draw['recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{a132be23-f941-4d59-a22c-b57e29900ea6}activeStepProcessId']), null),
   local!openTaskId: if(
     and(local!viewerIsAssignee, not(a!isNullOrEmpty(local!activeProcess))),
     rule!SD_getOpenTaskId(processId: tointeger(local!activeProcess)),
@@ -106,6 +115,8 @@ a!localVariables(
     receivedDate: if(local!found, local!draw['recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{039b9281-34a3-468c-881e-20a4ce03d900}receivedDate'], null),
     submittedBy: if(local!found, local!draw['recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{18a40650-1ce5-4cc4-8132-6018cd1064a9}submittedBy'], null),
     investmentId: if(local!found, local!draw['recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{09edf0b2-28a3-4a7f-b9dc-ae2afefa24d0}investmentId'], null),
+    extractionInstanceId: if(local!found, local!draw['recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{1c798a00-4519-49c1-9c04-27e7fb78a9d3}extractionInstanceId'], null),
+    ingestionProcessId: if(local!found, local!draw['recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{e418c5aa-c0db-4e02-8fb9-a4ce72ccdcef}ingestionProcessId'], null),
     investmentName: if(local!found, local!draw['recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.relationships.{58a1018a-d85c-42b9-94ed-b51a9f0ef3d2}investment.fields.{e79c63ed-a43c-4951-b679-e2578ed5cbf6}investmentName'], null),
     investmentDescription: if(local!found, local!draw['recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.relationships.{58a1018a-d85c-42b9-94ed-b51a9f0ef3d2}investment.fields.{fc86153c-eedd-41de-a0dd-a20def74fd2d}investmentDescription'], null),
     fundName: if(local!found, local!draw['recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.relationships.{58a1018a-d85c-42b9-94ed-b51a9f0ef3d2}investment.relationships.{1b588a74-afbc-4756-aacf-69483491d566}fund.fields.{fb775e5a-1ed9-4ce9-85ca-bb1b43767475}fundName'], null),
@@ -115,14 +126,19 @@ a!localVariables(
     totalSteps: count(local!approvals),
     approvedCount: local!approvedCount,
     inProgress: local!inProgress,
-    currentRole: if(a!isNullOrEmpty(local!current), null, index(local!current, "role", null)),
+    ingesting: local!ingesting,
+    currentRole: if(local!ingesting, "Accountant reconciliation", if(a!isNullOrEmpty(local!current), null, index(local!current, "role", null))),
     currentApprover: if(a!isNullOrEmpty(local!current), null, index(local!current, "approverName", null)),
-    currentActivatedAt: local!activatedAt,
+    currentActivatedAt: if(local!ingesting, local!draw['recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{039b9281-34a3-468c-881e-20a4ce03d900}receivedDate'], local!activatedAt),
     currentGroup: local!currentGroup,
     viewerIsAssignee: local!viewerIsAssignee,
     openTaskId: local!openTaskId,
     awaitingViewer: and(local!viewerIsAssignee, not(a!isNullOrEmpty(local!openTaskId))),
     daysToFunding: if(a!isNullOrEmpty(local!fundingDate), null, tointeger(todate(local!fundingDate) - today())),
-    daysAtStep: if(a!isNullOrEmpty(local!activatedAt), null, max(0, tointeger(today() - todate(local!activatedAt))))
+    daysAtStep: if(
+      local!ingesting,
+      if(a!isNullOrEmpty(local!draw['recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{039b9281-34a3-468c-881e-20a4ce03d900}receivedDate']), 0, max(0, tointeger(today() - todate(local!draw['recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{039b9281-34a3-468c-881e-20a4ce03d900}receivedDate'])))),
+      if(a!isNullOrEmpty(local!activatedAt), null, max(0, tointeger(today() - todate(local!activatedAt))))
+    )
   )
 )

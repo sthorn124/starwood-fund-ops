@@ -166,26 +166,31 @@ The canonical definition is in `PROJECT_INSTRUCTIONS.md` § Data model. Field vo
 
 **Demo-visible outcome:** draw #66 opens as a record on the intake site, showing its header, budget, QIU table and a live approval status table.
 
-### Phase 3 — Doc Center ingestion, success path
+### Phase 3 — Doc Center ingestion, success path  ← CORE COMPLETE 2026-09-22
 
 **Objects:**
-- [ ] **Working example first.** Read the existing `SD Process Packet (async)` Doc Center configuration and copy the mechanism, changing one thing at a time (supplemental §1). Find it before building anything new.
-- [ ] **Excel template handling.** Confirm Doc Center handles the Excel budget template as-is. The fallback is extraction from a PDF rendition (open question). Any binary sample template is added by hand in Designer and its byte size read back, because binary uploads over MCP corrupt.
-- [ ] **Ingestion process `SD Ingest Draw Template`:** document in, Doc Center extraction, confidence check, a branch to reconciliation below the threshold, then budget-line writes.
-- [ ] **Accountant reconciliation form:** a start form or related action on `SD Draw` showing the extracted values with their confidence, and a confirm-to-commit step. Data commits only after confirmation.
-- [ ] **Manual trigger** for the demo ("template arrives"), narrated as the EY API/SFTP feed.
-- [ ] **`SD Draw Document` rows** for the template and the backup documents.
+- ✅ 2026-09-22 **Working example first.** Copied the intake app's `SD Process Batch Roster (MCP)` mechanism (subprocess `AIA Extraction Run Model Version`, `modelKey`) and DocCenter's own create process (models are rows in the AIA tables).
+- ✅ 2026-09-22 **Excel template handling.** Doc Center extracts the xlsx directly (Generative AI spreadsheet path, model `drawBudgetTemplate` 85/142); 12 header fields and all 16 lines correct on the first run. No PDF rendition needed. The template is uploaded through the start form by a persona (binary uploads over MCP corrupt, so the form is the only route).
+- ✅ 2026-09-22 **Ingestion process** — built as `SD Receive Capital Call` (+ the frozen start-form launcher `SD Receive Capital Call (Intake Form)`): shell → document row → extraction → reconciliation task → header + lines commit → template Extracted & Confirmed → QIU + chain assembly → In Progress at step 1 → `SD Draw Approval Process`. Every extraction routes to reconciliation (Doc Center gives no confidence on the spreadsheet path, so there is no threshold to branch on); nothing commits before confirmation.
+- ✅ 2026-09-22 **Accountant reconciliation form** `SD_form_reconcileExtraction`: a user input task for `SD Draw Demo Approvers`, editable header and 16-line grid, document link, tie-out chip, "no per-field confidence" notice; confirm-to-commit.
+- ✅ 2026-09-22 **Manual trigger**: `SASite` action page **Receive Capital Call** (narrated as the EY API/SFTP feed).
+- ✅ 2026-09-22 **`SD Draw Document` row** for the template (Received → Extracted & Confirmed, real download link). Backup documents remain a later item.
+- ✅ 2026-09-22 **Post-confirm assembly** (brief item 4): QIU rows copied from the investment's latest prior draw and re-dated; nine-row chain copied with names; approval process started at step 1. `scripts/seed_draw66.py --cleanup-ingested` added.
+- [ ] **Persona submit of the reconciliation task** — browser check (`TODO.md`): sail cannot open a task, so this session completed the task over the Dev MCP as the designer with the unedited payload. *Owner: Scott. Trigger: before the first rehearsal.*
+- [ ] **Second run with one edited value** (brief's "if time") — not run. *Trigger: the persona browser check above; edit Draw Amount and confirm the committed value.*
+- [ ] **Backup documents** attached to an ingested draw. *Trigger: Phase 5/6 scoping.*
+- [ ] **Cancel the stranded build-time process instances** in Process Monitoring (see `TODO.md`). *Owner: Scott. Trigger: before the demo.*
+- [ ] **Funding History semantics for an ingested draw:** the view lists prior *approved* draws (65/64/63 for #67); the brief expected 66/65/64 (66 is still in approval). *Ruling needed.*
 
 **Dependencies:** Phase 1 record types; Phase 2 views; the Doc Center capability on the instance; a clean template specimen.
 
-**Verification:**
-- **Specimens held constant:** a clean template and a low-confidence template, identified by their properties.
-- **Pass conditions:**
-  - The clean template produces the expected budget-line count and totals, stated number against number, with the draw's totals matching the email sample.
-  - The low-confidence template routes to reconciliation, and nothing is written before confirmation. This is the break-test.
-- **Accountant path:** driven through sail as the Fund Accountant.
+**Verification (2026-09-22):**
+- **Specimens held constant:** the clean template `THSV_Draw67_Budget_Template.xlsx` (md5 f4f99f07…); the malformed `_v2` is reserved for Phase 5.
+- **Pass conditions met:** 16 lines, current-draw lines sum $2,604,252.23 = header amount (Ties ✓); header facts equal the template's; QIU 10 rows as of 09/22/2026; chain at step 1 with a live task (step process 38746); template Extracted & Confirmed; Draws page as `sd.assetmanager` shows #67 without YOUR ACTION and #66 with; as `sd.accountant` #67 carries YOUR ACTION at step 1.
+- **Break-test (low-confidence routing):** not applicable as designed — every extraction routes to reconciliation; the Phase 5 malformed template is the failure specimen.
+- **Accountant path:** upload and submit driven through sail as `sd.accountant`; the task itself is browser-only (see above).
 
-**Demo-visible outcome:** a corrected template goes in; the accountant confirms the extraction; budget lines appear on the draw.
+**Demo-visible outcome:** the template goes in; the accountant reconciles; draw #67 appears with lines, QIU, chain and document.
 
 ### Phase 4 — New approval email layout
 

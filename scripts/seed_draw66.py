@@ -11,6 +11,10 @@ Usage:
   python3 scripts/seed_draw66.py            # reconciliation checks (exit 0 = pass)
   python3 scripts/seed_draw66.py --csv      # insert CSVs, dependency order
   python3 scripts/seed_draw66.py --reset-csv# update CSVs returning draw 66 (and its 9 rows) to the seeded state
+  python3 scripts/seed_draw66.py --cleanup-ingested draw=74 lines=6617-6632 approvals=6610-6618 qiu=6611-6620 docs=6608
+                                            # delete CSVs (children first) for one ingested draw (Phase 3). Every id is
+                                            # explicit (CLAUDE.md §12); ids inside the seeded sets are refused, so the
+                                            # seeded draws (11, 12, 63-66) and their rows can never be swept.
 """
 import csv, io, sys
 from decimal import Decimal as D
@@ -165,7 +169,52 @@ def reset_csv():
                      [[66*100+o,st,act,dec,com,by,src] for (o,st,act,dec,com,by,src) in APPROVALS[66]])
     return draw_csv, appr_csv
 
+# Seeded ids, protected from --cleanup-ingested. Approval ids are drawId*100+order; the rest are the seed's explicit ranges.
+SEEDED = {
+    "draws": {11, 12, 63, 64, 65, 66},
+    "lines": set(range(6601, 6617)),
+    "approvals": {d*100+o for d in (63, 64, 65, 11, 12, 66) for o in range(1, 10)},
+    "qiu": set(range(6601, 6611)),
+    "docs": {6601, 6602, 6603},
+}
+CHILD_TYPES = [("lines", "SD Draw Budget Line"), ("approvals", "SD Draw Approval"), ("qiu", "SD QIU Metric"), ("docs", "SD Draw Document")]
+
+def parse_ids(spec):
+    """'6617-6632,6640' -> [6617..6632, 6640]; '' -> []"""
+    out = []
+    for part in [x for x in spec.split(",") if x.strip()]:
+        if "-" in part:
+            a, b = part.split("-"); out.extend(range(int(a), int(b) + 1))
+        else:
+            out.append(int(part))
+    return out
+
+def cleanup_ingested_csv(args):
+    """Delete CSVs for an ingested draw and its children, children first. Refuses any seeded id."""
+    spec = {k: "" for k in ("draw", "lines", "approvals", "qiu", "docs")}
+    for a in args:
+        if "=" in a:
+            k, v = a.split("=", 1)
+            if k in spec: spec[k] = v
+    draw_ids = parse_ids(spec["draw"])
+    if not draw_ids: raise SystemExit("--cleanup-ingested needs draw=<id> (the SD Draw id, not the draw number)")
+    bad = [i for i in draw_ids if i in SEEDED["draws"]]
+    if bad: raise SystemExit(f"refused: seeded draw id(s) {bad}")
+    blocks = []
+    for key, name in CHILD_TYPES:
+        ids = parse_ids(spec[key])
+        bad = [i for i in ids if i in SEEDED[key]]
+        if bad: raise SystemExit(f"refused: seeded {name} id(s) {bad}")
+        if ids: blocks.append((name, ids))
+    blocks.append(("SD Draw", draw_ids))
+    out = []
+    for name, ids in blocks:
+        out.append(f"### {name} (deleteRecordData)"); out.append(csvtext(["id"], [[i] for i in ids]))
+    return "\n".join(out)
+
 if __name__=="__main__":
+    if "--cleanup-ingested" in sys.argv:
+        print(cleanup_ingested_csv(sys.argv)); sys.exit(0)
     if "--reset-csv" in sys.argv:
         a,b=reset_csv(); print(a); print(b); sys.exit(0)
     ok=checks()
