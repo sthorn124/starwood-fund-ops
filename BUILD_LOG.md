@@ -2,7 +2,7 @@
 
 What has actually been built in the environment, with object identifiers and the decisions behind them. Append after every build step; never rewrite a closed entry — a correction is a new entry that names what it corrects. Entry shape: date and title; scope line (the identity and group memberships every readback ran under); what changed, by object; decisions and why; verified (how, with counts and scope); not verified (and the browser checklist that covers it); promotion checkpoint. The contract is `CLAUDE.md` §7; the promotion loop is §9.
 
-**Promotion checkpoint: current through 2026-09-21 — Dev MCP update, Phase 2 (re-verify) — level with the log tail.** A session touching promotion refuses to call itself complete if this checkpoint lags the log tail by more than one session.
+**Promotion checkpoint: current through 2026-09-21 — Phase 0 transcription and build plan — level with the log tail.** A session touching promotion refuses to call itself complete if this checkpoint lags the log tail by more than one session.
 
 ## Promotion candidates (staging)
 
@@ -233,3 +233,40 @@ Promotion checkpoint: current through 2026-09-21 — Dev MCP update, Phase 1 (in
 **Rollback.** Still available: `~/appian-dev-mcp-server`, its `bin/` sail binary, and `~/.claude.json.bak-2026-09-21-devmcp-update`.
 
 Promotion checkpoint: current through 2026-09-21 — Dev MCP update, Phase 2 (re-verify).
+
+### 2026-09-21 — Phase 0 transcription and build plan
+
+**Scope.**
+- **Docs only.** No build work and no instance writes.
+- **Two read-only Dev MCP calls** as `scott.thorn@appian.com`, a member of `SD Administrators` and `SD Users`: `listRecordData` on `SA Fund` and on `Subscription Agreement`. They ground two plan facts, recorded below.
+- **Not used:** `appian-runtime` and sail.
+
+**What changed.** Repo files only:
+- **`PROJECT_INSTRUCTIONS.md`:** the seven Phase 0 sections were filled with the supplied text, verbatim (a diff against the supplied text shows it byte-identical). The header facts are unchanged, and the italic status line now says Phase 0 is complete.
+- **`BUILD_PLAN.md`:** rewritten from the template stub. It passes the plan gate: the stub marker is gone and `## Build Phases` holds 53 checklist items across Phases 0–5.
+  - Each phase lists the objects to create or modify, its dependencies, its verification (pass conditions and break-tests stated in advance), and its demo-visible outcome.
+  - **Phase 1 is marked as the next session's scope.**
+- **`TODO.md`:** the Blocking item "Phase 0 plan" is closed, the persona-accounts item is sharpened, and 7 transcription discrepancies are added as client validation questions.
+
+**Design decisions in the plan, and why.**
+- **The approval process is event-driven and unattended.** `SD Apply Draw Approval Decision` takes the draw id, the decision, comments and the actor. It is not a long-running process with user input tasks, because `testProcessModel` refuses attended models (supplemental §9). That keeps every routing path verifiable over MCP.
+- **The demo accelerator reuses the same decision process** step by step, with a hard ceiling, so the accelerator cannot diverge from the real routing rules.
+- **The treasury notification is gated on the final-approval write,** never merely sequenced after it (supplemental §6 and §9).
+- **Doc Center work starts by reading the existing `SD Process Packet (async)` configuration:** a working example on the instance comes first (supplemental §1).
+- **Model calls stay out of expression rules,** and AI output passes a deterministic validation gate before any alert or state change uses it.
+
+**Facts read (as the designer).**
+- `SA Fund` id 4 is "Harborline Real Assets Fund II, L.P.", so the narrative's fund exists.
+- Blue Granite Pension Trust has multiple `Subscription Agreement` rows on fund 4, all "Under Review" or earlier, none Accepted. This is recorded as a narrative continuity question.
+- `Starwood Demo` has no investment or property entity. This is recorded as a data-model question.
+
+**Verified.**
+- The verbatim transcription, by diff.
+- The plan gate, by a structural check.
+- The two record reads, with scope stated.
+
+**Not verified.** The fine print in the spec PDFs (the QIU row count and the approval step count). The earlier render was low resolution, so a high-resolution re-read is queued as part of the discrepancy questions.
+
+**Promotion.** 0 candidates found.
+
+Promotion checkpoint: current through 2026-09-21 — Phase 0 transcription and build plan.
