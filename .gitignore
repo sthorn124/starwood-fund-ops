@@ -12,3 +12,4 @@ uploads/
 scratch/
 # macOS Finder metadata
 .DS_Store
+__pycache__/
