@@ -3,7 +3,7 @@
 Sources: `New approval email sample blacklined.pdf` (repo root, read at high resolution 2026-09-21) for draw 66's
 lines and QIU rows; the Phase 2b brief (2026-09-22) for the prior draws, the second investment and the documents;
 the approved mockups for the chain's approver names, except rows filled by persona accounts, whose display names win
-(sd.accountant = "Priya Ramen", sd.assetmanager = "Elena Marchetti").
+(sd.accountant = "Priya Raman", sd.assetmanager = "Elena Marchetti").
 Explicit ids only (CLAUDE.md §12); no now()/today()/rand(). Narrative frame: draw 66 received 2026-10-03, chain
 started 2026-10-06, funding 2026-10-15.
 
@@ -35,7 +35,7 @@ INVESTMENTS = [
 ]
 
 # Chain names by order (mockup chain; rows 1 and 3 are the persona accounts' display names)
-CHAIN = [(1,"Accountant","Priya Ramen"),(2,"Accounting Controller","Daniel Osei"),(3,"Asset Manager","Elena Marchetti"),
+CHAIN = [(1,"Accountant","Priya Raman"),(2,"Accounting Controller","Daniel Osei"),(3,"Asset Manager","Elena Marchetti"),
          (4,"AM SVP","Mark Feldstein"),(5,"Executive","Sandra Whitmore"),(6,"Chief Accounting Officer","Robert Chen"),
          (7,"CFO of Funds","Alicia Fontaine"),(8,"President","James Callahan"),(9,"CEO","Thomas Bergman")]
 
@@ -124,7 +124,7 @@ QIU = [("IRR","(9.4%)","(9.4%)","0.0%"),("Profit","($129,377,499)","($129,377,49
  ("Future Distributions (after current quarter)","$187,083,773","$187,083,773","$0")]
 # Draw 66 documents: metadata-only rows (binary uploads corrupt over the Dev MCP; files are added by hand or by Phase 3 ingestion)
 DOCS = [
- (6601,66,"","THSV_Draw66_Budget_Template.xlsx","Budget Template","Extracted & Confirmed","2026-10-03","Doc Center extraction confirmed by Priya Ramen 10/05/2026","EY data feed","2026-10-03 06:15:00"),
+ (6601,66,"","THSV_Draw66_Budget_Template.xlsx","Budget Template","Extracted & Confirmed","2026-10-03","Doc Center extraction confirmed by Priya Raman 10/05/2026","EY data feed","2026-10-03 06:15:00"),
  (6602,66,"","THSV_Draw66_ContractorInvoices.pdf","Backup","Attached","2026-10-03","Contractor invoice package, Hard Costs","EY data feed","2026-10-03 06:15:00"),
  (6603,66,"","THSV_Draw66_AE_Invoices.pdf","Backup","Attached","2026-10-03","A&E invoices supporting contingency reallocation","EY data feed","2026-10-03 06:15:00"),
 ]

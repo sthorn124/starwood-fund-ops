@@ -1,74 +1,75 @@
-# Closeout — 2026-09-22 — Phase 3: Doc Center ingestion, success path — capital call intake, extraction, accountant reconciliation, draw assembly
+# Closeout — 2026-09-22 — Fix session: reconciliation form full width with inline document viewer, rulings recorded, persona name synced
 
 ## Scope and identity
 
-- **Designer:** Dev MCP `appian` as `scott.thorn@appian.com` — member of `SD Administrators`, `SD Users` and all three draw approval step groups (incl. `SD Draw Demo Approvers`, which is why it could complete the accountant's task). Every `testInterface` / `testRule` / `listRecordData` readback and the one `completeTask` ran under it. Unattended Doc Center and commit nodes run as DESIGNER by design.
-- **Personas, via sail:** `sd.accountant` (`~/.sail-sd.accountant`, `SD Draw Demo Approvers`) drove the intake form and read the Draws page and the draw's tabs; `sd.assetmanager` (`~/.sail-sd.assetmanager`) read the Draws page. Both sessions live all session. `--from-devmcp` never used; `appian-runtime` never used.
-- **Docs gate honoured:** docs-search on `a!fileUploadField` (folder target needs Editor) and on the editable grid before either form.
+- **Designer:** Dev MCP `appian` as `scott.thorn@appian.com` — `SD Administrators`, `SD Users`, the three draw step groups, and (relevant today) a direct member of DocCenter's `AIA All Users`, so every designer render of the inline viewer is full-scope. All `testInterface` / `testRule` / `listRecordData` / security readbacks ran under it.
+- **Persona, via sail:** `sd.accountant` (`~/.sail-sd.accountant`, `SD Draw Demo Approvers`) — one Draws-page readback. `sd.assetmanager` not needed. `--from-devmcp` and `appian-runtime` never used.
+- **Docs gate honoured** before the layout edit: pane layout in a form (widths, padding, forced FULL width), `a!documentViewerField` (no native Office rendering), connected-system security for component plug-ins.
+- **No new features beyond the brief.** No throwaway objects created.
 
-## The capability result (brief item 1)
+## Found on arrival
 
-**Doc Center extracts the xlsx directly — that is the live path. No PDF rendition.** Doc Center here is the DocCenter application (prefix AIA); its extraction models are data rows, and model 85 `drawBudgetTemplate` (version 142, 12 header fields + a 9-column `budgetLines` table) was created with `insertRecordData`. `AIA Extraction Run Model Version` sent the workbook down the Generative-AI spreadsheet path (one claude-haiku-4-5 call, ~22 s) and returned every header field and all 16 lines correctly on the first live run. Recorded in `reference/mcp-capability-boundaries.md`.
+Scott had already run the persona browser check after the Phase 3 close-out: a second ingested #67 exists — `SD Draw` **75** (instance 850, ingestion process 536909974, step process 536909980, document 55280, document row 6609 "Doc Center extraction confirmed by **Priya Raman** 09/22/2026", approvals 6619–6627). Draw 74 still exists beside it. That is the evidence that closes the persona-submit item, and it also means two #67s coexist until one is cleaned up (see TODO).
 
-**Extraction quality observed:** all 12 header fields right; `submittedBy` arrived as "Submitted by Vail Peak Management LLC (Property Manager)" (the form strips the prefix); the 16 lines exact, as the sheet displays them ("106,664,345", "(21,509)", "91.9%", blanks) — parsed by `SD_parseExtractedNumber`; **no per-field confidence** on the spreadsheet path (the form says so). **Nothing needed the accountant on the clean template.** Two Doc Center traps cost time: its save step throws when the LLM returns `[]` for a blank scalar field (`generalComments` removed from the model), and it caches the LLM response per document.
+## 1. Rulings recorded
 
-## What was built
+In `PROJECT_INSTRUCTIONS.md` (Business rules, Demo narrative item 4, Open questions) and `BUILD_PLAN.md` Phase 3:
+- Reconciliation stays a task, not a related action; persona-scoped verification of its submit is a browser check by design.
+- Funding History = prior *approved* draws only; #65/#64/#63 on draw 67 is correct, the brief's 66/65/64 was wrong.
+- General Comments stays unextracted; the field remains editable at reconciliation; re-add to model 85 only if a filled specimen appears.
+- Doc Center xlsx extraction is proven on this instance; the Excel-format open question and the PDF-rendition fallback are struck (~~struck~~ with the resolution line, not deleted).
+- The ingested chain starts at step 1 (Accountant); the accelerator bridges to the CEO step; "orders 1–2 pre-completed" applies to seeded draw 66; revisit only if rehearsal shows drag.
 
-- **Intake (item 2).** `SASite` page **Receive Capital Call** → `SD Receive Capital Call (Intake Form)` (start form `SD_form_receiveCapitalCall`, one xlsx into the new `SD Draw Documents` folder) → async `SD Receive Capital Call`: draw shell (**Ingesting**, `receivedDate` today, `ingestionProcessId`), document row (**Received**), Doc Center extraction as the designer, instance id on the draw. The shell is on the Draws list within ~10 s ("New draw", Ingesting, YOUR ACTION for the accountant group).
-- **Extraction → reconciliation (item 3).** `SD_getExtractionForReconcile` turns the instance into text/JSON; task **Reconcile extracted draw** (`SD_form_reconcileExtraction`, assigned to `SD Draw Demo Approvers`): editable header, editable 16-line grid, document link, tie-out chip, confidence notice. On confirm: header facts, 16 `SD Draw Budget Line` rows (groups/inThisDraw derived), document row **Extracted & Confirmed** "by <name> MM/DD/YYYY".
-- **Assembly (item 4, done).** QIU set and nine-row chain copied from the investment's most recent prior draw (QIU re-dated to today; names as the mockups), draw **In Progress** at step 1, `SD Draw Approval Process` started. `scripts/seed_draw66.py --cleanup-ingested` (explicit ids, seeded ids refused, children first); `CLAUDE.md` demo-repeatability note.
-- **UI tolerance for shells:** Draws page dropdowns no longer crash on blank names (the shell had broken the page with "Choice values cannot be null"), "Ingesting" filter choice, "New draw" label and step cell; `SD_getDrawDetail` v6 treats an Ingesting draw as the accountant group's with the task found on `ingestionProcessId`; Summary strip "Doc Center extraction is ready…" with a **Reconcile Extraction** card; fact-strip crumb.
-- **Housekeeping:** fifteen Phase 2b objects that were outside the application (created without `appUuid`) added to it.
+TODO items closed accordingly (Funding History and General Comments client-validation questions struck with pointers; the persona-submit browser check rewritten around the rebuilt form).
 
-**Where the reconciliation task lives in the UI:** Draws page → the "New draw" row (YOUR ACTION for the accountant group) → Summary → blue strip → **Reconcile Extraction** (a `ProcessTaskLink`); also in the Tasks list as "Reconcile extracted draw".
+## 2. Account rename sync (Ramen → Raman)
 
-## How the pipeline works (30 nodes, `0000f06f-5661-…`)
+- Readback first: `SD_getUserDisplayName("sd.accountant")` → **Priya Raman**.
+- Updated by explicit id: `SD Draw Approval.approverName` on **1101, 1201, 6301, 6401, 6501, 6601, 6610, 6619**; `SD Draw Document.notes` on **6601**. Readback of all 72 approval rows: zero "Ramen".
+- `scripts/seed_draw66.py` (CHAIN, DOCS row, docstring) and `CLAUDE.md` say Raman; `checks()` passes (7 OK).
+- As `sd.accountant` via sail: Draws page "1 of 9 · Accountant **Priya Raman** · today" on both #67 rows; "AWAITING MY ACTION 2".
 
-Start → cancel? → **Create draw shell** (Write, `ingestionProcessId` = pp!id) → shell written? → read id → **Register template document** → read row id → **Doc Center: extract** (sync subprocess, `modelKey` drawBudgetTemplate, DESIGNER) → **Find extraction instance** (by document id) → extracted? → **Store extraction id** → **Prepare reconciliation** (JSON) → **Reconcile extracted draw** (task) → parse → **Commit header facts** → committed? → **Commit budget lines** → **Template Extracted & Confirmed** → **Assemble QIU and chain** → QIU available? → **Aggregate QIU rows** → **Create approval chain** → chain written? → **Activate draw** → **Start SD Draw Approval Process** (async) → done. Failures → **Ingestion Failed**. Every write is its own node with `PauseOnError` false and `ErrorOccurred` wired; the three gates are the shell, the header commit and the chain.
+## 3. Reconciliation form rebuilt — `SD_form_reconcileExtraction` v2
 
-The launcher is a separate three-node model because the Dev MCP cannot read a model that has a start form; it is frozen (change = delete, recreate, re-point the page).
+Full width via one `a!paneLayout` inside the form (two `AUTO` panes, even split, dividers on):
+- **Left pane:** verdict strip — "EXTRACTION instance #849 · 13 header fields · 16 budget lines", the no-per-field-confidence line, and the tie-out chip at the right (green **Ties ✓ $2,604,252.23** / red "Does not tie · lines $x vs draw $y"); "DRAW HEADER · EXTRACTED"; two columns of normal-width fields, labels above (Draw Number / Fund / Funding Date / Cash-Equity / Over Budget Reason | Investment Name / Draw Type / Draw Amount / Budget status / Submitted By); **chips on exactly two fields** — Draw Number: green "Next in sequence" / amber "Out of sequence: last draw is #n" (hidden when no investment matched); Investment Name: green "Matches <investment> on file" / amber "No matching investment"; Purpose, Budget and Contingency Explanation, General Comments as full-width paragraphs; the 16-row editable grid (right-aligned numbers, DENSE, zebra) with the pinned line "Current Draw total $x vs draw amount $y · Ties ✓ / off by ($d)" recomputing from the grid's own locals.
+- **Right pane** (light grey, LESS padding): "SOURCE DOCUMENT", the xlsx name as a download link, then the workbook inline through DocCenter's `rule!AIA_UTIL_displayInlineDocument(documentId, sourceDocumentId, height: "TALL")` — the native `a!documentViewerField` cannot render Office files (docs), DocCenter's component plug-in can, and the instance already uses it.
+- **Single primary button** bottom right: **Confirm & Assemble Draw**. Inputs and saves unchanged, so the process's task node still binds.
+- **One security change outside the app:** `SD Draw Approvers` granted **Viewer** on DocCenter's `AIA Reconcile Connected System` (the plug-in's connected system; docs: component plug-ins need Viewer on it; `AIA All Users` holds neither persona). Readback confirms the roles; the readback also shows `inheritSecurity: true` where it read `false` before — recorded, with the one-call revert in TODO.
 
-## Verified
+### Verified (as the designer)
+- `testInterface` on the live payload (instance 849 / draw 74 / document 55270): `diagnostics.error: null`; every string above rendered in order, 16 rows, Ties ✓; the tree reads `formWidth: "FULL"`, both panes `showPaneDivider: true`, the viewer component present with `documentId 55270 / connectedSystem 47597`. The Draw Number chip read **"Out of sequence: last draw is #67"** — correct, because draw 75 is also #67.
+- **Control render** (draw 12 of Gateway, draw number 12, amount 100 vs one line of 90): "Next in sequence" (self-exclusion and investment filter proven), "Matches Gateway Logistics Park Phase II on file" from a lower-case input, "Does not tie · lines $90.00 vs draw $100.00", "off by ($10.00)". `error: null`.
+- Interface version 2 read back; connected-system role map read back.
 
-**As `sd.accountant` via sail:** page list; form loads; local xlsx uploaded and **Receive** submitted; Draws page shows the Ingesting row first with YOUR ACTION and the KPI "New draw (ingesting) · Accountant reconciliation · today"; Summary strip with **Reconcile Extraction** → stored `ProcessTaskLink` task **8435** (listed by `listMyTasks`, process 38740, issued 78 s after submit). After assembly: `#67 YOUR ACTION | Tamarack Hotel & Spa Vail | $2,604,252.23 | 11/16/2026 in 55 days | 1 of 9 · Accountant Priya Ramen · today | In Progress`; Documents tab "Extracted & Confirmed · Doc Center extraction confirmed by Scott Thorn 09/22/2026"; Budget Detail 16 lines.
+### Not verified
+- **Geometry** at common widths — the brief's "re-render checks at common widths if the tooling allows": it does not (sail carries no geometry, `testInterface` no widths). Browser check, Scott.
+- **The inline viewer as `sd.accountant`** — `testInterface` runs as the designer, who is in `AIA All Users`. Browser check step 3, with the fallback symptom ("cannot be displayed … download") and the revert recipe written down.
+- **The persona submit of the rebuilt form** — a task; browser check by ruling. The pre-rebuild submit is evidenced by draw 75.
+- **Chip and total behaviour on live edits** — recompute proven by the control render; the interaction itself is browser-only.
 
-**As `sd.assetmanager` via sail (item 6):** Awaiting 1 · Draw #66; `#66 YOUR ACTION` first; `#67` present with **no** YOUR ACTION (chain at Accountant).
-
-**As the designer:** `SD Draw` 74 = #67 with every header fact equal to the template (amount 2,604,252.23, funding 2026-11-16, PIP/Renovation, On Budget, N/A, purpose, contingency, submittedBy stripped, investment 1); 16 lines equal to the template row for row; 10 QIU rows as of 2026-09-22; chain 6610–6618 with the mockup names, order 1 In Progress; `SD Draw Approval Process` → "STARTED step 1 of draw 74 (step process 38746)". `testInterface` Summary #67: **Ties ✓** $2,604,252.23, Budget Summary total $390,196,711 / current draw $2,604,252, Funding History #67, #65, #64, #63, QIU "model as of 09/22/2026", INGESTION "Extracted & Confirmed"; Documents view carries a real `DownloadDocLink_[Document:55270]`; the reconciliation form rendered with the live payload (13 fields, 16 rows, Ties ✓). Pipeline topology and every node read back; both probes 404.
-
-## Not verified (and the browser checklist)
-
-- **The persona's own submit of the task** — the brief's "complete the reconciliation task via sail as sd.accountant": sail cannot open a task (measured in Phase 2b, again here — no `tasks` command, task links are `<display>`). The task was completed over the Dev MCP as the designer with the unedited payload, so the document row reads "confirmed by Scott Thorn" this session. Checklist in `TODO.md` (reset → intake as `sd.accountant` → Reconcile Extraction → Confirm & assemble draw → expect "confirmed by Priya Ramen"), with the edited-value run as its optional step 5.
-- Document download as a persona (S9); geometry of both forms — browser only.
-- The `Ingestion Failed` branch never fired (Phase 5's malformed template is the break-test).
+## Browser checklist (Scott, before the first rehearsal) — `TODO.md` "The rebuilt full-width reconciliation form"
+1. Reset per "Ingestion demo reset"; as `sd.accountant` Receive Capital Call with the template; after ~80 s Summary → **Reconcile Extraction**.
+2. Full-width two-pane form; verdict strip with the green Ties chip; two-column header, labels above, no mid-word wraps; the two chips only; three full-width paragraphs; 16-row grid with the pinned total.
+3. Right pane: download link and the workbook rendered inline at TALL height, no fallback link.
+4. Edit Hard Costs' Current Draw to 2490296.00 → total $2,604,252.00, both tie chips red "off by ($0.23)"; restore. Type "abc" in Investment Name → amber "No matching investment", Draw Number chip disappears; restore.
+5. **Confirm & Assemble Draw** → #67 · In Progress · 1 of 9 · Accountant · Priya Raman; document row "confirmed by Priya Raman".
+6. Repeat at ~1280 px and phone width.
 
 ## Defects found and fixed
-
-- Subprocess parameter mappings sent under `customInputs` left the child's `document` null (three stalled runs) → mappings belong in `inputs` as `pv!x`.
-- Doc Center's save step on `[]` for a scalar (two stalled instances) → field removed from the model.
-- The Draws page crashed on an Ingesting shell (blank dropdown choice values) → blanks dropped.
-- `activeStepProcessId` could not be nulled by Write Records, which blocked the approval launcher ("NOT_STARTED … activeStepProcessId=38740") → separate `ingestionProcessId` column; draw 74 repaired by CSV.
-- Fifteen Phase 2b objects were outside the application → added.
+- `a!gridLayout` rejects `marginBelow` ("Unrecognized Keyword", `updateInterface`) — removed. Staged.
 
 ## Rulings needed
-
-1. **Reconciliation as a task versus a related action.** The task matches the brief but is browser-only for personas; a related action on the draw would be sail-drivable end to end. Keep the task (recommended: it is what the mockups and the approval steps do) or switch.
-2. **Funding History on #67** lists prior *approved* draws (65/64/63); the brief expected 66/65/64.
-3. **General Comments** is not extracted (see Known data artifacts); re-add only with a filled specimen.
-4. **Stranded process instances** from the build need cancelling in Process Monitoring (`TODO.md` lists them).
+- None new. Two housekeeping items for Scott: delete one of the two #67s (74 or 75) before a demo so the Draw Number chip reads "Next in sequence"; and confirm DocCenter's owners are fine with `SD Draw Approvers` as a Viewer on their connected system (else revert and fall back to the download link).
 
 ## Promotion candidates
-
-9 found: start-form models unreadable over the Dev MCP (gate 2, three models); `tostring()`/`text()`/`todate()`/`a!toJson` number and date traps; Write Records cannot null a field; Start Process smart service unconfigurable + non-parameter child outputs unmappable; `deleteRecordData` does not cascade; objects created without `appUuid` sit outside the app; Doc Center findings (instance-specific); `completeTask` completes a group task with all ACPs. **1 earlier trigger fired** (subprocess mapping) and was ruled: promoted to `reference/mcp-capability-boundaries.md` §4, held from the supplemental pending the skill owner's reconciliation with its own wording. 0 promoted to the skill; repo and user-level copies unchanged and identical. Checkpoint current through this entry.
+3 found — `a!gridLayout` `marginBelow` rejection; `updateObjectSecurity` `inheritSecurity` readback flip; DocCenter inline xlsx viewer and its Viewer requirement — listed at gate 1, none promoted. No trigger fired. Checkpoint current through this entry. Repo and user-level `appian-supplemental` unchanged.
 
 ## Repo changes
-
-`CLAUDE.md` (Phase 3 objects, ingestion rules, "yours" for Ingesting, repeatability, two artifacts, files), `BUILD_PLAN.md` (Phase 3 ✅ items and new open items), `BUILD_LOG.md` (entry + staging), `TODO.md`, `Closeout.md`, `reference/mcp-capability-boundaries.md`, `scripts/seed_draw66.py` (cleanup mode), `.work/sail/` (new `.sail` files, `gen_receive_process.py`, `gen_ingest_rules.py`, regenerated page/view/detail/strip, `refs.py`), the two `ref_AIA_*.sail` reference copies. The xlsx templates stay local (gitignored).
+`PROJECT_INSTRUCTIONS.md`, `BUILD_PLAN.md`, `BUILD_LOG.md` (entry + 3 staged candidates + checkpoint), `TODO.md`, `CLAUDE.md` (form row with the DocCenter dependency; seed-texture name), `scripts/seed_draw66.py`, `.work/sail/SD_form_reconcileExtraction.sail`, `Closeout.md`.
 
 ## TODO changes
-
-Added — Before demo: ingestion demo reset; cancel stranded instances. Browser checks owed: the persona reconciliation run (with the edited-value step), document download as a persona, Phase 3 form geometry (replacing the "document links appear only once files are attached" item). Client validation: Funding History semantics; General Comments. Deferred: edited-value run pointer, backup documents, the frozen launcher, the removed Doc Center field, Ingesting sort order. Closed: none.
+Closed: the Ramen/Raman item (→ Done); Funding History and General Comments client-validation questions (struck with pointers to the rulings). Rewritten: the reconciliation browser check (now the rebuilt form, six steps, persona submit evidenced); the Phase 3 geometry item; the ingestion demo reset (two #67s, cleanup for either). Added: Deferred — the connected-system Viewer grant with its revert recipe; Done — rename sync, rulings, form rebuild.
 
 ## BUILD_PLAN.md changes
-
-Phase 3 marked CORE COMPLETE 2026-09-22: working example, xlsx handling, ingestion process, reconciliation form, manual trigger, document row, post-confirm assembly all ✅; new open items: persona submit (browser), edited-value run, backup documents, stranded instances, Funding History ruling.
+Phase 3: persona submit ✅ (ruled a browser check; evidenced by draw 75), Funding History ✅ ruled, General Comments ✅ ruled, chain-at-step-1 ✅ ruled, form rebuild ✅; new open items: the browser pass on the rebuilt form, and deleting one of the two #67s before a demo.

@@ -23,7 +23,7 @@ Continuation of the subscription intake story on one platform: Blue Granite's ca
 1. The capital call and template arrive (narrated as the EY API/SFTP feed; triggered manually in demo).
 2. Ingestion fails on a malformed template. The alert email to the accountant and asset managers explains the failure in plain English, with an AI comparison against the last successfully ingested template describing what changed.
 3. The corrected template ingests via Doc Center. The accountant reviews extraction results and confirms; budget data lands in the draw tables and appears in the UI.
-4. QIU data is aggregated to the draw. The pre-completed approvals are orders 1–2: the Accountant and the Accounting Controller are both Approved. The chain sits at the Asset Manager step, order 3.
+4. QIU data is aggregated to the draw. The pre-completed approvals are orders 1–2: the Accountant and the Accounting Controller are both Approved. The chain sits at the Asset Manager step, order 3. *Ruled 2026-09-22: this applies to the seeded draw 66. An ingested draw starts its chain at step 1 (Accountant), and the demo accelerator bridges from wherever the chain sits to the CEO step; revisit only if rehearsal shows drag.*
 5. The asset manager reviews in the UI, edits a budget line at their approval step, and approves.
 6. The CEO (order 9) receives the new-format approval email, replies conversationally ("looks good, approve"), and AI interprets the reply as an approval. The chain completes.
 7. Treasury receives the execution notification. Capital moves.
@@ -78,7 +78,11 @@ Field vocabulary follows the new approval email sample exactly.
 - Approvals are strictly sequential by order; Approve advances, Reject terminates the draw, final approval sets the draw Approved and triggers the treasury notification.
 - Email approval accepts conversational replies; AI classifies intent as Approve, Reject, or Ambiguous. Ambiguous generates a clarification reply, never a state change.
 - Ingestion failure alerts the accountant and asset managers; the alert includes a plain-English failure reason and the AI diff versus the last successfully ingested template.
-- Doc Center extraction below confidence threshold routes to accountant reconciliation before data commits.
+- Doc Center extraction below confidence threshold routes to accountant reconciliation before data commits. *Ruled 2026-09-22: on this instance the spreadsheet path reports no per-field confidence, so every ingested draw routes to reconciliation; the form says so rather than inventing a score.*
+- Reconciliation is a process task assigned to the accountant group, not a related action on the draw. Persona-scoped verification of its submit is therefore a browser check by design (sail cannot open tasks). Ruled 2026-09-22.
+- Funding History on a draw lists the investment's prior *approved* draws only. On draw #67 that is #65, #64, #63, which is correct; the Phase 3 brief's expectation of #66/#65/#64 was wrong (#66 is still in approval). Ruled 2026-09-22.
+- General Comments is not extracted by Doc Center; the field stays editable on the reconciliation form for the accountant to type into. Re-add it to extraction model 85 only if a template with a filled General Comments cell appears. Ruled 2026-09-22.
+- An ingested draw's approval chain starts at step 1 (Accountant), copied from the investment's most recent prior draw that has one. The demo accelerator bridges from wherever the chain sits to the CEO step. The narrative's "orders 1–2 pre-completed" applies to the seeded draw 66. Ruled 2026-09-22; revisit only if rehearsal shows drag.
 - Over budget requires a reason; contingency utilization requires the explanation narrative (AI-drafted, accountant-approved).
 - Asset manager may modify budget lines only at their own approval step; edits are attributed and visible downstream.
 - Budget Summary figures (Land / Soft / Hard / Total) are computed as roll-ups from the budget detail lines, never reproduced from the sample as printed. The sample's summary contains arithmetic inconsistencies (totals shift by $57,753 while its adjustments column shows none); demo data must reconcile. Ruled 2026-09-21.
@@ -89,7 +93,7 @@ Field vocabulary follows the new approval email sample exactly.
 ## Open questions
 - Audience: Starwood direct vs reusable FS asset (sets how literal the Starwood branding stays).
 - Outbound email delivery and inbound email receipt on the NY instance: verify capability in Phase 4/6 (renumbered from 3/5 by the 2026-09-21 restructure), not assumed.
-- Doc Center handling of the Excel template format: confirm in Phase 3 (renumbered from 2); fallback is extraction from a PDF rendition of the template.
+- ~~Doc Center handling of the Excel template format: confirm in Phase 3 (renumbered from 2); fallback is extraction from a PDF rendition of the template.~~ Resolved 2026-09-22: Doc Center xlsx extraction is proven on this instance (the intake build and Phase 3 both extract the workbook directly); the PDF-rendition fallback is struck.
 - Resolved 2026-09-21: draw views join the existing intake site (`SASite`, "Subscription Agreement Analyst", stub `subscription-agreement-analyst`) in a new page group. There is no dedicated site.
 - Deferred 2026-09-21: persona accounts. Phase 1 verifies as the designer.
 - Resolved 2026-09-21: Blue Granite continuity is narration only. None of Blue Granite's subscriptions is Accepted, and that is left as it is; the narrative's "entered the fund" is spoken, not shown in data. See Business rules: this flow does not touch subscription intake data.
