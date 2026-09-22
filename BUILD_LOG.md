@@ -2,7 +2,7 @@
 
 What has actually been built in the environment, with object identifiers and the decisions behind them. Append after every build step; never rewrite a closed entry — a correction is a new entry that names what it corrects. Entry shape: date and title; scope line (the identity and group memberships every readback ran under); what changed, by object; decisions and why; verified (how, with counts and scope); not verified (and the browser checklist that covers it); promotion checkpoint. The contract is `CLAUDE.md` §7; the promotion loop is §9.
 
-**Promotion checkpoint: current through 2026-09-21 — Phase 0 discrepancy rulings applied — level with the log tail.** A session touching promotion refuses to call itself complete if this checkpoint lags the log tail by more than one session.
+**Promotion checkpoint: current through 2026-09-21 — Phase 1 build — level with the log tail.** A session touching promotion refuses to call itself complete if this checkpoint lags the log tail by more than one session.
 
 ## Promotion candidates (staging)
 
@@ -19,6 +19,14 @@ What has actually been built in the environment, with object identifiers and the
   - *The actual defect:* appian-supplemental §3 ("GROUP MEMBERSHIP ADMINISTRATION IS NOT AVAILABLE OVER THE DEV MCP") still states the previous generation's 403 for reads. That skill text is stale against the repo's own boundaries doc.
   - *Follow-up:* the correction is a TODO for the skill's owner, not a new promotion.
   - *Membership writes:* `addGroupMembers` stays unverified. Its trigger remains the first session that adds a member to a draw approval group.
+
+- **STAGED (gate 1) — TEXT column widths under-report on readback at create time.** Fields created with `length` 1000 or 20 read back as `VARCHAR(255)`, while a 289-character `insertRecordData` write to a "1000" column succeeded and read back intact. Working form: treat the readback as a claim and prove width by a real-length write through the production path. *Trigger:* the first Write Records node write longer than 255 characters to a draw approval column (the `comments` or `contingencyExplanation` fields).
+- **STAGED (gate 1) — `addGroupMembers` works on DevMCP 26.6.95.** Three user adds returned `status: success` and each read back with `listGroupMembers(directOnly)`. This closes the "writing unverified" gap in `reference/mcp-capability-boundaries.md` (updated in this session) and further dates supplemental §3. *Trigger:* the next group-membership write on another instance, to tag it "re-verify per instance" or general.
+- **STAGED (gate 1) — a subprocess node maps the child's parameter PVs back out through `outputs[].saveInto`.** With `referenceUuid` set, the schema lists every parameter PV as an output; `{"name": "outcome", "saveInto": "pv!decisionOutcome"}` carried the child's result to the parent on a synchronous call. Input mappings were bare `pv!x` strings in `inputs` with no `customInputs` block, and they worked. *Trigger:* the next subprocess node built on any build.
+- **STAGED (gate 1) — `completeTask(taskId, inputs: [{name, value}])` completes a user input task with ACP values, including ACPs the node reads back as `required: true`.** The form's own button logic does not run on this path, so every ACP must be supplied. *Trigger:* the next MCP-driven task completion.
+- **STAGED (gate 1) — `testProcessModel` with `timeoutSeconds: 60` returned a client `Network error: ReadTimeout` at roughly 60 s while the process kept running to completion.** The error is transport, not the process; verify by reading the data. *Trigger:* the next run expected to exceed 45 s.
+- **STAGED (gate 1) — `updateRecordData` with an empty CSV cell clears the value (sets null).** Measured on DATETIME, INTEGER and TEXT columns. *Trigger:* the next reset or backfill that must leave a column untouched, where the column is omitted from the CSV instead.
+- **STAGED (gate 1) — `createProcessModel(errorAlertGroupUuid)` cannot be read back over the Dev MCP.** `getProcessModel` returns no alert-group field at all, so persistence is unmeasurable here; the check is a Designer step. *Trigger:* the next Dev MCP generation, to see whether the readback gains the field.
 
 ## Entries
 
@@ -319,3 +327,101 @@ Promotion checkpoint: current through 2026-09-21 — Phase 0 transcription and b
 **Promotion.** 0 candidates.
 
 Promotion checkpoint: current through 2026-09-21 — Phase 0 discrepancy rulings applied.
+
+### 2026-09-21 — Phase 1 build (in progress): restructure, record types
+
+**Scope.**
+- **Designer:** Dev MCP `appian` (157 tools) as `scott.thorn@appian.com`, from the session file; a member of `SD Administrators` and `SD Users`.
+- **Other tools:** sail and `appian-runtime` were not used.
+- **Row security:** none of the new record types has security rules yet, so the designer's reads of them are unfiltered.
+
+**Preflight.**
+- The plan gate passes.
+- `appian` has 157 design tools, and `listRecordTypes` returned 16.
+- DevMCP 26.6.95 matches the pin, with both halves on build `20260911-210447`. sail is on 26.6.95.
+- The skill copies are identical.
+- There is no per-session ritual, and there are no persona sessions. The persona site stub was unset at preflight.
+
+**Step 0: phase restructure (docs).**
+- **`BUILD_PLAN.md`:** Phase 1 now covers the data model, seed and process, with no custom views. The new Phase 2 is the mockup-first UI foundation. Ingestion moves to 3, the email layout to 4, the failure path to 5, and the final work to 6. `PROJECT_INSTRUCTIONS.md` § Build phases and the phase references in its open questions are updated to match.
+- **Ruling recorded, site:** draw views join the existing intake site in a new page group. The intake site was found through `getObjectDependents` on the intake dashboard: `SASite` (`ffae752f-b3d1-44d5-a9ba-c408b66bdb65`), display name "Subscription Agreement Analyst", stub `subscription-agreement-analyst`. It is **not listed as an object of `Starwood Demo`**, which is why the baseline showed zero sites.
+- **Second site found:** `42637df6-96f5-4347-85ab-299a7c83ce24`, which hosts the `subscription-intake-dashboard` page. `getSite` on it fails with `Unexpected error: 'targetUuid'`, so it is unread.
+- **Ruling recorded, personas:** persona accounts are deferred, and this session verifies as the designer.
+
+**Step 1: existing objects.**
+- `SA Fund` (`978232cc-…3dcfb`, data source `_a-0000ebae-…_10766`) is referenced, and id 4 is Harborline Real Assets Fund II, L.P.
+- No investment or property type exists, so `SD Investment` is created.
+- The legacy `SD Fund` scaffold is not used.
+- **No reverse relationship was added to `SA Fund`,** to avoid modifying an intake object; the one-way `SD Investment.fund` suffices for traversal. This is a deliberate departure from the pack's bidirectional rule.
+
+**Step 2: record types.** All six are in `SA Fund`'s data source, have `createTable: true`, and are added to `Starwood Demo`.
+
+| Record type | UUID | Relationships (read back) |
+|---|---|---|
+| SD Investment | `f285a98c-746c-40e7-899e-65d8d20f766b` | `fund` M:1 → SA Fund; `draws` 1:M → SD Draw |
+| SD Draw | `c9d3a947-71aa-4024-879e-363873a12860` | `investment` M:1; `budgetLines`, `approvals`, `qiuMetrics`, `documents` 1:M (CASCADING) |
+| SD Draw Budget Line | `ddc4073e-6372-49e2-80de-a088b424abcd` | `draw` M:1 |
+| SD Draw Approval | `02c207d5-c725-4d11-bf40-b33573e87ffa` | `draw` M:1 |
+| SD QIU Metric | `a0920e4c-0c76-4494-a61a-6e38d5db390a` | `draw` M:1 |
+| SD Draw Document | `f3e0033f-2047-4c68-8f6f-cf32166091e9` | `draw` M:1 |
+
+**Field decisions.**
+- **Added "Cash/Equity Needed from the Fund?"** as the `cashEquityNeeded` BOOLEAN. The field is in the new email sample's Draw Funding Detail but not in the data model's list; the email's vocabulary governs.
+- **`SD Draw Approval` gains `actedBy` and `decisionSource`** (TASK, ACCELERATOR, EMAIL, SEED), for attribution.
+- **`SD Draw` gains `activeStepProcessId`,** so an external decision can cancel the open step task.
+- **QIU values are TEXT,** per the instruction.
+- **No USER-type fields.** Actor names are TEXT, to avoid the mandatory system-user relationships.
+
+**Findings.**
+- **Width readbacks under-report.** Every TEXT field created with a length other than 4000 reads back as `VARCHAR(255)`: 1000 → 255 and 20 → 255. Measured by a 289-character write to `SD Investment.investmentDescription` (requested 1000) through `insertRecordData` on probe row id 990: the write succeeded and read back intact. The column is wider than the readback states. The probe row was deleted, and absence was confirmed with an empty `listRecordData`.
+  - This is the known supplemental §7 and `CLAUDE.md` §4 class, "readbacks both over- and under-report".
+  - It is not the production write path; the proof through a Write Records node is owed.
+- **Display names containing `/`, `?` or `(`, and multi-word display names, were rewritten on save.** For example, "On / Under / Over Budget" became "Budget Status". Display labels are left to Phase 2.
+
+**Step 3: seed data** (`scripts/seed_draw66.py`, explicit ids, no `now()`/`today()`/`rand()`; its checks pass with exit 0).
+- Investment 1: "Tamarack Hotel & Spa Vail" (THSV) on `SA Fund` 4.
+- Draw 66: PIP/Renovation, $2,604,252.23, funding 2026-10-15, On Budget, In Progress at step 3, with the sample's purpose and contingency text.
+- 16 budget lines (ids 6601–6616) transcribed from the new email sample. The plan said 17; the sample has 9 "In this Draw" and 7 "All Other" lines.
+- 9 approval rows (6601–6609), contiguous orders 1–9, fictional approvers; 1–2 Approved with SEED attribution, 3 In Progress, 4–9 Pending.
+- 10 QIU rows (6601–6610), values as formatted text, model as-of 2026-06-30.
+- **Read back as the designer:** 1 / 1 / 16 / 9 / 10 rows, and 0 documents. Insert responses were not taken as proof.
+- **Reconciliation:** Land, Soft and Hard roll-ups match the sample's Budget Summary except for known source artifacts (the $57,753 contingency adjustment placed differently, and $1 rounding), which the script encodes explicitly. Cents are carried on three lines so the draw lines sum to the amount; see `CLAUDE.md` known artifacts.
+
+**Step 4: groups and constants.**
+- `SD Draw Approvers` (`…_5513`, under `SD Users`) with `SD Draw Asset Managers` (`…_5515`), `SD Draw CEO` (`…_5517`) and `SD Draw Demo Approvers` (`…_5519`). Nesting read back.
+- The designer was added to the three step groups with `addGroupMembers` and read back as a direct member of each.
+- Constants: three GROUP constants by name, `SD_DRAW_TREASURY_RECIPIENT` (USER = the designer, placeholder) and `SD_DRAW_FINAL_APPROVAL_ORDER` (9).
+
+**Step 5: rules, form and process models.**
+- `SD_getDrawState(drawId)` returns the routing map; tested against draw 66 with the expected current (order 3) and next (order 4) rows. `SD_getDrawApprovalGroup(role)` returns the three groups (ids 1528, 1529, 1530) for Asset Manager, CEO and AM SVP.
+- `SD_form_drawApprovalDecision` (`…_570715`): `testInterface` `error: null`. Its Submit button records `loggedInUser()` into `actor` and defaults a blank comment, so no ACP submits null. **Phase 2 restyle target.**
+- `SD Draw.treasuryNotifiedAt` (DATETIME) added so the notification's completion is readable.
+- Four process models, all `errorAlertGroupUuid` = `SD Administrators`. **Measurement:** `getProcessModel` exposes no alert-group field, so persistence cannot be confirmed by readback; owed as a Designer check.
+- **`SD Apply Draw Approval Decision`** (`0000f06e-a53d-…`, 28 nodes): the single transition as described in `CLAUDE.md`. Probe: a decision for step 5 while the draw sat at step 3 returned `STALE` with no write.
+- **`SD Draw Approval Step`** (`0000f06e-a547-…`, 12 nodes): registers `pp!id` on the draw, sends a placeholder notification on a parallel branch, presents the task, then calls the transition synchronously. All five form ACPs read back `required: true` (the supplemental's forced-required trap, handled by the form's defaults).
+- **`SD Draw Approval Process`** (`0000f06e-a54a-…`, 8 nodes): starts the step task for the current step when no step process is open.
+- **`SD Advance Draw to CEO Step (Demo Accelerator)`** (`0000f06e-a54d-…`, 13 nodes): the loop with a ceiling of 9.
+- The subprocess pattern was copied from the intake app's `SD Start Intake (MCP)` node (bare `pv!` mappings, `pmUUID`). The intake app's Send E-Mail and user input task nodes were unconfigured scaffolds, not working examples.
+
+**Step 6: end-to-end verification, as the designer (member of all three step groups).** Pass conditions were stated in `BUILD_PLAN.md` before the run.
+1. `SD Draw Approval Process` on draw 66: outcome `STARTED step 3 (step process 38661)`; draw read back with `activeStepProcessId` 38661; task 4250 "Approve or reject draw" listed.
+2. `completeTask(4250, APPROVE)`: row 3 Approved with `actedBy` the designer and source TASK; ~7 s later the draw read back at step 4 with row 4 In Progress, and ~4 s after that `activeStepProcessId` 38663 (the step-4 process). **Timing:** the transition completes after `completeTask` returns; a read taken 1–2 s later still showed step 3.
+3. Accelerator: `testProcessModel` returned a client ReadTimeout at ~60 s while the process completed. Read back: rows 4–8 Approved with source ACCELERATOR at ~12 s intervals, draw at step 9 with row 9 In Progress and `activeStepProcessId` 536909926; task 536873553 open; the step-4 task gone (task total unchanged at 53, so it was cancelled).
+4. `completeTask(536873553, APPROVE)`: draw Approved, all nine rows Approved, `treasuryNotifiedAt` 2026-09-22 02:05:04 UTC. The write downstream of the Send E-Mail node ran, so the node completed without an exception.
+5. Reset with the script's CSVs, read back at the seeded state.
+6. **Break-test:** fresh start (step process 38665, task 4460), `completeTask(4460, REJECT)`: draw Rejected at step 3, `activeStepProcessId` cleared, row 3 Rejected with the comment and attribution, rows 4–9 untouched, `treasuryNotifiedAt` null, no task opened.
+7. Reset again; read back at the seeded state; task total 52, equal to the pre-existing non-draw count, so no draw task is open.
+
+**Not verified.**
+- **Email delivery.** No inbox was checked. The nodes completed; whether mail arrived is a mailbox check.
+- **Step notification emails to groups** on the parallel branch: not observed at all.
+- **`errorAlertGroupUuid` persistence:** unreadable over MCP.
+- **Column widths** through the production write path at lengths over 255.
+- **Persona behaviour:** no persona sessions; everything ran as the designer, who is full-scope.
+- **The race** between the accelerator and a just-started step process (`activeStepProcessId` not yet registered): not exercised; the demo runs these as separate beats.
+
+**Promotion.** 7 candidates found; all STAGED at gate 1 with triggers (staging section). 0 promoted. `reference/mcp-capability-boundaries.md`'s group-membership entry is updated with the measured write.
+
+**Rulings needed.** Listed in `TODO.md`: the Budget Summary artifact, and whether accelerator decision dates should be spread (`dayOffsetPerStep`).
+
+Promotion checkpoint: current through 2026-09-21 — Phase 1 build.

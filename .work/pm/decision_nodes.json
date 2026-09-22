@@ -1,0 +1,917 @@
+[
+ {
+  "id": 1,
+  "type": "core.0",
+  "name": "Start",
+  "coordinates": [
+   50,
+   200
+  ],
+  "connections": [
+   {
+    "targetNodeId": 3,
+    "activityChained": false
+   }
+  ]
+ },
+ {
+  "id": 2,
+  "type": "core.1",
+  "name": "End",
+  "coordinates": [
+   2450,
+   200
+  ],
+  "connections": []
+ },
+ {
+  "id": 3,
+  "type": "internal.16",
+  "name": "Read draw state",
+  "coordinates": [
+   200,
+   200
+  ],
+  "connections": [
+   {
+    "targetNodeId": 4,
+    "activityChained": false
+   }
+  ],
+  "assignment": {
+   "attended": false
+  },
+  "data": {
+   "customOutputs": [
+    {
+     "expression": "rule!SD_getDrawState(pv!drawId)",
+     "saveInto": "pv!state"
+    }
+   ]
+  }
+ },
+ {
+  "id": 4,
+  "type": "internal.16",
+  "name": "Derive routing",
+  "coordinates": [
+   350,
+   200
+  ],
+  "connections": [
+   {
+    "targetNodeId": 5,
+    "activityChained": false
+   }
+  ],
+  "assignment": {
+   "attended": false
+  },
+  "data": {
+   "customOutputs": [
+    {
+     "expression": "and(a!defaultValue(index(pv!state, \"found\", false), false), tostring(a!defaultValue(index(pv!state, \"drawStatus\", \"\"), \"\")) = \"In Progress\", tointeger(a!defaultValue(index(pv!state, \"currentStep\", -1), -1)) = tointeger(pv!stepOrder), not(a!isNullOrEmpty(index(pv!state, \"current\", null))), tostring(a!defaultValue(index(index(pv!state, \"current\", null), \"status\", \"\"), \"\")) = \"In Progress\", or(upper(a!defaultValue(pv!decision, \"\")) = \"APPROVE\", upper(a!defaultValue(pv!decision, \"\")) = \"REJECT\"))",
+     "saveInto": "pv!isValid"
+    },
+    {
+     "expression": "tointeger(index(index(pv!state, \"current\", null), \"id\", null))",
+     "saveInto": "pv!currentApprovalId"
+    },
+    {
+     "expression": "tointeger(index(index(pv!state, \"next\", null), \"id\", null))",
+     "saveInto": "pv!nextApprovalId"
+    },
+    {
+     "expression": "tointeger(index(index(pv!state, \"next\", null), \"approvalOrder\", null))",
+     "saveInto": "pv!nextOrder"
+    },
+    {
+     "expression": "or(tointeger(pv!stepOrder) >= cons!SD_DRAW_FINAL_APPROVAL_ORDER, a!isNullOrEmpty(index(pv!state, \"next\", null)))",
+     "saveInto": "pv!isFinal"
+    },
+    {
+     "expression": "tointeger(index(pv!state, \"activeStepProcessId\", null))",
+     "saveInto": "pv!activeStepProcessId"
+    },
+    {
+     "expression": "a!localVariables(local!active: tointeger(index(pv!state, \"activeStepProcessId\", null)), and(not(a!isNullOrEmpty(local!active)), or(a!isNullOrEmpty(pv!callerStepProcessId), tointeger(pv!callerStepProcessId) <> local!active)))",
+     "saveInto": "pv!supersede"
+    },
+    {
+     "expression": "upper(a!defaultValue(pv!decision, \"\")) = \"APPROVE\"",
+     "saveInto": "pv!isApprove"
+    },
+    {
+     "expression": "a!defaultValue(pv!decisionDate, now())",
+     "saveInto": "pv!effectiveDate"
+    }
+   ]
+  }
+ },
+ {
+  "id": 5,
+  "type": "core.4",
+  "name": "Valid decision?",
+  "coordinates": [
+   500,
+   200
+  ],
+  "connections": [
+   {
+    "targetNodeId": 6,
+    "activityChained": false
+   },
+   {
+    "targetNodeId": 7,
+    "activityChained": false
+   }
+  ],
+  "decision": {
+   "conditions": [
+    {
+     "expression": "=not(a!defaultValue(pv!isValid, false))",
+     "targetNodeId": 6
+    }
+   ],
+   "defaultPath": 7
+  }
+ },
+ {
+  "id": 6,
+  "type": "internal.16",
+  "name": "Mark stale",
+  "coordinates": [
+   500,
+   380
+  ],
+  "connections": [
+   {
+    "targetNodeId": 2,
+    "activityChained": false
+   }
+  ],
+  "assignment": {
+   "attended": false
+  },
+  "data": {
+   "customOutputs": [
+    {
+     "expression": "\"STALE: draw \" & pv!drawId & \" is \" & a!defaultValue(index(pv!state, \"drawStatus\", \"?\"), \"?\") & \" at step \" & a!defaultValue(index(pv!state, \"currentStep\", \"?\"), \"?\") & \"; decision asked for step \" & pv!stepOrder",
+     "saveInto": "pv!outcome"
+    }
+   ]
+  }
+ },
+ {
+  "id": 7,
+  "type": "core.4",
+  "name": "Supersede open step task?",
+  "coordinates": [
+   650,
+   200
+  ],
+  "connections": [
+   {
+    "targetNodeId": 8,
+    "activityChained": false
+   },
+   {
+    "targetNodeId": 9,
+    "activityChained": false
+   }
+  ],
+  "decision": {
+   "conditions": [
+    {
+     "expression": "=a!defaultValue(pv!supersede, false)",
+     "targetNodeId": 8
+    }
+   ],
+   "defaultPath": 9
+  }
+ },
+ {
+  "id": 8,
+  "type": "appian.system.smart-services.cancel-process-2",
+  "name": "Cancel superseded step task",
+  "coordinates": [
+   650,
+   80
+  ],
+  "connections": [
+   {
+    "targetNodeId": 9,
+    "activityChained": false
+   }
+  ],
+  "assignment": {
+   "attended": false
+  },
+  "data": {
+   "inputs": [
+    {
+     "name": "ProcessId",
+     "expression": "=pv!activeStepProcessId"
+    }
+   ],
+   "outputs": [
+    {
+     "name": "alreadyClosed",
+     "saveInto": "pv!supersededAlreadyClosed"
+    }
+   ]
+  }
+ },
+ {
+  "id": 9,
+  "type": "internal3.write_records_to_source_23r3",
+  "name": "Write step decision",
+  "coordinates": [
+   800,
+   200
+  ],
+  "connections": [
+   {
+    "targetNodeId": 10,
+    "activityChained": false
+   }
+  ],
+  "assignment": {
+   "attended": false
+  },
+  "data": {
+   "inputs": [
+    {
+     "name": "Records",
+     "expression": "={ 'recordType!{02c207d5-c725-4d11-bf40-b33573e87ffa}SD Draw Approval'('recordType!{02c207d5-c725-4d11-bf40-b33573e87ffa}SD Draw Approval.fields.{69abcdf2-55da-48dc-8cc4-794b5d5e0042}id': pv!currentApprovalId, 'recordType!{02c207d5-c725-4d11-bf40-b33573e87ffa}SD Draw Approval.fields.{4c1bf7fb-0736-4c9a-946e-99f6989ac83a}status': if(a!defaultValue(pv!isApprove, false), \"Approved\", \"Rejected\"), 'recordType!{02c207d5-c725-4d11-bf40-b33573e87ffa}SD Draw Approval.fields.{a6a03063-3b14-4f00-8cab-b5d10602405e}decisionDate': pv!effectiveDate, 'recordType!{02c207d5-c725-4d11-bf40-b33573e87ffa}SD Draw Approval.fields.{3c1aae42-13a1-4c13-894a-9fdef20f7fce}comments': a!defaultValue(pv!comment, \"\"), 'recordType!{02c207d5-c725-4d11-bf40-b33573e87ffa}SD Draw Approval.fields.{2e6ad17e-66f3-4ab2-97b6-c21ee10dd203}actedBy': a!defaultValue(pv!actor, \"\"), 'recordType!{02c207d5-c725-4d11-bf40-b33573e87ffa}SD Draw Approval.fields.{6597627c-af44-4119-9b92-286179df119d}decisionSource': a!defaultValue(pv!source, \"\")) }"
+    },
+    {
+     "name": "PauseOnError",
+     "value": false
+    },
+    {
+     "name": "CaptureEvents",
+     "value": false
+    }
+   ],
+   "outputs": [
+    {
+     "name": "ErrorOccurred",
+     "saveInto": "pv!stepWriteError"
+    },
+    {
+     "name": "Error",
+     "saveInto": "pv!errorText"
+    }
+   ]
+  }
+ },
+ {
+  "id": 10,
+  "type": "core.4",
+  "name": "Step write OK?",
+  "coordinates": [
+   950,
+   200
+  ],
+  "connections": [
+   {
+    "targetNodeId": 11,
+    "activityChained": false
+   },
+   {
+    "targetNodeId": 12,
+    "activityChained": false
+   }
+  ],
+  "decision": {
+   "conditions": [
+    {
+     "expression": "=a!defaultValue(pv!stepWriteError, false)",
+     "targetNodeId": 11
+    }
+   ],
+   "defaultPath": 12
+  }
+ },
+ {
+  "id": 11,
+  "type": "internal.16",
+  "name": "Mark error",
+  "coordinates": [
+   950,
+   380
+  ],
+  "connections": [
+   {
+    "targetNodeId": 2,
+    "activityChained": false
+   }
+  ],
+  "assignment": {
+   "attended": false
+  },
+  "data": {
+   "customOutputs": [
+    {
+     "expression": "\"ERROR: \" & a!defaultValue(pv!errorText, \"(no detail)\")",
+     "saveInto": "pv!outcome"
+    }
+   ]
+  }
+ },
+ {
+  "id": 12,
+  "type": "core.4",
+  "name": "Approve or reject?",
+  "coordinates": [
+   1100,
+   200
+  ],
+  "connections": [
+   {
+    "targetNodeId": 13,
+    "activityChained": false
+   },
+   {
+    "targetNodeId": 16,
+    "activityChained": false
+   }
+  ],
+  "decision": {
+   "conditions": [
+    {
+     "expression": "=not(a!defaultValue(pv!isApprove, false))",
+     "targetNodeId": 13
+    }
+   ],
+   "defaultPath": 16
+  }
+ },
+ {
+  "id": 13,
+  "type": "internal3.write_records_to_source_23r3",
+  "name": "Reject draw",
+  "coordinates": [
+   1100,
+   380
+  ],
+  "connections": [
+   {
+    "targetNodeId": 14,
+    "activityChained": false
+   }
+  ],
+  "assignment": {
+   "attended": false
+  },
+  "data": {
+   "inputs": [
+    {
+     "name": "Records",
+     "expression": "={ 'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw'('recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{443829ca-5971-4d31-8fac-ab7a317e509b}id': pv!drawId, 'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{e63818ec-ea02-40a0-bfdd-2c14b760dc2c}status': \"Rejected\", 'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{a132be23-f941-4d59-a22c-b57e29900ea6}activeStepProcessId': null, 'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{9b41d47b-ef3a-4ea7-bf7e-0935b9c83393}updatedAt': now()) }"
+    },
+    {
+     "name": "PauseOnError",
+     "value": false
+    },
+    {
+     "name": "CaptureEvents",
+     "value": false
+    }
+   ],
+   "outputs": [
+    {
+     "name": "ErrorOccurred",
+     "saveInto": "pv!drawWriteError"
+    },
+    {
+     "name": "Error",
+     "saveInto": "pv!errorText"
+    }
+   ]
+  }
+ },
+ {
+  "id": 14,
+  "type": "core.4",
+  "name": "Reject write OK?",
+  "coordinates": [
+   1250,
+   380
+  ],
+  "connections": [
+   {
+    "targetNodeId": 11,
+    "activityChained": false
+   },
+   {
+    "targetNodeId": 15,
+    "activityChained": false
+   }
+  ],
+  "decision": {
+   "conditions": [
+    {
+     "expression": "=a!defaultValue(pv!drawWriteError, false)",
+     "targetNodeId": 11
+    }
+   ],
+   "defaultPath": 15
+  }
+ },
+ {
+  "id": 15,
+  "type": "internal.16",
+  "name": "Mark rejected",
+  "coordinates": [
+   1400,
+   380
+  ],
+  "connections": [
+   {
+    "targetNodeId": 2,
+    "activityChained": false
+   }
+  ],
+  "assignment": {
+   "attended": false
+  },
+  "data": {
+   "customOutputs": [
+    {
+     "expression": "\"REJECTED at step \" & pv!stepOrder",
+     "saveInto": "pv!outcome"
+    }
+   ]
+  }
+ },
+ {
+  "id": 16,
+  "type": "core.4",
+  "name": "Final step?",
+  "coordinates": [
+   1250,
+   200
+  ],
+  "connections": [
+   {
+    "targetNodeId": 17,
+    "activityChained": false
+   },
+   {
+    "targetNodeId": 22,
+    "activityChained": false
+   }
+  ],
+  "decision": {
+   "conditions": [
+    {
+     "expression": "=a!defaultValue(pv!isFinal, false)",
+     "targetNodeId": 17
+    }
+   ],
+   "defaultPath": 22
+  }
+ },
+ {
+  "id": 17,
+  "type": "internal3.write_records_to_source_23r3",
+  "name": "Approve draw",
+  "coordinates": [
+   1250,
+   80
+  ],
+  "connections": [
+   {
+    "targetNodeId": 18,
+    "activityChained": false
+   }
+  ],
+  "assignment": {
+   "attended": false
+  },
+  "data": {
+   "inputs": [
+    {
+     "name": "Records",
+     "expression": "={ 'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw'('recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{443829ca-5971-4d31-8fac-ab7a317e509b}id': pv!drawId, 'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{e63818ec-ea02-40a0-bfdd-2c14b760dc2c}status': \"Approved\", 'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{a132be23-f941-4d59-a22c-b57e29900ea6}activeStepProcessId': null, 'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{9b41d47b-ef3a-4ea7-bf7e-0935b9c83393}updatedAt': now()) }"
+    },
+    {
+     "name": "PauseOnError",
+     "value": false
+    },
+    {
+     "name": "CaptureEvents",
+     "value": false
+    }
+   ],
+   "outputs": [
+    {
+     "name": "ErrorOccurred",
+     "saveInto": "pv!drawWriteError"
+    },
+    {
+     "name": "Error",
+     "saveInto": "pv!errorText"
+    }
+   ]
+  }
+ },
+ {
+  "id": 18,
+  "type": "core.4",
+  "name": "Approve write OK?",
+  "coordinates": [
+   1400,
+   80
+  ],
+  "connections": [
+   {
+    "targetNodeId": 11,
+    "activityChained": false
+   },
+   {
+    "targetNodeId": 19,
+    "activityChained": false
+   }
+  ],
+  "decision": {
+   "conditions": [
+    {
+     "expression": "=a!defaultValue(pv!drawWriteError, false)",
+     "targetNodeId": 11
+    }
+   ],
+   "defaultPath": 19
+  }
+ },
+ {
+  "id": 19,
+  "type": "internal.16",
+  "name": "Mark approved",
+  "coordinates": [
+   1550,
+   80
+  ],
+  "connections": [
+   {
+    "targetNodeId": 20,
+    "activityChained": false
+   }
+  ],
+  "assignment": {
+   "attended": false
+  },
+  "data": {
+   "customOutputs": [
+    {
+     "expression": "\"APPROVED\"",
+     "saveInto": "pv!outcome"
+    },
+    {
+     "expression": "\"PLACEHOLDER - real notification content is Phase 6.<br>Draw #\" & a!defaultValue(index(pv!state, \"drawNumber\", pv!drawId), pv!drawId) & \" (\" & substitute(a!defaultValue(index(pv!state, \"investmentName\", \"\"), \"\"), \"&\", \"&amp;\") & \", \" & substitute(a!defaultValue(index(pv!state, \"fundName\", \"\"), \"\"), \"&\", \"&amp;\") & \") is fully approved.<br>Amount: \" & text(round(todecimal(a!defaultValue(index(pv!state, \"amount\", 0), 0)), 2), \"$#,###,###,##0.00\") & \"<br>Please execute the cash payment.<br>Final approval recorded by \" & a!defaultValue(pv!actor, \"(unknown)\") & \" via \" & a!defaultValue(pv!source, \"(unknown)\") & \" at \" & text(pv!effectiveDate, \"yyyy-MM-dd HH:mm\") & \".\"",
+     "saveInto": "pv!treasuryBody"
+    }
+   ]
+  }
+ },
+ {
+  "id": 20,
+  "type": "internal3.sendemail3",
+  "name": "Treasury notification (placeholder)",
+  "coordinates": [
+   1700,
+   80
+  ],
+  "connections": [
+   {
+    "targetNodeId": 21,
+    "activityChained": false
+   }
+  ],
+  "assignment": {
+   "attended": false
+  },
+  "data": {
+   "inputs": [
+    {
+     "name": "From",
+     "value": "Process Model"
+    },
+    {
+     "name": "To",
+     "expression": "=cons!SD_DRAW_TREASURY_RECIPIENT"
+    },
+    {
+     "name": "Subject",
+     "expression": "=\"[Placeholder] Draw #\" & a!defaultValue(index(pv!state, \"drawNumber\", pv!drawId), pv!drawId) & \" approved - execute cash payment\""
+    },
+    {
+     "name": "Priority",
+     "value": 3
+    },
+    {
+     "name": "IsHTML",
+     "value": true
+    },
+    {
+     "name": "BodyHTML",
+     "expression": "=a!defaultValue(pv!treasuryBody, \"Draw approved. Execute cash payment.\")"
+    }
+   ]
+  }
+ },
+ {
+  "id": 21,
+  "type": "internal3.write_records_to_source_23r3",
+  "name": "Record treasury notification",
+  "coordinates": [
+   1850,
+   80
+  ],
+  "connections": [
+   {
+    "targetNodeId": 2,
+    "activityChained": false
+   }
+  ],
+  "assignment": {
+   "attended": false
+  },
+  "data": {
+   "inputs": [
+    {
+     "name": "Records",
+     "expression": "={ 'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw'('recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{443829ca-5971-4d31-8fac-ab7a317e509b}id': pv!drawId, 'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{f98054f6-7140-4046-b3d0-2be2f78e6873}treasuryNotifiedAt': now()) }"
+    },
+    {
+     "name": "PauseOnError",
+     "value": false
+    },
+    {
+     "name": "CaptureEvents",
+     "value": false
+    }
+   ],
+   "outputs": [
+    {
+     "name": "ErrorOccurred",
+     "saveInto": "pv!drawWriteError"
+    },
+    {
+     "name": "Error",
+     "saveInto": "pv!errorText"
+    }
+   ]
+  }
+ },
+ {
+  "id": 22,
+  "type": "internal3.write_records_to_source_23r3",
+  "name": "Activate next step",
+  "coordinates": [
+   1400,
+   200
+  ],
+  "connections": [
+   {
+    "targetNodeId": 23,
+    "activityChained": false
+   }
+  ],
+  "assignment": {
+   "attended": false
+  },
+  "data": {
+   "inputs": [
+    {
+     "name": "Records",
+     "expression": "={ 'recordType!{02c207d5-c725-4d11-bf40-b33573e87ffa}SD Draw Approval'('recordType!{02c207d5-c725-4d11-bf40-b33573e87ffa}SD Draw Approval.fields.{69abcdf2-55da-48dc-8cc4-794b5d5e0042}id': pv!nextApprovalId, 'recordType!{02c207d5-c725-4d11-bf40-b33573e87ffa}SD Draw Approval.fields.{4c1bf7fb-0736-4c9a-946e-99f6989ac83a}status': \"In Progress\") }"
+    },
+    {
+     "name": "PauseOnError",
+     "value": false
+    },
+    {
+     "name": "CaptureEvents",
+     "value": false
+    }
+   ],
+   "outputs": [
+    {
+     "name": "ErrorOccurred",
+     "saveInto": "pv!nextWriteError"
+    },
+    {
+     "name": "Error",
+     "saveInto": "pv!errorText"
+    }
+   ]
+  }
+ },
+ {
+  "id": 23,
+  "type": "core.4",
+  "name": "Next write OK?",
+  "coordinates": [
+   1550,
+   200
+  ],
+  "connections": [
+   {
+    "targetNodeId": 11,
+    "activityChained": false
+   },
+   {
+    "targetNodeId": 24,
+    "activityChained": false
+   }
+  ],
+  "decision": {
+   "conditions": [
+    {
+     "expression": "=a!defaultValue(pv!nextWriteError, false)",
+     "targetNodeId": 11
+    }
+   ],
+   "defaultPath": 24
+  }
+ },
+ {
+  "id": 24,
+  "type": "internal3.write_records_to_source_23r3",
+  "name": "Advance draw",
+  "coordinates": [
+   1700,
+   200
+  ],
+  "connections": [
+   {
+    "targetNodeId": 25,
+    "activityChained": false
+   }
+  ],
+  "assignment": {
+   "attended": false
+  },
+  "data": {
+   "inputs": [
+    {
+     "name": "Records",
+     "expression": "={ 'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw'('recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{443829ca-5971-4d31-8fac-ab7a317e509b}id': pv!drawId, 'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{51d3ea43-572b-4052-a36d-369d39f8d05d}currentStep': pv!nextOrder, 'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{a132be23-f941-4d59-a22c-b57e29900ea6}activeStepProcessId': null, 'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{9b41d47b-ef3a-4ea7-bf7e-0935b9c83393}updatedAt': now()) }"
+    },
+    {
+     "name": "PauseOnError",
+     "value": false
+    },
+    {
+     "name": "CaptureEvents",
+     "value": false
+    }
+   ],
+   "outputs": [
+    {
+     "name": "ErrorOccurred",
+     "saveInto": "pv!drawWriteError"
+    },
+    {
+     "name": "Error",
+     "saveInto": "pv!errorText"
+    }
+   ]
+  }
+ },
+ {
+  "id": 25,
+  "type": "core.4",
+  "name": "Advance write OK?",
+  "coordinates": [
+   1850,
+   200
+  ],
+  "connections": [
+   {
+    "targetNodeId": 11,
+    "activityChained": false
+   },
+   {
+    "targetNodeId": 26,
+    "activityChained": false
+   }
+  ],
+  "decision": {
+   "conditions": [
+    {
+     "expression": "=a!defaultValue(pv!drawWriteError, false)",
+     "targetNodeId": 11
+    }
+   ],
+   "defaultPath": 26
+  }
+ },
+ {
+  "id": 26,
+  "type": "core.4",
+  "name": "Start next step task?",
+  "coordinates": [
+   2000,
+   200
+  ],
+  "connections": [
+   {
+    "targetNodeId": 27,
+    "activityChained": false
+   },
+   {
+    "targetNodeId": 28,
+    "activityChained": false
+   }
+  ],
+  "decision": {
+   "conditions": [
+    {
+     "expression": "=a!defaultValue(pv!startNextStepTask, true)",
+     "targetNodeId": 27
+    }
+   ],
+   "defaultPath": 28
+  }
+ },
+ {
+  "id": 27,
+  "type": "internal.38",
+  "name": "Start next step task (async)",
+  "coordinates": [
+   2000,
+   80
+  ],
+  "connections": [
+   {
+    "targetNodeId": 28,
+    "activityChained": false
+   }
+  ],
+  "assignment": {
+   "attended": false
+  },
+  "data": {
+   "inputs": [
+    {
+     "name": "pmUUID",
+     "value": "0000f06e-a547-8000-24cc-7f0000014e7a"
+    },
+    {
+     "name": "isAsynchronous",
+     "value": true
+    },
+    {
+     "name": "isTransparent",
+     "value": true
+    },
+    {
+     "name": "inheritSecurity",
+     "value": false
+    },
+    {
+     "name": "chainsInto",
+     "value": false
+    },
+    {
+     "name": "drawId",
+     "expression": "pv!drawId"
+    },
+    {
+     "name": "stepOrder",
+     "expression": "pv!nextOrder"
+    }
+   ]
+  }
+ },
+ {
+  "id": 28,
+  "type": "internal.16",
+  "name": "Mark advanced",
+  "coordinates": [
+   2150,
+   200
+  ],
+  "connections": [
+   {
+    "targetNodeId": 2,
+    "activityChained": false
+   }
+  ],
+  "assignment": {
+   "attended": false
+  },
+  "data": {
+   "customOutputs": [
+    {
+     "expression": "\"ADVANCED to step \" & pv!nextOrder",
+     "saveInto": "pv!outcome"
+    }
+   ]
+  }
+ }
+]

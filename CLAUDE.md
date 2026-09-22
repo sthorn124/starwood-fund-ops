@@ -190,9 +190,9 @@ Worked examples: `examples/agent-eval-walkthrough.md` (the specimen discipline) 
 | Application UUID | <uuid of the build's Appian application> | §2 step 2 (design read) |
 | App prefix | <object-name prefix, e.g. ABC> | §13 naming; no preflight step reads it |
 | Design account | <account the Dev MCP signs in as> | §2 step 8 (identity check) |
-| Security groups | <groups the build gates on, with nesting> | §2 step 8 (group readback) |
+| Security groups | Draw approval (created 2026-09-21, read back): `SD Draw Approvers` (`_e-0000f060-577e-8000-9b9d-01075c01075c_5513`) is nested under `SD Users` and contains `SD Draw Asset Managers` (`…_5515`, the order 3 step), `SD Draw CEO` (`…_5517`, the order 9 step) and `SD Draw Demo Approvers` (`…_5519`, the catch-all for every other role). The designer is a direct member of all three step groups for verification. Pre-existing intake groups are unchanged: `SD Users` also contains `SD Administrators`, `SD Fund Operations Manager`, `SD Fund Operations Analyst` and `SD Compliance Reviewer`. Record-level security on the draw types is deferred with the persona accounts. | §2 step 8 (group readback) |
 | Per-session ritual | <script and trigger, or "none"> | §2 step 7 |
-| Persona site stub | <URL stub of the site personas use> | §2 step 9 (sail liveness) |
+| Persona site stub | `subscription-agreement-analyst` (site `SASite`, "Subscription Agreement Analyst", uuid `ffae752f-b3d1-44d5-a9ba-c408b66bdb65`). Ruled 2026-09-21: draw views join this site in a new page group (Phase 2). The site is not an object of the application, so `listApplicationObjects` reports 0 sites; it is found through `getObjectDependents` on an intake interface. | §2 step 9 (sail liveness) |
 ```
 
 Add, in the build's own words: vocabulary canon (exact stored values and display labels); data model and relationships; naming prefix and groups; business rules implemented once as shared rules; demo repeatability rules (session tagging, reset and verify-ready actions, reserved id ranges); known data artifacts that are deliberately not fixed, each with what shows, why, and what to say; the files in the repo and what each is for.
@@ -227,3 +227,40 @@ This build adds the **draw approval** flow to an existing Appian app on `ny.appi
   - The naming split holds today: `appian` has 157 camelCase design tools and `appian-runtime` has 10 runtime tools, with no collision.
   - Re-check the names after any desktop-app update (`reference/toolchain.md` §2).
 - **Service accounts in `SD Administrators`: a ruled exception.** `scott.mcp` and `NoahMCPServiceAccount` keep their membership by ruling on 2026-09-21. The ruling and its reason sit at the end of §6.
+
+## Draw approval objects (Phase 1, built 2026-09-21)
+
+All in `Starwood Demo`, prefix `SD`, data source `_a-0000ebae-dc00-8000-9bb5-011c48011c48_10766` (the one `SA Fund` uses). UUIDs are as read back.
+
+| Object | UUID |
+|---|---|
+| Record type `SD Investment` | `f285a98c-746c-40e7-899e-65d8d20f766b` |
+| Record type `SD Draw` | `c9d3a947-71aa-4024-879e-363873a12860` |
+| Record type `SD Draw Budget Line` | `ddc4073e-6372-49e2-80de-a088b424abcd` |
+| Record type `SD Draw Approval` | `02c207d5-c725-4d11-bf40-b33573e87ffa` |
+| Record type `SD QIU Metric` | `a0920e4c-0c76-4494-a61a-6e38d5db390a` |
+| Record type `SD Draw Document` | `f3e0033f-2047-4c68-8f6f-cf32166091e9` |
+| Rule `SD_getDrawState` | `_a-0000f060-57b9-8000-9c4d-011c48011c48_570709` |
+| Rule `SD_getDrawApprovalGroup` | `_a-0000f060-57b9-8000-9c4d-011c48011c48_570703` |
+| Interface `SD_form_drawApprovalDecision` (Phase 2 restyle target) | `_a-0000f060-57b9-8000-9c4d-011c48011c48_570715` |
+| Process `SD Apply Draw Approval Decision` | `0000f06e-a53d-8000-24ca-7f0000014e7a` |
+| Process `SD Draw Approval Step` | `0000f06e-a547-8000-24cc-7f0000014e7a` |
+| Process `SD Draw Approval Process` | `0000f06e-a54a-8000-24cd-7f0000014e7a` |
+| Process `SD Advance Draw to CEO Step (Demo Accelerator)` | `0000f06e-a54d-8000-24cf-7f0000014e7a` |
+| Constants | `SD_DRAW_ASSET_MANAGER_GROUP`, `SD_DRAW_CEO_GROUP`, `SD_DRAW_DEMO_APPROVERS_GROUP` (GROUP, by name), `SD_DRAW_TREASURY_RECIPIENT` (USER, placeholder = the designer), `SD_DRAW_FINAL_APPROVAL_ORDER` (INTEGER 9) |
+
+**Relationships.** `SD Investment.fund` → `SA Fund` (one-way; `SA Fund` was not modified). `SD Draw.investment` → `SD Investment`, with `SD Investment.draws` back. `SD Draw` has CASCADING one-to-many `budgetLines`, `approvals`, `qiuMetrics`, `documents`.
+
+**Business rules, as implemented.**
+- **One transition.** Every approval decision, from the task form, the accelerator, or (Phase 6) an email reply, goes through `SD Apply Draw Approval Decision` with `drawId`, `stepOrder`, `decision` (APPROVE/REJECT), `comment`, `actor`, `source` (TASK / ACCELERATOR / EMAIL), optional `decisionDate`, `callerStepProcessId` and `startNextStepTask`. It returns `outcome` (STALE / ERROR / REJECTED / ADVANCED to step N / APPROVED).
+- **Guard.** A decision is applied only when the draw is In Progress, `currentStep` equals `stepOrder`, and that approval row is In Progress. Anything else is STALE and writes nothing.
+- **Supersede.** When the draw's `activeStepProcessId` is set and is not the caller, that open step task is cancelled before the decision is written. A step process registers its own `pp!id` on the draw when it starts.
+- **Every business write is its own Write Records node** with `PauseOnError` false and `ErrorOccurred` wired; downstream nodes are gated on success. The treasury notification runs only after the final-approval write succeeds, and `SD Draw.treasuryNotifiedAt` is written only after the notification node completes.
+- **Step tasks** are assigned by role through `SD_getDrawApprovalGroup`: Asset Manager and CEO to their groups, every other role to `SD Draw Demo Approvers`.
+- **The accelerator** approves from the current step up to order 9 through the transition, one step at a time (source ACCELERATOR, no next task started), with a ceiling of 9 iterations, then starts the CEO task through `SD Draw Approval Process`. Each decision takes about 12 seconds on this instance, so five steps take about a minute. `dayOffsetPerStep` (default 0) spreads generated decision dates by N days per step.
+
+**Demo repeatability.** `scripts/seed_draw66.py --reset-csv` prints the two update CSVs that return draw 66 (`SD Draw` id 66) and its nine approval rows (ids 6601–6609) to the seeded state: In Progress at step 3, orders 1–2 Approved, 3 In Progress, 4–9 Pending, no open step process. Apply them with `updateRecordData` (draw, then approvals); an empty CSV cell clears the value (measured). Before a demo, confirm no "Approve or reject draw" task is open for the designer, then start with `SD Draw Approval Process` on draw 66. Seed ids are explicit: investment 1, draw 66, budget lines 6601–6616, approvals 6601–6609, QIU metrics 6601–6610.
+
+**Known data artifacts, deliberately not fixed.**
+- **Cents reconciliation.** The email prints whole-dollar draw lines that sum to $2,604,253 against a draw amount of $2,604,252.23. The seed carries the cents on three lines (Hard Costs 2,490,296.83; A&E Architectural 59,581.70; Overhead 54,523.70) so the lines sum to the amount while every printed figure still rounds to the sample. What shows: cents on three lines. What to say: the template carries cents; the email rounds.
+- **Budget Summary source artifact.** The sample's Budget Summary moves the $57,753 contingency adjustment from Hard to Soft in Proposed Budget and Balance To Complete while printing "—" for adjustments, and three cells differ by $1 from the detail. The seed stores the detail lines as printed; the summary is computed from them. What to say: the summary is a roll-up of the lines. Raised as a client validation question.

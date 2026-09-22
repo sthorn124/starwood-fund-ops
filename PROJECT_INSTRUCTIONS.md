@@ -55,11 +55,13 @@ The 9-step approval chain (contiguous orders 1–9, as in the current email samp
 Field vocabulary follows the new approval email sample exactly.
 
 ## Build phases
-- Phase 1: data model, seed data, data-driven sequential approval process with demo accelerator and treasury notification terminal step, base record views.
-- Phase 2: Doc Center ingestion success path: template in, extraction, accountant reconciliation, budget tables populated, data on the UI.
-- Phase 3: new approval email layout rendered as HTML email from live draw data, matched to the spec PDF.
-- Phase 4: ingestion failure path: plain-English alert email, AI diff against the last successful template.
-- Phase 5: CEO email approval with AI reply interpretation; asset manager budget edit at approval step; AI-drafted contingency narrative with accountant review (stretch); treasury notification content; polish.
+*Restructured by ruling on 2026-09-21: interfaces moved out of Phase 1 into a new mockup-first Phase 2, and the later phases shifted by one.*
+- Phase 1: data model (including SD Investment), seed data, data-driven sequential approval process with demo accelerator and treasury notification terminal step. No custom views.
+- Phase 2: UI foundation, mockup-first: HTML mockups for the draw list and draw summary views in mockups/, reviewed and approved before any SAIL is written; then the views built against them, on the existing intake site in a new page group.
+- Phase 3: Doc Center ingestion success path: template in, extraction, accountant reconciliation, budget tables populated, data on the UI.
+- Phase 4: new approval email layout rendered as HTML email from live draw data, matched to the spec PDF.
+- Phase 5: ingestion failure path: plain-English alert email, AI diff against the last successful template.
+- Phase 6: CEO email approval with AI reply interpretation; asset manager budget edit at approval step; AI-drafted contingency narrative with accountant review (stretch); treasury notification content; polish.
 
 ## Vocabulary canon
 - Flow name: draw approval. Never "capital call" in object names; "capital call request" acceptable in narrative text only.
@@ -82,7 +84,8 @@ Field vocabulary follows the new approval email sample exactly.
 
 ## Open questions
 - Audience: Starwood direct vs reusable FS asset (sets how literal the Starwood branding stays).
-- Outbound email delivery and inbound email receipt on the NY instance: verify capability in Phase 3/5, not assumed.
-- Doc Center handling of the Excel template format: confirm in Phase 2; fallback is extraction from a PDF rendition of the template.
-- Whether draw views join the existing intake site or get a dedicated site.
+- Outbound email delivery and inbound email receipt on the NY instance: verify capability in Phase 4/6 (renumbered from 3/5 by the 2026-09-21 restructure), not assumed.
+- Doc Center handling of the Excel template format: confirm in Phase 3 (renumbered from 2); fallback is extraction from a PDF rendition of the template.
+- Resolved 2026-09-21: draw views join the existing intake site (`SASite`, "Subscription Agreement Analyst", stub `subscription-agreement-analyst`) in a new page group. There is no dedicated site.
+- Deferred 2026-09-21: persona accounts. Phase 1 verifies as the designer.
 - Resolved 2026-09-21: Blue Granite continuity is narration only. None of Blue Granite's subscriptions is Accepted, and that is left as it is; the narrative's "entered the fund" is spoken, not shown in data. See Business rules: this flow does not touch subscription intake data.
