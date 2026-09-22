@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Approve Draw #66 — Asset Manager Step</title>
+<style>
+  :root {
+    --navy: #16294d;
+    --navy-light: #23407a;
+    --ink: #1f2937;
+    --muted: #6b7280;
+    --line: #d9dee7;
+    --line-soft: #eceff4;
+    --bg: #f5f6f8;
+    --white: #ffffff;
+    --green: #1e7e46;
+    --green-bg: #e6f4ec;
+    --blue: #1d5bbf;
+    --blue-bg: #e8f0fc;
+    --red: #b3341f;
+    --link: #1d5bbf;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg); color: var(--ink);
+    font-size: 13px; line-height: 1.45;
+  }
+  .page { max-width: 720px; margin: 0 auto; padding: 0 20px 48px; }
+
+  .band {
+    background: var(--navy); color: #fff;
+    padding: 18px 24px 16px; margin: 0 -20px 20px;
+  }
+  .band .crumb { color: #aebadd; font-size: 12px; margin-bottom: 6px; }
+  .band h1 { font-size: 19px; font-weight: 600; }
+  .band .sub { color: #c9d4ef; font-size: 13px; margin-top: 3px; }
+
+  .card {
+    background: var(--white); border: 1px solid var(--line);
+    border-radius: 6px; margin-bottom: 18px; overflow: hidden;
+  }
+  .card .pad { padding: 16px; }
+
+  /* Context block */
+  .ctx { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 20px; }
+  .ctx .k { font-size: 11px; color: var(--muted); }
+  .ctx .v { font-weight: 600; }
+  .ctx .v.amount { font-size: 16px; }
+  .ctx .wide { grid-column: 1 / -1; }
+  .ctx .v.narrative { font-weight: 400; }
+  .ctx a { color: var(--link); text-decoration: none; font-weight: 600; }
+  .ctx a:hover { text-decoration: underline; }
+
+  .stepline {
+    padding: 10px 16px; border-top: 1px solid var(--line-soft);
+    font-size: 12px; color: var(--muted); background: #fafbfd;
+  }
+  .stepline b { color: var(--ink); }
+
+  /* Decision */
+  h2 { font-size: 13px; font-weight: 600; color: var(--navy); margin-bottom: 10px; }
+  .choices { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .choice {
+    border: 1.5px solid var(--line); border-radius: 6px;
+    padding: 13px 14px; cursor: pointer; background: var(--white);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .choice input { accent-color: var(--navy); width: 16px; height: 16px; }
+  .choice .t { font-weight: 600; }
+  .choice .d { font-size: 11px; color: var(--muted); }
+  .choice.approve.sel { border-color: var(--green); background: var(--green-bg); }
+  .choice.reject.sel { border-color: var(--red); background: #fbeae7; }
+
+  label.lbl { display: block; font-size: 12px; font-weight: 600; margin-bottom: 5px; }
+  label.lbl .req { color: var(--red); }
+  label.lbl .opt { color: var(--muted); font-weight: 400; }
+  textarea {
+    width: 100%; min-height: 90px; resize: vertical;
+    border: 1px solid var(--line); border-radius: 5px;
+    padding: 9px 11px; font: inherit; color: var(--ink);
+  }
+  .hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .err { font-size: 12px; color: var(--red); margin-top: 4px; display: none; }
+
+  .actions {
+    display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px;
+  }
+  .btn {
+    font-weight: 600; font-size: 13px; padding: 9px 20px;
+    border-radius: 5px; border: 1px solid var(--line); cursor: pointer;
+    background: var(--white); color: var(--ink);
+  }
+  .btn.primary { background: var(--navy); color: #fff; border-color: var(--navy); }
+
+  @media (max-width: 640px) {
+    .ctx { grid-template-columns: repeat(2, 1fr); }
+    .choices { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="band">
+    <div class="crumb">Tasks &rsaquo; Draw Approval</div>
+    <h1>Step 3 of 9 — Asset Manager</h1>
+    <div class="sub">Assigned to Elena Marchetti · with you since Oct 7 · funds scheduled Oct 15</div>
+  </div>
+
+  <div class="card">
+    <div class="pad ctx">
+      <div class="wide"><div class="k">Draw</div><div class="v"><a href="#">Draw #66 — Tamarack Hotel &amp; Spa Vail</a></div></div>
+      <div><div class="k">Amount</div><div class="v amount">$2,604,252.23</div></div>
+      <div><div class="k">Draw Type</div><div class="v">PIP/Renovation</div></div>
+      <div><div class="k">On / Under / Over Budget</div><div class="v">On Budget</div></div>
+      <div class="wide"><div class="k">Fund</div><div class="v">Harborline Real Assets Fund II, L.P.</div></div>
+      <div class="wide"><div class="k">Purpose</div><div class="v narrative">Draw #66 for THSV. The total amount this draw is $2,604,252.23.</div></div>
+      <div class="wide"><div class="k">Budget and Contingency Explanation</div><div class="v narrative">$57k of the remaining $1.27M contingency budget (4.8%) was utilized for incremental ARUP/SHA (Structural, Architectural) and ACC (Environmental) design coordination work, outside of the insurance claim.</div></div>
+    </div>
+    <div class="stepline">
+      <b>2 of 9 approved</b> · Accountant ✓ 10/06 · Accounting Controller ✓ 10/07 · Review the full draw, budget detail, and documents on the <a href="#" style="color:var(--link);text-decoration:none;">draw record</a>.
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="pad">
+      <h2>Your Decision</h2>
+      <div class="choices">
+        <label class="choice approve" id="chA">
+          <input type="radio" name="d" onclick="pick('A')">
+          <span><span class="t">Approve</span><br><span class="d">Advance to AM SVP (step 4 of 9)</span></span>
+        </label>
+        <label class="choice reject" id="chR">
+          <input type="radio" name="d" onclick="pick('R')">
+          <span><span class="t">Reject</span><br><span class="d">Terminate this draw request</span></span>
+        </label>
+      </div>
+
+      <label class="lbl" for="cm" id="cmLbl">Comments <span class="opt">(optional)</span></label>
+      <textarea id="cm" placeholder="Visible to all downstream approvers and recorded on the draw"></textarea>
+      <div class="hint" id="cmHint">Comments are recorded on the approval and visible to later steps.</div>
+      <div class="err" id="cmErr">A comment is required when rejecting a draw.</div>
+
+      <div class="actions">
+        <button class="btn">Save for Later</button>
+        <button class="btn primary" onclick="return submitTry();">Submit Decision</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script>
+  let sel = null;
+  function pick(x) {
+    sel = x;
+    document.getElementById('chA').classList.toggle('sel', x==='A');
+    document.getElementById('chR').classList.toggle('sel', x==='R');
+    document.getElementById('cmLbl').innerHTML = x==='R'
+      ? 'Comments <span class="req">*</span>'
+      : 'Comments <span class="opt">(optional)</span>';
+    document.getElementById('cmErr').style.display = 'none';
+  }
+  function submitTry() {
+    if (sel==='R' && !document.getElementById('cm').value.trim()) {
+      document.getElementById('cmErr').style.display = 'block';
+      return false;
+    }
+    return false;
+  }
+</script>
+</body>
+</html>

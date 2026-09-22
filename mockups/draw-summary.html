@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Draw #66 — Tamarack Hotel &amp; Spa Vail — Draw Record</title>
+<style>
+  :root {
+    --navy: #16294d;
+    --navy-light: #23407a;
+    --ink: #1f2937;
+    --muted: #6b7280;
+    --line: #d9dee7;
+    --line-soft: #eceff4;
+    --bg: #f5f6f8;
+    --white: #ffffff;
+    --green: #1e7e46;
+    --green-bg: #e6f4ec;
+    --blue: #1d5bbf;
+    --blue-bg: #e8f0fc;
+    --amber: #92600a;
+    --amber-bg: #fdf3e0;
+    --grey-chip: #64748b;
+    --grey-chip-bg: #eef1f5;
+    --total-bg: #e9edf5;
+    --sect-bg: #f3f5f9;
+    --link: #1d5bbf;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg); color: var(--ink);
+    font-size: 13px; line-height: 1.45;
+  }
+  .page { max-width: 1160px; margin: 0 auto; padding: 0 20px 48px; }
+
+  /* Header band */
+  .band {
+    background: var(--navy); color: #fff;
+    padding: 18px 24px 0; margin: 0 -20px 0;
+  }
+  .band .crumb { color: #aebadd; font-size: 12px; margin-bottom: 6px; }
+  .band h1 { font-size: 20px; font-weight: 600; letter-spacing: .2px; }
+  .band h1 .inv { color: #c9d4ef; font-weight: 400; }
+  .factstrip {
+    display: flex; flex-wrap: wrap; gap: 28px;
+    margin-top: 12px; padding: 12px 0 14px;
+    border-top: 1px solid var(--navy-light);
+  }
+  .fact .k { font-size: 11px; color: #aebadd; }
+  .fact .v { font-size: 14px; font-weight: 600; }
+  .fact .v.amount { font-size: 17px; }
+  .fact .sub { font-size: 11px; color: #aebadd; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 2px; padding: 0; }
+  .tab {
+    padding: 9px 18px; font-size: 13px; font-weight: 600;
+    color: #c9d4ef; background: transparent; border: none; cursor: pointer;
+    border-radius: 6px 6px 0 0;
+  }
+  .tab.active { background: var(--bg); color: var(--navy); }
+  .tabpanes { padding-top: 18px; }
+  .pane { display: none; }
+  .pane.active { display: block; }
+
+  /* Action strip */
+  .action {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    background: var(--blue-bg); border: 1px solid #bcd2f5; border-radius: 6px;
+    padding: 12px 16px; margin-bottom: 18px;
+  }
+  .action .msg { font-weight: 600; color: var(--navy); }
+  .action .msg .sub { font-weight: 400; color: var(--muted); font-size: 12px; }
+  .action .btn {
+    background: var(--navy); color: #fff; font-weight: 600; font-size: 13px;
+    padding: 9px 18px; border: none; border-radius: 5px; cursor: pointer; white-space: nowrap;
+  }
+
+  /* Progress line */
+  .progress-card {
+    background: var(--white); border: 1px solid var(--line); border-radius: 6px;
+    padding: 14px 16px; margin-bottom: 18px;
+  }
+  .progress-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+  .progress-top .where { font-weight: 600; color: var(--navy); }
+  .progress-top .aging { font-size: 12px; color: var(--muted); }
+  .bar { height: 8px; background: var(--line-soft); border-radius: 4px; overflow: hidden; display: flex; }
+  .bar .fill { background: var(--green); width: 22.2%; }
+  .bar .head { background: var(--blue); width: 11.1%; }
+  .progress-foot { display: flex; justify-content: space-between; margin-top: 6px; font-size: 11px; color: var(--muted); }
+  .progress-foot a { color: var(--link); text-decoration: none; }
+  .progress-foot a:hover { text-decoration: underline; }
+
+  /* Cards */
+  .card {
+    background: var(--white); border: 1px solid var(--line);
+    border-radius: 6px; margin-bottom: 18px; overflow: hidden;
+  }
+  .card > h2 { font-size: 13px; font-weight: 600; color: var(--navy); padding: 12px 16px 4px; }
+  .card .src {
+    font-size: 11px; color: var(--muted);
+    padding: 0 16px 10px; border-bottom: 1px solid var(--line);
+  }
+  .card .src a { color: var(--link); text-decoration: none; }
+  .card .src a:hover { text-decoration: underline; }
+  .card .pad { padding: 14px 16px; }
+
+  .origin { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px 24px; }
+  .origin .k, .facts .k { font-size: 11px; color: var(--muted); }
+  .origin .v, .facts .v { font-weight: 500; }
+  .origin .v a { color: var(--link); text-decoration: none; }
+  .origin .v a:hover { text-decoration: underline; }
+
+  .facts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px 24px; }
+  .facts .wide { grid-column: 1 / -1; }
+  .facts .v.narrative { font-weight: 400; }
+
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 7px 10px; }
+  thead th {
+    font-size: 11px; font-weight: 600; color: var(--muted);
+    text-align: right; border-bottom: 1px solid var(--line);
+    background: #fafbfd; white-space: nowrap;
+  }
+  thead th:first-child { text-align: left; }
+  tbody td { border-bottom: 1px solid var(--line-soft); }
+  tbody tr:last-child td { border-bottom: none; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.name { text-align: left; }
+  tr.sect td { background: var(--sect-bg); font-weight: 600; color: var(--navy); border-top: 1px solid var(--line); }
+  tr.total td { background: var(--total-bg); font-weight: 700; border-top: 2px solid var(--navy); }
+  tr.hilite td { background: var(--blue-bg); }
+  .neg { color: #9a3412; }
+  .dim { color: var(--muted); }
+
+  .chip { display: inline-block; padding: 2px 9px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+  .chip.ok  { color: var(--green); background: var(--green-bg); }
+  .chip.now { color: var(--blue); background: var(--blue-bg); }
+  .chip.wait{ color: var(--grey-chip); background: var(--grey-chip-bg); }
+  .chip.warn{ color: var(--amber); background: var(--amber-bg); }
+
+  .note { font-size: 11px; color: var(--muted); padding: 8px 16px 12px; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .cum { display: flex; gap: 24px; padding: 0 16px 12px; font-size: 12px; color: var(--muted); }
+  .cum b { color: var(--ink); }
+  @media (max-width: 900px) {
+    .two-col { grid-template-columns: 1fr; }
+    .origin { grid-template-columns: repeat(2, 1fr); }
+    .band h1 { font-size: 17px; }
+    .action { flex-direction: column; align-items: stretch; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="band">
+    <div class="crumb">Draws &rsaquo; Draw #66</div>
+    <h1>Draw Funding Approval <span class="inv">| Tamarack Hotel &amp; Spa Vail</span></h1>
+    <div class="factstrip">
+      <div class="fact"><div class="k">Amount</div><div class="v amount">$2,604,252.23</div></div>
+      <div class="fact"><div class="k">Status</div><div class="v">In Progress — Asset Manager</div></div>
+      <div class="fact"><div class="k">Funding Date</div><div class="v">October 15, 2026</div><div class="sub">in 12 days</div></div>
+      <div class="fact"><div class="k">Draw Type</div><div class="v">PIP/Renovation</div></div>
+      <div class="fact"><div class="k">Fund</div><div class="v">Harborline Real Assets Fund II, L.P.</div></div>
+    </div>
+    <div class="tabs">
+      <button class="tab active" data-pane="summary">Summary</button>
+      <button class="tab" data-pane="budget">Budget Detail</button>
+      <button class="tab" data-pane="approvals">Approvals</button>
+      <button class="tab" data-pane="documents">Documents</button>
+    </div>
+  </div>
+
+  <div class="tabpanes">
+
+  <!-- ============ SUMMARY ============ -->
+  <div class="pane active" id="summary">
+
+    <div class="action">
+      <div class="msg">Your approval is pending — Asset Manager, step 3 of 9
+        <div class="sub">With you since Oct 7 · funds scheduled in 12 days</div>
+      </div>
+      <button class="btn">Review &amp; Approve</button>
+    </div>
+
+    <div class="progress-card">
+      <div class="progress-top">
+        <div class="where">Step 3 of 9 · Asset Manager · Elena Marchetti</div>
+        <div class="aging">2 of 9 approved · started 10/06</div>
+      </div>
+      <div class="bar"><div class="fill"></div><div class="head"></div></div>
+      <div class="progress-foot">
+        <span>Accountant ✓ 10/06 · Accounting Controller ✓ 10/07</span>
+        <a href="#" onclick="showPane('approvals');return false;">Full approval detail</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Draw Origin</h2>
+      <div class="src">Capital call request received via EY data feed · budget extracted by Doc Center</div>
+      <div class="pad origin">
+        <div><div class="k">Received</div><div class="v">October 3, 2026</div></div>
+        <div><div class="k">Submitted By</div><div class="v">Vail Peak Management LLC (Property Manager)</div></div>
+        <div><div class="k">Source Document</div><div class="v">📄 <a href="#" onclick="showPane('documents');return false;">THSV_Draw66_Budget_Template.xlsx</a></div></div>
+        <div><div class="k">Ingestion</div><div class="v"><span class="chip ok">Extracted &amp; Confirmed</span> <span class="dim">P. Raman, 10/05</span></div></div>
+        <div><div class="k">Amount Verification</div><div class="v"><span class="chip ok">Ties ✓</span> <span class="dim">current draw lines sum to $2,604,252.23</span></div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Draw Funding Detail</h2>
+      <div class="src">Header fields from the capital call request · investment profile from DealCloud</div>
+      <div class="pad facts">
+        <div><div class="k">Cash/Equity Needed from the Fund?</div><div class="v">Yes</div></div>
+        <div><div class="k">On / Under / Over Budget</div><div class="v">On Budget</div></div>
+        <div class="wide"><div class="k">Investment Description</div><div class="v narrative">Full-service alpine resort and spa, Vail, CO. 285 keys.</div></div>
+        <div class="wide"><div class="k">Purpose</div><div class="v narrative">Draw #66 for THSV. The total amount this draw is $2,604,252.23.</div></div>
+        <div class="wide"><div class="k">Budget and Contingency Explanation</div><div class="v narrative">$57k of the remaining $1.27M contingency budget (4.8%) was utilized for incremental ARUP/SHA (Structural, Architectural) and ACC (Environmental) design coordination work, outside of the insurance claim.</div></div>
+        <div><div class="k">Over Budget Reason</div><div class="v dim">—</div></div>
+        <div><div class="k">General Comments</div><div class="v dim">—</div></div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <h2>Budget Summary</h2>
+        <div class="src">Roll-up of budget detail by category group · <a href="#" onclick="showPane('budget');return false;">full detail</a></div>
+        <table>
+          <thead>
+            <tr><th>Category Group</th><th>Revised Approved</th><th>Adjustments This Draw</th><th>Proposed Budget</th><th>Current Draw</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="name">Land</td><td class="num">$121,825,238</td><td class="num dim">—</td><td class="num">$121,825,238</td><td class="num dim">—</td></tr>
+            <tr><td class="name">Soft</td><td class="num">$67,174,328</td><td class="num">$57,753</td><td class="num">$67,232,081</td><td class="num">$112,667</td></tr>
+            <tr><td class="name">Hard</td><td class="num">$201,197,144</td><td class="num neg">($57,753)</td><td class="num">$201,139,391</td><td class="num">$2,491,585</td></tr>
+            <tr class="total"><td class="name">Total</td><td class="num">$390,196,710</td><td class="num dim">—</td><td class="num">$390,196,710</td><td class="num">$2,604,252</td></tr>
+          </tbody>
+        </table>
+        <div class="note">Land: site &amp; acquisition. Hard: construction &amp; FF&amp;E. Soft: fees, taxes, insurance, financing, marketing, contingency.</div>
+      </div>
+
+      <div class="card">
+        <h2>Remaining Contingency</h2>
+        <div class="src">From the All Project Contingency budget line</div>
+        <table>
+          <thead>
+            <tr><th>&nbsp;</th><th>Revised Approved</th><th>Adjustments This Draw</th><th>Proposed</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="name">Remaining Contingency ($)</td><td class="num">$1,274,757</td><td class="num neg">($57,753)</td><td class="num">$1,217,004</td></tr>
+            <tr><td class="name">Remaining Contingency (%)</td><td class="num">6.8%</td><td class="num dim">—</td><td class="num">6.5%</td></tr>
+          </tbody>
+        </table>
+        <div class="note">Percent is contingency over total balance to complete ($18,693,027). Utilization this draw covered by the explanation above.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Funding History</h2>
+      <div class="src">Prior approved draws on this investment</div>
+      <div class="cum"><span>Funded to date: <b>$368,899,431</b> of $390,196,710 proposed budget (<b>94.5%</b>)</span><span>This draw brings PTD to <b>95.2%</b></span></div>
+      <table>
+        <thead>
+          <tr><th style="text-align:left">Draw</th><th>Funded</th><th>Amount</th><th style="text-align:left">Type</th><th style="text-align:left">Purpose</th></tr>
+        </thead>
+        <tbody>
+          <tr class="hilite"><td class="name">#66</td><td class="num">10/15/2026</td><td class="num">$2,604,252</td><td class="name">PIP/Renovation</td><td class="name">This draw — in approval</td></tr>
+          <tr><td class="name">#65</td><td class="num">07/14/2026</td><td class="num">$3,118,940</td><td class="name">PIP/Renovation</td><td class="name">Hard costs &amp; A&amp;E, Q2 renovation package</td></tr>
+          <tr><td class="name">#64</td><td class="num">04/11/2026</td><td class="num">$4,022,516</td><td class="name">PIP/Renovation</td><td class="name">Hard costs, FF&amp;E deposits</td></tr>
+          <tr><td class="name">#63</td><td class="num">01/09/2026</td><td class="num">$5,487,203</td><td class="name">PIP/Renovation</td><td class="name">Hard costs, winter construction phase</td></tr>
+        </tbody>
+      </table>
+      <div class="note">Showing the last 3 funded draws. Full history on the investment record.</div>
+    </div>
+
+    <div class="card">
+      <h2>QIU Detail — Tamarack Hotel &amp; Spa Vail</h2>
+      <div class="src">Aggregated from the QIU model for this investment · model as of 09/30/2026</div>
+      <table>
+        <thead>
+          <tr><th style="text-align:left">Metric</th><th>Current QIU Model (09/30/2026)</th><th>Current Projection</th><th>Variance of Current Projection</th><th style="text-align:left">Notes</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="name">IRR</td><td class="num neg">(9.4%)</td><td class="num neg">(9.4%)</td><td class="num dim">—</td><td class="name dim"></td></tr>
+          <tr><td class="name">Profit</td><td class="num neg">($129,377,499)</td><td class="num neg">($129,377,499)</td><td class="num dim">—</td><td class="name dim"></td></tr>
+          <tr><td class="name">Multiple</td><td class="num">0.59x</td><td class="num">0.59x</td><td class="num dim">—</td><td class="name dim"></td></tr>
+          <tr><td class="name">Peak Equity</td><td class="num">$316,461,272</td><td class="num">$316,461,272</td><td class="num dim">—</td><td class="name dim"></td></tr>
+          <tr><td class="name">Current Equity Contributions (through prior quarter)</td><td class="num neg">($288,603,860)</td><td class="num neg">($288,603,860)</td><td class="num dim">—</td><td class="name dim"></td></tr>
+          <tr><td class="name">Current Quarter Equity Contribution</td><td class="num">$8,259,741</td><td class="num">$8,259,741</td><td class="num dim">—</td><td class="name dim"></td></tr>
+          <tr><td class="name">Future Equity Contributions (after current quarter)</td><td class="num neg">($22,702,431)</td><td class="num neg">($22,702,431)</td><td class="num dim">—</td><td class="name dim"></td></tr>
+          <tr><td class="name">Distributions To-Date (through prior quarter)</td><td class="num">$3,104,760</td><td class="num">$3,104,760</td><td class="num dim">—</td><td class="name dim"></td></tr>
+          <tr><td class="name">Current Quarter Distribution</td><td class="num dim">—</td><td class="num dim">—</td><td class="num dim">—</td><td class="name dim"></td></tr>
+          <tr><td class="name">Future Distributions (after current quarter)</td><td class="num">$187,083,773</td><td class="num">$187,083,773</td><td class="num dim">—</td><td class="name dim"></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <!-- ============ BUDGET DETAIL ============ -->
+  <div class="pane" id="budget">
+    <div class="card">
+      <h2>Draw Detail by Budget Category</h2>
+      <div class="src">Extracted from <a href="#" onclick="showPane('documents');return false;">THSV_Draw66_Budget_Template.xlsx</a> via Doc Center · confirmed by the Fund Accountant 10/05/2026</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Budget Category</th><th>Initial Budget</th><th>Revised Approved Budget</th>
+            <th>Proposed Adjustments This Draw</th><th>Proposed Budget</th><th>Current Draw</th>
+            <th>Total PTD inc. This Draw ($)</th><th>Total PTD inc. This Draw (%)</th><th>Balance To Complete</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="sect"><td class="name" colspan="9">In this Draw</td></tr>
+          <tr><td class="name">Hard Costs</td><td class="num">$106,664,345</td><td class="num">$186,977,333</td><td class="num dim">—</td><td class="num">$186,977,333</td><td class="num">$2,490,297</td><td class="num">$171,792,118</td><td class="num">91.9%</td><td class="num">$15,185,215</td></tr>
+          <tr><td class="name">A&amp;E - Architectural</td><td class="num">$7,254,819</td><td class="num">$10,752,723</td><td class="num">$21,000</td><td class="num">$10,773,723</td><td class="num">$59,582</td><td class="num">$10,618,256</td><td class="num">98.6%</td><td class="num">$155,467</td></tr>
+          <tr><td class="name">Overhead, CM &amp; Admin Fees</td><td class="num">$3,870,000</td><td class="num">$9,174,304</td><td class="num dim">—</td><td class="num">$9,174,304</td><td class="num">$54,524</td><td class="num">$7,359,555</td><td class="num">80.2%</td><td class="num">$1,814,749</td></tr>
+          <tr><td class="name">A&amp;E - Soils &amp; Environmental</td><td class="num">$54,024</td><td class="num">$128,859</td><td class="num">$16,753</td><td class="num">$145,612</td><td class="num">$14,504</td><td class="num">$145,611</td><td class="num">100.0%</td><td class="num">$1</td></tr>
+          <tr><td class="name">A&amp;E - Design/Misc Consults</td><td class="num">$596,991</td><td class="num">$1,469,362</td><td class="num">$20,000</td><td class="num">$1,489,362</td><td class="num">$4,837</td><td class="num">$1,481,451</td><td class="num">99.5%</td><td class="num">$7,911</td></tr>
+          <tr><td class="name">FF&amp;E</td><td class="num">$10,141,960</td><td class="num">$14,219,811</td><td class="num dim">—</td><td class="num">$14,219,811</td><td class="num">$1,288</td><td class="num">$14,016,988</td><td class="num">98.6%</td><td class="num">$202,823</td></tr>
+          <tr><td class="name">A&amp;E - Engineering</td><td class="num dim">—</td><td class="num">$664,835</td><td class="num dim">—</td><td class="num">$664,835</td><td class="num">$730</td><td class="num">$663,888</td><td class="num">99.9%</td><td class="num">$947</td></tr>
+          <tr><td class="name">Operating Deficits</td><td class="num">$1,000,000</td><td class="num">$318,836</td><td class="num dim">—</td><td class="num">$318,836</td><td class="num neg">($21,509)</td><td class="num">$257,805</td><td class="num">80.9%</td><td class="num">$61,031</td></tr>
+          <tr><td class="name">All Project Contingency</td><td class="num">$4,215,972</td><td class="num">$1,274,757</td><td class="num neg">($57,753)</td><td class="num">$1,217,004</td><td class="num dim">—</td><td class="num dim">—</td><td class="num dim">—</td><td class="num">$1,217,004</td></tr>
+
+          <tr class="sect"><td class="name" colspan="9">All Other Budget Categories</td></tr>
+          <tr><td class="name">Land</td><td class="num">$107,550,000</td><td class="num">$107,550,000</td><td class="num dim">—</td><td class="num">$107,550,000</td><td class="num dim">—</td><td class="num">$107,550,000</td><td class="num">100.0%</td><td class="num dim">—</td></tr>
+          <tr><td class="name">Acquisition Costs</td><td class="num">$14,278,400</td><td class="num">$14,275,238</td><td class="num dim">—</td><td class="num">$14,275,238</td><td class="num dim">—</td><td class="num">$14,275,238</td><td class="num">100.0%</td><td class="num dim">—</td></tr>
+          <tr><td class="name">Taxes</td><td class="num">$2,211,943</td><td class="num">$3,011,530</td><td class="num dim">—</td><td class="num">$3,011,530</td><td class="num dim">—</td><td class="num">$3,011,530</td><td class="num">100.0%</td><td class="num dim">—</td></tr>
+          <tr><td class="name">Permits &amp; Muni Fees</td><td class="num">$2,483,394</td><td class="num">$3,453,127</td><td class="num dim">—</td><td class="num">$3,453,127</td><td class="num dim">—</td><td class="num">$3,428,127</td><td class="num">99.3%</td><td class="num">$25,000</td></tr>
+          <tr><td class="name">Insurance</td><td class="num dim">—</td><td class="num">$5,235,682</td><td class="num dim">—</td><td class="num">$5,235,682</td><td class="num dim">—</td><td class="num">$5,235,682</td><td class="num">100.0%</td><td class="num dim">—</td></tr>
+          <tr><td class="name">Financing</td><td class="num">$8,432,171</td><td class="num">$21,902,223</td><td class="num dim">—</td><td class="num">$21,902,223</td><td class="num dim">—</td><td class="num">$21,879,343</td><td class="num">99.9%</td><td class="num">$22,880</td></tr>
+          <tr><td class="name">Start-up/Marketing</td><td class="num">$9,922,461</td><td class="num">$9,788,091</td><td class="num dim">—</td><td class="num">$9,788,091</td><td class="num dim">—</td><td class="num">$9,788,091</td><td class="num">100.0%</td><td class="num dim">—</td></tr>
+
+          <tr class="total"><td class="name">BUDGET</td><td class="num">$278,676,480</td><td class="num">$390,196,710</td><td class="num dim">—</td><td class="num">$390,196,710</td><td class="num">$2,604,252</td><td class="num">$371,503,683</td><td class="num">95.2%</td><td class="num">$18,693,027</td></tr>
+        </tbody>
+      </table>
+      <div class="note">Categories funded by Draw #66 listed first, per the approval email layout. Net proposed adjustments this draw are $0: $57,753 reallocated from All Project Contingency to A&amp;E categories. The total row is computed from the category lines.</div>
+    </div>
+  </div>
+
+  <!-- ============ APPROVALS ============ -->
+  <div class="pane" id="approvals">
+    <div class="card">
+      <h2>Approval Detail</h2>
+      <div class="src">Sequential chain of 9 · drives routing and the summary progress · started 10/06/2026</div>
+      <table>
+        <thead>
+          <tr><th style="text-align:left">Order</th><th style="text-align:left">Role</th><th style="text-align:left">Approver</th><th style="text-align:left">Status</th><th>Decision On</th><th>Time at Step</th><th style="text-align:left">Comments</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="name">1</td><td class="name">Accountant</td><td class="name">Priya Raman</td><td class="name"><span class="chip ok">Approved</span></td><td class="num">10/06/2026</td><td class="num">1 day</td><td class="name dim">—</td></tr>
+          <tr><td class="name">2</td><td class="name">Accounting Controller</td><td class="name">Daniel Osei</td><td class="name"><span class="chip ok">Approved</span></td><td class="num">10/07/2026</td><td class="num">1 day</td><td class="name dim">—</td></tr>
+          <tr class="hilite"><td class="name">3</td><td class="name">Asset Manager</td><td class="name">Elena Marchetti</td><td class="name"><span class="chip now">In Progress</span></td><td class="num dim">—</td><td class="num">2 days</td><td class="name dim">—</td></tr>
+          <tr><td class="name">4</td><td class="name">AM SVP</td><td class="name">Mark Feldstein</td><td class="name"><span class="chip wait">Pending</span></td><td class="num dim">—</td><td class="num dim">—</td><td class="name dim">—</td></tr>
+          <tr><td class="name">5</td><td class="name">Executive</td><td class="name">Sandra Whitmore</td><td class="name"><span class="chip wait">Pending</span></td><td class="num dim">—</td><td class="num dim">—</td><td class="name dim">—</td></tr>
+          <tr><td class="name">6</td><td class="name">Chief Accounting Officer</td><td class="name">Robert Chen</td><td class="name"><span class="chip wait">Pending</span></td><td class="num dim">—</td><td class="num dim">—</td><td class="name dim">—</td></tr>
+          <tr><td class="name">7</td><td class="name">CFO of Funds</td><td class="name">Alicia Fontaine</td><td class="name"><span class="chip wait">Pending</span></td><td class="num dim">—</td><td class="num dim">—</td><td class="name dim">—</td></tr>
+          <tr><td class="name">8</td><td class="name">President</td><td class="name">James Callahan</td><td class="name"><span class="chip wait">Pending</span></td><td class="num dim">—</td><td class="num dim">—</td><td class="name dim">—</td></tr>
+          <tr><td class="name">9</td><td class="name">CEO</td><td class="name">Thomas Bergman</td><td class="name"><span class="chip wait">Pending</span></td><td class="num dim">—</td><td class="num dim">—</td><td class="name dim">—</td></tr>
+        </tbody>
+      </table>
+      <div class="note">The CEO approves by email reply. All decisions are recorded with actor, source (task, email, or system), and timestamp. On final approval, Treasury is notified to execute the cash payment.</div>
+    </div>
+  </div>
+
+  <!-- ============ DOCUMENTS ============ -->
+  <div class="pane" id="documents">
+    <div class="card">
+      <h2>Draw Documents</h2>
+      <div class="src">Source template and backup for Draw #66 · received via EY data feed 10/03/2026</div>
+      <table>
+        <thead>
+          <tr><th style="text-align:left">Document</th><th style="text-align:left">Type</th><th style="text-align:left">Status</th><th>Received</th><th style="text-align:left">Notes</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="name">📄 <a href="#">THSV_Draw66_Budget_Template.xlsx</a></td><td class="name">Budget Template</td><td class="name"><span class="chip ok">Extracted &amp; Confirmed</span></td><td class="num">10/03/2026</td><td class="name dim">Doc Center extraction confirmed by P. Raman 10/05</td></tr>
+          <tr><td class="name">📄 <a href="#">THSV_Draw66_ContractorInvoices.pdf</a></td><td class="name">Backup</td><td class="name"><span class="chip ok">Attached</span></td><td class="num">10/03/2026</td><td class="name dim">Contractor invoice package, Hard Costs</td></tr>
+          <tr><td class="name">📄 <a href="#">THSV_Draw66_AE_Invoices.pdf</a></td><td class="name">Backup</td><td class="name"><span class="chip ok">Attached</span></td><td class="num">10/03/2026</td><td class="name dim">A&amp;E invoices supporting contingency reallocation</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  </div>
+
+<script>
+  function showPane(id) {
+    document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.querySelector('.tab[data-pane="' + id + '"]').classList.add('active');
+    window.scrollTo(0, 0);
+  }
+  document.querySelectorAll('.tab').forEach(t =>
+    t.addEventListener('click', () => showPane(t.dataset.pane))
+  );
+</script>
+</body>
+</html>
