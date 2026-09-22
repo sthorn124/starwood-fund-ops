@@ -9,35 +9,6 @@
       "Bash(git diff:*)",
       "Bash(git log:*)",
       "mcp__appian__*"
-    ],
-    "ask": [
-      "mcp__appian__deleteApplication",
-      "mcp__appian__deleteConnectedSystem",
-      "mcp__appian__deleteConstant",
-      "mcp__appian__deleteCustomRecordField",
-      "mcp__appian__deleteDocument",
-      "mcp__appian__deleteExpressionRule",
-      "mcp__appian__deleteExpressionRuleTestCase",
-      "mcp__appian__deleteFolder",
-      "mcp__appian__deleteGroup",
-      "mcp__appian__deleteIntegration",
-      "mcp__appian__deleteInterface",
-      "mcp__appian__deleteInterfaceTestCase",
-      "mcp__appian__deletePortal",
-      "mcp__appian__deleteProcessModel",
-      "mcp__appian__deleteProcessModelNode",
-      "mcp__appian__deleteRecordData",
-      "mcp__appian__deleteRecordType",
-      "mcp__appian__deleteRecordTypeAction",
-      "mcp__appian__deleteRecordTypeField",
-      "mcp__appian__deleteRecordTypeRelationship",
-      "mcp__appian__deleteRecordTypeUserFilter",
-      "mcp__appian__deleteRecordTypeView",
-      "mcp__appian__deleteSite",
-      "mcp__appian__deleteWebApi",
-      "mcp__appian__removeGroupMember",
-      "mcp__appian__updateObjectSecurity",
-      "mcp__appian__updatePortal"
     ]
   }
 }
