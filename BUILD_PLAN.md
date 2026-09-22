@@ -201,31 +201,24 @@ The canonical definition is in `PROJECT_INSTRUCTIONS.md` § Data model. Field vo
 
 **Demo-visible outcome:** the template goes in; the accountant reconciles; draw #67 appears with lines, QIU, chain and document.
 
-### Phase 4 — New approval email layout
+### Phase 4 — New approval email layout  ← CORE COMPLETE 2026-09-22
 
 **Objects:**
-- [ ] **Capability check first:** whether outbound email is delivered from the NY instance (open question), tried on the instance with the result logged.
-- [ ] **`SD_draw_approvalEmailBody`:** an HTML body rule built from live draw data, matched section by section to `New approval email sample blacklined.pdf`:
-  - header band;
-  - Draw Funding Detail;
-  - Draw Detail by Budget Category;
-  - Budget Summary;
-  - Remaining Contingency;
-  - QIU Detail;
-  - Budget Summary **computed as roll-ups from the detail lines** (ruled 2026-09-21; the sample's printed summary does not reconcile and is not reproduced);
-  - Approval Status, with contiguous orders 1–9; the sample's numbering gap is not reproduced;
-  - the reply instruction.
-- [ ] **Data handling in the body:** every data value escaped; currency through `SD_formatCurrency`.
-- [ ] **Send node:** a Send E-Mail node with `IsHTML` true, sent to the current approver at the CEO step, and to the treasury recipient for the notification.
+- ✅ 2026-09-22 **Capability check:** outbound email from the NY instance was confirmed in Phase 2a (treasury and step emails received); Phase 4 sends through the same node.
+- ✅ 2026-09-22 **`SD_buildApprovalEmail(drawId, stepOrder)`** (built as this name, not `SD_draw_approvalEmailBody`): subject + HTML body from the draw's records at send time, section by section against `New approval email sample blacklined.pdf` — navy header band with the header facts; greeting and the reply instruction; Draw Funding Detail; Draw Detail by Budget Category (In this Draw, All Other Budget Categories, BUDGET total); Budget Summary **rolled up from the lines** (ruled); Remaining Contingency; QIU Detail; Approval Status with contiguous orders 1–9 and the current step marked; reply footer. Helpers `SD_htmlEscape`, `SD_fmtMoneyDash`, `SD_emailCells`, `SD_emailRow`. Generator `.work/sail/gen_email.py`.
+- ✅ 2026-09-22 **Data handling:** every record text HTML-escaped; money through `SD_fmtMoney` (cents on the header amount only), dashes for null/zero, PTD as `0.0%`; correct with no lines / no QIU / no contingency line (draw 12 render).
+- ✅ 2026-09-22 **Send node:** `SD Draw Approval Step` node 8 "Step notification (approval email)" now sends `pv!email.subject` / `pv!email.html` (computed once in node 4 into the new Map PV `email`); recipients unchanged (`To: pv!assignGroup`, the step's group). The treasury notification stays a placeholder (Phase 6).
+- [ ] **Gmail check** of the live email (draw 75 / step 2, sent to `SD Draw Demo Approvers` = scott.thorn@appian.com + sd.accountant): section order, table rendering, the marked current row, QIU values, no clipping (44.9 KB body). *Owner: Scott. Trigger: before the first rehearsal.*
+- [ ] **Gmail routing for the demo** — the step emails go to the step group's members' addresses (see the closeout's routing table); decide the demo inbox and set the persona addresses / a recipient override. *Owner: Scott (ruling), then the build session. Trigger: Phase 6 planning.*
 
-**Dependencies:** Phase 1 data; Phase 2 views for the link-back. The spec PDF is re-rendered at high resolution to read the fine print; the earlier render was 612×792.
+**Dependencies:** Phase 1 data; Phase 2 views. The spec PDF read at full resolution (2026-09-22).
 
-**Verification:**
-- The body rule is evaluated against draw #66, and every figure is checked against the seed.
-- Each section heading from the spec is present in the output.
-- **Browser and mailbox only:** rendering, column widths and wrapping in a real mail client, as a human checklist against the PDF.
+**Verification (2026-09-22):**
+- The body rule evaluated against draw 66 / step 3 (every header fact, all 16 lines, the roll-ups, the contingency line, the ten QIU rows, nine approval rows with #3 marked) and against draw 12 / step 6 (no lines: the empty-state rows); section headings present in the sample's order; no `<style>`, `<img>`, `href` or `class`.
+- Live send: draw 75 advanced from step 1 to step 2 through the transition; the step-2 process (536910004) registered itself and issued task 536877532 to `SD Draw Demo Approvers`; the body node 4 evaluated is saved as `.work/email/draw75_step2.html`.
+- **Mailbox only:** the rendered look in Gmail (checklist in `TODO.md`).
 
-**Demo-visible outcome:** the CEO's inbox shows the new-format email with the full budget tables.
+**Demo-visible outcome:** each approver's inbox shows the new-format email with the full budget tables; the CEO's is the one the demo reads.
 
 ### Phase 5 — Ingestion failure path
 

@@ -1,0 +1,85 @@
+DRAW FUNDING APPROVAL  |  Tamarack Hotel & Spa Vail |
+Draw #66  ·  Fund: Harborline Real Assets Fund II, L.P.  ·  Draw Type: PIP/Renovation  ·  Funding Date: October 15, 2026  ·  Amount: $2,604,252.23  ·  On Budget |
+Hello Elena Marchetti,This draw is ready for your approval (step 3 of 9, Asset Manager). Please reply either "Approve" or "Reject" to this email.***Please note anything other than Approve or Reject will result in the system's failure to recognize your response.*** |
+DRAW FUNDING DETAIL |
+Investment Name | Tamarack Hotel & Spa Vail |
+Investment Description | 212-key full-service ski-in/ski-out resort hotel with spa and two F&B outlets in Vail, Colorado; acquired 2023 and undergoing a brand-mandated PIP renovation of guest rooms, spa and public areas. |
+Fund | Harborline Real Assets Fund II, L.P. |
+Amount | $2,604,252.23 |
+Cash/Equity Needed from the Fund? | Yes |
+Funding Date | October 15, 2026 |
+Draw Type | PIP/Renovation |
+Purpose | Draw #66 for THSV. The total amount this draw is $2,604,252.23. |
+On / Under / Over Budget | On Budget |
+Over Budget Reason | N/A |
+General Comments | — |
+Budget and Contingency Explanation | $57k of the remaining $1.27M contingency budget (4.8%) was utilized for incremental ARUP/SHA (Structural, Architectural) and ACC (Environmental) design coordination work, outside of the insurance claim |
+|
+|
+DRAW DETAIL BY BUDGET CATEGORY |
+Budget Category | Initial Budget | Revised Approved Budget | Proposed Adjustments This Draw | Proposed Budget | Current Draw | Total PTD inc. This Draw ($) | Total PTD inc. This Draw (%) | Balance To Complete |
+In this Draw |
+Hard Costs | $106,664,345 | $186,977,333 | — | $186,977,333 | $2,490,297 | $171,792,118 | 91.9% | $15,185,215 |
+A&E - Architectural | $7,254,819 | $10,752,723 | $21,000 | $10,773,723 | $59,582 | $10,618,256 | 98.6% | $155,467 |
+Overhead, CM & Admin Fees | $3,870,000 | $9,174,304 | — | $9,174,304 | $54,524 | $7,359,555 | 80.2% | $1,814,749 |
+A&E - Soils & Environmental | $54,024 | $128,859 | $16,753 | $145,612 | $14,504 | $145,611 | 100.0% | $1 |
+A&E - Design/Misc Consults | $596,991 | $1,469,362 | $20,000 | $1,489,362 | $4,837 | $1,481,451 | 99.5% | $7,911 |
+FF&E | $10,141,960 | $14,219,811 | — | $14,219,811 | $1,288 | $14,016,988 | 98.6% | $202,823 |
+A&E - Engineering | — | $664,835 | — | $664,835 | $730 | $663,888 | 99.9% | $947 |
+Operating Deficits | $1,000,000 | $318,836 | — | $318,836 | ($21,509) | $257,805 | 80.9% | $61,031 |
+All Project Contingency | $4,215,972 | $1,274,757 | ($57,753) | $1,217,004 | — | — | — | $1,217,004 |
+All Other Budget Categories |
+Land | $107,550,000 | $107,550,000 | — | $107,550,000 | — | $107,550,000 | 100.0% | — |
+Acquisition Costs | $14,278,400 | $14,275,238 | — | $14,275,238 | — | $14,275,238 | 100.0% | — |
+Taxes | $2,211,943 | $3,011,530 | — | $3,011,530 | — | $3,011,530 | 100.0% | — |
+Permits & Muni Fees | $2,483,394 | $3,453,127 | — | $3,453,127 | — | $3,428,127 | 99.3% | $25,000 |
+Insurance | — | $5,235,682 | — | $5,235,682 | — | $5,235,682 | 100.0% | — |
+Financing | $8,432,171 | $21,902,223 | — | $21,902,223 | — | $21,879,343 | 99.9% | $22,880 |
+Start-up/Marketing | $9,922,461 | $9,788,091 | — | $9,788,091 | — | $9,788,091 | 100.0% | — |
+BUDGET | $278,676,480 | $390,196,711 | — | $390,196,711 | $2,604,252 | $371,503,683 | 95.2% | $18,693,028 |
+|
+|
+BUDGET SUMMARY |
+Budget Category | Initial Budget | Revised Approved Budget | Proposed Adjustments This Draw | Proposed Budget | Current Draw | Total PTD inc. This Draw ($) | Total PTD inc. This Draw (%) | Balance To Complete |
+| $121,828,400 | $121,825,238 | — | $121,825,238 | — | $121,825,238 | 100.0% | — |
+| $40,041,775 | $67,174,329 | — | $67,174,329 | $112,667 | $63,869,339 | 95.0% | $3,304,990 |
+| $116,806,305 | $201,197,144 | — | $201,197,144 | $2,491,585 | $185,809,106 | 92.3% | $15,388,038 |
+BUDGET | $278,676,480 | $390,196,711 | — | $390,196,711 | $2,604,252 | $371,503,683 | 95.2% | $18,693,028 |
+Roll-up of the budget lines by category group. Land: site & acquisition. Hard: construction & FF&E. Soft: fees, taxes, insurance, financing, marketing, contingency. |
+|
+|
+REMAINING CONTINGENCY |
+Costs | Original Budget | Revised Approved Budget | Proposed Adjustments This Draw | Proposed Budget | Variance | Reason |
+Remaining Contingency ($) | $4,215,972 | $1,274,757 | ($57,753) | $1,217,004 | ($57,753) | — |
+Remaining Contingency (%) | — | 6.8% | — | 6.5% | — | Percent is contingency over total balance to complete ($18,693,028) |
+|
+|
+QIU DETAIL — Tamarack Hotel & Spa Vail |
+Metric | Current QIU Model (09/30/2026) | Current Projection | Variance of Current Projection | Notes |
+IRR | (9.4%) | (9.4%) | 0.0% | — |
+Profit | ($129,377,499) | ($129,377,499) | $0 | — |
+Multiple | 0.59x | 0.59x | 0.00x | — |
+Peak Equity | $316,461,272 | $316,461,272 | $0 | — |
+Current Equity Contributions (through prior quarter) | ($288,603,860) | ($288,603,860) | $0 | — |
+Current Quarter Equity Contribution | $8,259,741 | $8,259,741 | $0 | — |
+Future Equity Contributions (after current quarter) | ($22,702,431) | ($22,702,431) | $0 | — |
+Distributions To-Date (through prior quarter) | $3,104,760 | $3,104,760 | $0 | — |
+Current Quarter Distribution | — | — | — | — |
+Future Distributions (after current quarter) | $187,083,773 | $187,083,773 | $0 | — |
+|
+|
+APPROVAL STATUS |
+Order | Role | Approver | Status | Decision Date | Comments |
+1 | Accountant | Priya Raman | Approved | 10/06/2026 | N/A |
+2 | Accounting Controller | Daniel Osei | Approved | 10/07/2026 | N/A |
+▶ 3 | Asset Manager | Elena Marchetti | In Progress | — | ◀ Current step — your approval is requested |
+4 | AM SVP | Mark Feldstein | Pending | — | — |
+5 | Executive | Sandra Whitmore | Pending | — | — |
+6 | Chief Accounting Officer | Robert Chen | Pending | — | — |
+7 | CFO of Funds | Alicia Fontaine | Pending | — | — |
+8 | President | James Callahan | Pending | — | — |
+9 | CEO | Thomas Bergman | Pending | — | — |
+|
+|
+Reply "Approve" or "Reject" to this email. |
+|

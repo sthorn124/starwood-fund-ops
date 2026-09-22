@@ -1,53 +1,71 @@
-# Closeout — 2026-09-22 — Fix session: current approver action renders on the draw summary (draw 66, step 3)
+# Closeout — 2026-09-22 — Phase 4: new approval email layout as HTML from live draw data
 
 ## Scope and identity
 
-- **Designer:** Dev MCP `appian` as `scott.thorn@appian.com` — `SD Administrators`, `SD Users`, the three step groups; a direct member of `SD Draw Asset Managers` beside `sd.assetmanager` (group readback). Every rule test, task listing, security/model read, record read and the one process start ran under it.
-- **Personas, via sail:** `sd.assetmanager` (`~/.sail-sd.assetmanager`) and `sd.accountant` (`~/.sail-sd.accountant`). `--from-devmcp` and `appian-runtime` never used.
-- **One defect, no other changes.** One throwaway rule `zz_probeStepTask` was created to read the task report's full row and deleted (404 confirmed). No design object was modified.
+- **Designer:** Dev MCP `appian` as `scott.thorn@appian.com` — `SD Administrators`, `SD Users`, the three step groups (and therefore a recipient of every step email on this instance). Every rule test, model read/update, group readback, the one process start and the record readbacks ran under it.
+- **Personas:** none needed this phase — the deliverable goes to a mailbox, and the hardening only removes a false positive for administrators. `--from-devmcp` and `appian-runtime` never used.
+- **Throwaways:** `zz_probeFolder` created and deleted (404 confirmed). Spec read at full resolution: `New approval email sample blacklined.pdf`; the current-format sample noted as the outgoing layout.
 
-## Symptom, reproduced first
+## 0. TODO bookkeeping
 
-As `sd.assetmanager` via sail: Draws page "AWAITING MY ACTION 0 · Nothing waiting on you", #66 listed without YOUR ACTION; #66 Summary shows the step card ("Step 3 of 9 · Asset Manager · Elena Marchetti") and no strip, no Review & Approve, no `ProcessTaskLink` in the stored YAML.
+Done: the Elena browser check (task opens from #66's Summary strip; Reject without a comment is blocked; task left open) and the DocCenter-owners message about the `SD Draw Approvers` Viewer grant (no objection so far — kept as a Deferred note with the revert recipe, not an open check).
 
-## Diagnosis, in the brief's order
+## 1–2. The email
 
-1. **Live step process and open task?** Draw 66 read `In Progress`, `currentStep 3`, `activeStepProcessId 536909940`. `SD_getOpenTaskId(536909940)` returned task 536874206 — a row came back, so the lookup "found a task". The probe read that row in full: **Status 7 = Aborted** (the docs' task-status list, 0-based), **Assignees = []**, Owner null. The designer's own task list (58 tasks) did not contain 536874206 although it listed every other live "Approve or reject draw" task. **Root cause: the step process behind draw 66 had been cancelled** (the Process Monitoring sweep — the TODO's cancel list included the `testProcessModel` launcher run 536909956 that started this step process), so there was no live task for step 3 and nothing for the Summary to link. Found at step 1; steps 2 and 3 were not needed:
-   - the assignment is right — `SD Draw Asset Managers` holds `sd.assetmanager` (and the designer), and the step model's Viewer is `SD Users`;
-   - the lookup is right — it does find the step's task; the task was dead.
-   - **Why the designer and the persona disagreed:** the designer's `SD_getDrawDetail(66)` read `awaitingViewer: true` on the aborted task (the report hands it to a full-scope reader), while the persona, who cannot see an unassigned aborted task, correctly got nothing. A §4 identity trap on a task report: recorded as a promotion candidate and as a hardening TODO (`SD_getOpenTaskId` should accept status 0/1 only) — deliberately not changed in this session.
+**`SD_buildApprovalEmail(drawId, stepOrder)`** (new, `…_571551`) returns `a!map(subject, html, bytes)` built from the draw's records at send time, one layout for every step, in the sample's section order:
 
-2. **Fix.** `activeStepProcessId` on `SD Draw` 66 cleared by CSV (`id,activeStepProcessId` / `66,`) because the launcher's `canStart` refuses while it is set; **no approval row touched**. `SD Draw Approval Process` started with `drawId 66` → `COMPLETED`, "STARTED step 3 of draw 66 (step process **536909994**)"; the launcher's own state readback shows orders 1–2 Approved with their dates (10/06 15:20, 10/07 11:05) and order 3 In Progress, unchanged.
+navy header band "DRAW FUNDING APPROVAL | <investment>" + facts line (draw #, fund, draw type, funding date, amount, budget status) → "Hello <step approver>," with the reply instruction and the red italic warning → **DRAW FUNDING DETAIL** (12 label/value rows) → **DRAW DETAIL BY BUDGET CATEGORY** (9 columns; In this Draw / All Other Budget Categories / bold BUDGET total; Current Draw column tinted) → **BUDGET SUMMARY** (Land / Soft / Hard / BUDGET, rolled up from the lines per the ruling, never from the sample) → **REMAINING CONTINGENCY** ($ and %) → **QIU DETAIL — <investment>** (ten rows, model as-of date in the header, projection, variance, notes) → **APPROVAL STATUS** (nine contiguous rows 1–9; role, approver, status chip, decision date, comments; the current row amber with "▶ n" and "◀ Current step — your approval is requested") → navy footer "Reply "Approve" or "Reject" to this email." (Phase 6 adds the interpretation.)
 
-## Verified
+Constraints met: table layout, every style inline, no `<style>`, no images, no links, no classes; fonts and colour set on each inner table so the body stays lean — **44.9 KB** for the full-size draw (Gmail clips at ~102 KB). Chips are inline spans in the app's palette; navy `#16294D` bands. Values are formatted as in the app (`SD_fmtMoney`, cents on the header amount only, `0.0%`, dashes for empty); every record text is HTML-escaped. Helpers: `SD_htmlEscape`, `SD_fmtMoneyDash`, `SD_emailCells`, `SD_emailRow`; generator `.work/sail/gen_email.py`.
 
-- **Designer:** `SD_getDrawDetail(66)` → `activeStepProcessId 536909994` (written by the step process itself), `openTaskId 536876873`, `awaitingViewer true`, approvals unchanged. The task report's row for 536909994: task **536876873**, status **0 Assigned**, assignees **[1528] = SD Draw Asset Managers**. `listMyTasks` now 59, including 536876873 ("Approve or reject draw", SD Draw Approval Step 11:34 AM EDT).
-- **As `sd.assetmanager` via sail:** Draws page (fresh) "AWAITING MY ACTION 1 · Draw #66 · Asset Manager step · today", "#66 YOUR ACTION"; #66 Summary: "Your approval is pending — Asset Manager, step 3 of 9 · With you since Oct 7 · funds scheduled in 23 days" and **Review & Approve**; the stored YAML carries the `ProcessTaskLink` with `task.id 536876873`, site stub `subscription-agreement-analyst`, page `draws`.
-- **As `sd.accountant` via sail:** #66 Summary shows the step card only — no strip, zero `ProcessTaskLink` (not her step). Her Draws page still reads "AWAITING MY ACTION 5 · New draw (ingesting) · Accountant reconciliation": the reconciliation path is untouched and unchanged.
-- Probe rule deleted; `getExpressionRule` → 404.
+**Wired into `SD Draw Approval Step`:** new Map PV `email`, computed once in node 4 by the rule; node 8 "Step notification (approval email)" sends `pv!email.subject` / `pv!email.html` (`IsHTML` on). Subject: "Draw Funding Approval: Draw #n · <investment> · <amount> · Step k of 9 (<role>)".
 
-## Not verified
+## 3. Where each step's email goes on this instance
 
-- The persona's click on Review & Approve — sail cannot follow a task link; the existing browser check ("Task opens from the Summary action strip…") covers it, and its task is now 536876873.
-- Process Monitoring's view of 536909940 (the Dev MCP has no process-instance read); the Aborted status and empty assignee list are the evidence.
-- Found on arrival, left as found: Scott's intake runs continue — draw 77 was reconciled as **#68** by the collision rule (as designed), draw 78 is a new Ingesting shell.
+Recipient wiring unchanged: `To: pv!assignGroup`, the step's group (`SD_getDrawApprovalGroup`), members as read back:
+
+| Step(s) | Group | Members (addresses as configured on the accounts) |
+|---|---|---|
+| 3 · Asset Manager | `SD Draw Asset Managers` | scott.thorn@appian.com, sd.assetmanager |
+| 9 · CEO | `SD Draw CEO` | scott.thorn@appian.com |
+| 1, 2, 4–8 · every other role | `SD Draw Demo Approvers` | scott.thorn@appian.com, sd.accountant |
+
+So the designer's mailbox receives every step email today; the persona accounts' addresses are whatever you set on them (not readable here). The treasury notification (final approval) still goes to `SD_DRAW_TREASURY_RECIPIENT` (= the designer, placeholder). Setting the Gmail routing for the demo is the next step (TODO).
+
+## 4. Correctness on any draw
+
+Rendered for draw 66 / step 3 (full: 16 lines, roll-ups, contingency, 10 QIU rows, ▶ 3) and for draw 12 / step 6 (no lines, no QIU, no contingency: "No budget lines on this draw", "No QIU metrics on this draw", "No contingency line on this draw", ▶ 6). Nothing is typed in from the sample; the BUDGET figures are the app's roll-ups ($390,196,711 / $18,693,028), not the sample's printed ones — as ruled.
+
+## 5. Live send
+
+Draw 66 untouched (Elena's task 536876873 still open). Draw 75 (#67, ingested, step 1) was advanced one step through the transition (`APPROVE`, source `BUILD`, comment "Phase 4 approval email verification (build)") → "ADVANCED to step 2". Readbacks: `activeStepProcessId 536910004` (the step-2 process registered itself, so node 4's email evaluation succeeded), task **536877532** assigned to `SD Draw Demo Approvers` (status 0), order 1 Approved 17:28:31, order 2 In Progress. The body node 4 evaluated is saved as [.work/email/draw75_step2.html](.work/email/draw75_step2.html) (44,718 bytes; "Hello Daniel Osei,", ▶ 2 marked, order 1's comment shown) with a row dump beside it; section order checked programmatically against the sample.
+
+## 6. Hardening
+
+`SD_getOpenTaskId` (v2) accepts only statuses 0 Assigned / 1 Accepted. Verified on the existing data: the cancelled step 536909940 (aborted task 536874206) → **null**; the live step 536909994 → **536876873**. TODO item closed.
+
+## Not verified (and the checklist)
+
+- **The Send E-Mail node's own completion** — not readable over the Dev MCP or through analytics on this instance (the system report folders read empty; no process-instance read). Evidence is indirect (rule and register node ran, task issued, rule renders clean); the inbox is the proof.
+- **Gmail look** — [TODO.md](TODO.md) "The Phase 4 approval email in Gmail": (1) section order; (2) the nine-column tables render as tables with right-aligned numbers and the tinted Current Draw column; (3) the current row amber with the blue In Progress chip and the ◀ marker; (4) QIU values as in the app; (5) no "[Message clipped]", no stripped styling; (6) mobile Gmail scrolls the tables. The live one: "Draw Funding Approval: Draw #67 · Tamarack Hotel & Spa Vail · $2,604,252.23 · Step 2 of 9 (Accounting Controller)", ~17:28 UTC, to scott.thorn@appian.com and sd.accountant.
+- Steps 3–9 not sent this phase (same node and rule; renders cover the shape).
 
 ## Rulings needed
 
-None. One caution for the Process Monitoring cleanup: `SD Draw Approval Step` 536909994 and its parent run 536909993 are draw 66's live task — the TODO cancel list is annotated so they are not swept.
+- **Gmail routing for the demo** — which inbox plays the CEO (and the other approvers): set the persona accounts' addresses, or add a recipient override, before Phase 6. Recorded in BUILD_PLAN Phase 4.
 
 ## Promotion candidates
 
-2 found — the "Current Tasks for Process" report returns an aborted task to an administrator (status 7, no assignees) and nothing to a group member, so a "row came back" lookup reads differently by identity; the designer's `listMyTasks` as a stand-in for a persona's task list when the designer is in the assignee group — listed at gate 1, none promoted. No trigger fired. Checkpoint current through this entry. Supplemental unchanged.
+2 found — a Send E-Mail node's completion is unreadable over the Dev MCP and the system report folders read empty (working form: prove by what the process wrote afterwards and by the inbox); the f-string trap when generating SAIL with doubled-quote escapes — listed at gate 1, none promoted. No trigger fired. Checkpoint current through this entry. Supplemental unchanged.
 
 ## Repo changes
 
-`BUILD_LOG.md` (entry + 2 staged candidates + checkpoint), `TODO.md`, `BUILD_PLAN.md`, `CLAUDE.md` (demo-repeatability note on a cancelled step process), `Closeout.md`. No SAIL files changed.
+`BUILD_PLAN.md`, `BUILD_LOG.md`, `TODO.md`, `CLAUDE.md`, `Closeout.md`, `.work/sail/gen_email.py`, `.work/sail/SD_buildApprovalEmail.sail`, `SD_htmlEscape.sail`, `SD_fmtMoneyDash.sail`, `SD_emailCells.sail`, `SD_emailRow.sail`, `SD_getOpenTaskId.sail`, `.work/email/` (four files).
 
 ## TODO changes
 
-Updated: Demo start (the live task is now 536876873 / step process 536909994; do not cancel step instances behind a live draw); the Process Monitoring cancel list (536909956 annotated; 536909993/536909994 protected). Added: Deferred — harden `SD_getOpenTaskId` to status 0/1. Done: draw 66's approver action restored.
+Done: the Elena browser check; the DocCenter-owners message; Phase 4 core; the `SD_getOpenTaskId` hardening (item removed from Deferred). Added: Browser checks — the Phase 4 email in Gmail (six points). Updated: the ingestion demo reset (draw 75 now at step 2; 77 is #68; 78 a shell); the connected-system grant note.
 
 ## BUILD_PLAN.md changes
 
-Phase 3: one ✅ line for the approver-action fix (root cause a cancelled step process, not the lookup; hardening parked).
+Phase 4 marked CORE COMPLETE 2026-09-22: capability check, the body rule (as `SD_buildApprovalEmail`), data handling, the send node ✅; open: the Gmail check and the Gmail routing ruling.
