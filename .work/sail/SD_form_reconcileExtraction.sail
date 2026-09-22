@@ -10,7 +10,12 @@
    width. Left pane: verdict strip, header facts in two columns, the three paragraph fields full width, the editable
    16-line grid with its tie-out total pinned beneath. Right pane: the workbook name as a download link above the inline
    viewer. Chips on exactly two fields — Investment Name (matches a record on file?) and Draw Number (next in the
-   investment's sequence?). */
+   investment's sequence?).
+   Draw-number collision (ruled 2026-09-22): the draw number is business data extracted from the template and is never
+   replaced silently; a collision is resolved here, at reconciliation. When the extracted number already exists for the
+   extracted investment, the field is prefilled with the next available number for that investment and an amber chip
+   says so ("Submitted as #<extracted>, already on file — renumbered to next in sequence"); the accountant can override,
+   and whatever is confirmed commits. When the extracted number is genuinely next in sequence the chip is green. */
 a!localVariables(
   local!headerIn: if(a!isNullOrEmpty(ri!headerJson), {}, a!fromJson(ri!headerJson)),
   local!hmap: if(
@@ -24,7 +29,7 @@ a!localVariables(
   ),
   local!confidences: a!forEach(items: local!headerIn, expression: fv!item.confidence),
   local!hasConfidence: if(a!isNullOrEmpty(local!confidences), false, not(a!isNullOrEmpty(reject(fn!isnull, local!confidences)))),
-  local!drawNumber: a!localVariables(local!n: rule!SD_parseExtractedNumber(text: index(local!hmap, "drawNumber", "")), if(local!n = 0, null, tointeger(local!n))),
+  local!extractedDrawNumber: a!localVariables(local!n: rule!SD_parseExtractedNumber(text: index(local!hmap, "drawNumber", "")), if(local!n = 0, null, tointeger(local!n))),
   local!investmentName: trim(index(local!hmap, "investmentName", "")),
   local!fund: trim(index(local!hmap, "fund", "")),
   local!drawType: trim(index(local!hmap, "drawType", "")),
@@ -92,7 +97,34 @@ a!localVariables(
     )
   ),
   local!lastDrawNumber: if(a!isNullOrEmpty(local!priorDrawNumbers), 0, max(local!priorDrawNumbers)),
-  local!nextInSequence: and(not(a!isNullOrEmpty(local!drawNumber)), local!drawNumber = local!lastDrawNumber + 1),
+  local!nextAvailable: local!lastDrawNumber + 1,
+  /* Collision: the extracted number is already on file for the matched investment. */
+  local!collision: and(
+    not(a!isNullOrEmpty(local!extractedDrawNumber)),
+    not(a!isNullOrEmpty(local!priorDrawNumbers)),
+    contains(tointeger(local!priorDrawNumbers), tointeger(local!extractedDrawNumber))
+  ),
+  /* The editable draw number: prefilled once, at load, with the next available number on a collision, else the
+     extracted number. Refresh on referenced-variable change is off so the accountant's override survives edits to
+     the other fields (a dependent local would otherwise be recomputed and overwrite it). */
+  local!drawNumber: a!refreshVariable(
+    value: if(local!collision, local!nextAvailable, local!extractedDrawNumber),
+    refreshOnReferencedVarChange: false
+  ),
+  local!drawNumberOnFile: and(
+    not(a!isNullOrEmpty(local!drawNumber)),
+    not(a!isNullOrEmpty(local!priorDrawNumbers)),
+    contains(tointeger(local!priorDrawNumbers), tointeger(local!drawNumber))
+  ),
+  local!nextInSequence: and(not(a!isNullOrEmpty(local!drawNumber)), local!drawNumber = local!nextAvailable),
+  /* Chip state for the Draw Number field, from the current value: RENUMBERED (collision resolved by the prefill and
+     still on the next available number), NEXT (genuinely next in sequence), ON_FILE (the current value collides — an
+     override back onto a used number), else GAP (neither; kept as typed). */
+  local!drawNumberChip: if(
+    and(local!collision, local!nextInSequence),
+    "RENUMBERED",
+    if(local!nextInSequence, "NEXT", if(local!drawNumberOnFile, "ON_FILE", "GAP"))
+  ),
   /* Tie-out: the current-draw lines against the header's draw amount, recomputed on every edit. */
   local!linesTotal: if(a!isNullOrEmpty(local!lines), 0, sum(a!forEach(items: local!lines, expression: a!defaultValue(fv!item.currentDraw, 0)))),
   local!difference: local!linesTotal - a!defaultValue(local!drawAmount, 0),
@@ -102,7 +134,7 @@ a!localVariables(
   local!red: a!map(bg: "#FDECEC", fg: "#B42318"),
   a!formLayout(
     titleBar: a!headerTemplateFull(
-      title: "Reconcile extracted draw" & if(a!isNullOrEmpty(local!drawNumber), "", " #" & local!drawNumber),
+      title: "Reconcile extracted draw" & if(a!isNullOrEmpty(local!extractedDrawNumber), "", " #" & local!extractedDrawNumber),
       secondaryText: "Doc Center extraction of " & a!defaultValue(ri!documentName, "the budget template") & " · confirm or correct against the workbook on the right, then the draw is assembled",
       backgroundColor: "#16294D"
     ),
@@ -168,13 +200,15 @@ a!localVariables(
                       a!tagField(
                         labelPosition: "COLLAPSED",
                         tags: a!tagItem(
-                          text: if(
-                            local!nextInSequence,
-                            "Next in sequence",
-                            "Out of sequence: last draw is " & if(local!lastDrawNumber = 0, "none on file", "#" & local!lastDrawNumber)
+                          text: a!match(
+                            value: local!drawNumberChip,
+                            equals: "RENUMBERED", then: "Submitted as #" & local!extractedDrawNumber & ", already on file — renumbered to next in sequence",
+                            equals: "NEXT", then: "Next in sequence",
+                            equals: "ON_FILE", then: "#" & local!drawNumber & " is already on file for this investment",
+                            default: "Out of sequence: last draw is " & if(local!lastDrawNumber = 0, "none on file", "#" & local!lastDrawNumber)
                           ),
-                          backgroundColor: if(local!nextInSequence, local!green.bg, local!amber.bg),
-                          textColor: if(local!nextInSequence, local!green.fg, local!amber.fg)
+                          backgroundColor: if(local!drawNumberChip = "NEXT", local!green.bg, local!amber.bg),
+                          textColor: if(local!drawNumberChip = "NEXT", local!green.fg, local!amber.fg)
                         ),
                         size: "SMALL",
                         showWhen: not(a!isNullOrEmpty(local!matchedInvestmentId)),

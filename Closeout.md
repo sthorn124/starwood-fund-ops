@@ -1,75 +1,56 @@
-# Closeout — 2026-09-22 — Fix session: reconciliation form full width with inline document viewer, rulings recorded, persona name synced
+# Closeout — 2026-09-22 — Fix session: intake confirmation state, draw-number collision handling at reconciliation
 
 ## Scope and identity
 
-- **Designer:** Dev MCP `appian` as `scott.thorn@appian.com` — `SD Administrators`, `SD Users`, the three draw step groups, and (relevant today) a direct member of DocCenter's `AIA All Users`, so every designer render of the inline viewer is full-scope. All `testInterface` / `testRule` / `listRecordData` / security readbacks ran under it.
-- **Persona, via sail:** `sd.accountant` (`~/.sail-sd.accountant`, `SD Draw Demo Approvers`) — one Draws-page readback. `sd.assetmanager` not needed. `--from-devmcp` and `appian-runtime` never used.
-- **Docs gate honoured** before the layout edit: pane layout in a form (widths, padding, forced FULL width), `a!documentViewerField` (no native Office rendering), connected-system security for component plug-ins.
-- **No new features beyond the brief.** No throwaway objects created.
+- **Designer:** Dev MCP `appian` as `scott.thorn@appian.com` — `SD Administrators`, `SD Users`, the three draw step groups. Every `testInterface`, `getProcessModel`, `getObjectSecurity`, `getSite` and `listRecordData` readback ran under it.
+- **Persona, via sail:** `sd.accountant` (`~/.sail-sd.accountant`, `SD Draw Demo Approvers` → `SD Draw Approvers`) drove the intake page end to end and read the Draws page. `--from-devmcp` and `appian-runtime` never used.
+- **Docs gate honoured** before the interface work: local-variable refresh semantics, file upload outside a start form (`a!submitUploadedFiles`), `a!startProcess` (Initiator, async `onSuccess`), `a!urlForSite` with `site!`, `a!safeLink(openLinkIn)`.
+- **Two items, no other changes.** No throwaway objects created.
 
-## Found on arrival
+## 1. Intake confirmation
 
-Scott had already run the persona browser check after the Phase 3 close-out: a second ingested #67 exists — `SD Draw` **75** (instance 850, ingestion process 536909974, step process 536909980, document 55280, document row 6609 "Doc Center extraction confirmed by **Priya Raman** 09/22/2026", approvals 6619–6627). Draw 74 still exists beside it. That is the evidence that closes the persona-submit item, and it also means two #67s coexist until one is cleaned up (see TODO).
+**Built.** `SD_page_receiveCapitalCall` (new interface, `…_571309`, v4) is now the `SASite` page **Receive Capital Call** (INTERFACE page; site v9; stub `receive-capital-call` preserved). Same navy header as the Draws page. **Receive** commits the upload (`a!submitUploadedFiles`) and, once the file is in `SD Draw Documents`, starts `SD Receive Capital Call` through `a!startProcess(cons!SD_RECEIVE_CAPITAL_CALL_PM, document)` — new PROCESS_MODEL constant `…_571303`. The same page then flips to the confirmation state: "Capital call received · Doc Center extraction is running on <file> · The draw appears in the Draws list immediately as a new draw (Ingesting). Reconciliation reaches the accountant in roughly 90 seconds, as the Reconcile Extraction task on that draw." with **Go to Draws** (a navy card-link through `a!urlForSite` to the Draws page, same tab — `a!buttonWidget` has no `link` keyword here) and **Receive Another** (resets). An error line covers a failed submit or start.
 
-## 1. Rulings recorded
+**Deleted.** The frozen launcher `SD Receive Capital Call (Intake Form)` (`getProcessModel` → "Does not exist") and its start form `SD_form_receiveCapitalCall` (404), after `getObjectDependents` showed nothing but the application referencing them. The frozen-launcher item is gone from `TODO.md`; the pipeline itself is unchanged (`SD Draw Approvers` already held Initiator).
 
-In `PROJECT_INSTRUCTIONS.md` (Business rules, Demo narrative item 4, Open questions) and `BUILD_PLAN.md` Phase 3:
-- Reconciliation stays a task, not a related action; persona-scoped verification of its submit is a browser check by design.
-- Funding History = prior *approved* draws only; #65/#64/#63 on draw 67 is correct, the brief's 66/65/64 was wrong.
-- General Comments stays unextracted; the field remains editable at reconciliation; re-add to model 85 only if a filled specimen appears.
-- Doc Center xlsx extraction is proven on this instance; the Excel-format open question and the PDF-rendition fallback are struck (~~struck~~ with the resolution line, not deleted).
-- The ingested chain starts at step 1 (Accountant); the accelerator bridges to the CEO step; "orders 1–2 pre-completed" applies to seeded draw 66; revisit only if rehearsal shows drag.
+**Verified as `sd.accountant` via sail.** Page loads with Receive disabled; upload → document 55289 and Receive enabled; the first Receive started the pipeline (draw **76** Ingesting, document row 6610) but the confirmation render threw — the upload field saves a *List of Document* even with `maxSelections: 1`, and `document()` rejected it. Fixed in v4 (`index(…, 1)`), re-run: upload → 55293, **Receive** → the page re-rendered to the confirmation state (all three lines, the Go to Draws url `…/subscription-agreement-analyst/page/draws`, Receive Another); **Receive Another** → the empty form; Draws page fresh → two "New draw · Ingesting · Doc Center extraction · Accountant reconciliation received Sep 22" rows (draws 76 and 77). The hidden confirmation branch was also rendered as the designer through a probe copy, restored, and read back.
 
-TODO items closed accordingly (Funding History and General Comments client-validation questions struck with pointers; the persona-submit browser check rewritten around the rebuilt form).
+## 2. Draw-number collision handling
 
-## 2. Account rename sync (Ramen → Raman)
+**Ruling recorded** (`PROJECT_INSTRUCTIONS.md` Business rules): draw numbers are business data extracted from the template, never replaced silently; collisions are resolved at reconciliation.
 
-- Readback first: `SD_getUserDisplayName("sd.accountant")` → **Priya Raman**.
-- Updated by explicit id: `SD Draw Approval.approverName` on **1101, 1201, 6301, 6401, 6501, 6601, 6610, 6619**; `SD Draw Document.notes` on **6601**. Readback of all 72 approval rows: zero "Ramen".
-- `scripts/seed_draw66.py` (CHAIN, DOCS row, docstring) and `CLAUDE.md` say Raman; `checks()` passes (7 OK).
-- As `sd.accountant` via sail: Draws page "1 of 9 · Accountant **Priya Raman** · today" on both #67 rows; "AWAITING MY ACTION 2".
+**Built** in `SD_form_reconcileExtraction` (v3): when the extracted number already exists for the matched investment (own row excluded), the Draw Number field is prefilled with the next available number and the chip reads amber **"Submitted as #<extracted>, already on file — renumbered to next in sequence"**; when the extracted number is genuinely next, green **"Next in sequence"**. The prefill happens once (`a!refreshVariable(refreshOnReferencedVarChange: false)`) so the accountant's override survives edits to other fields; whatever is confirmed commits. Two further values of the editable field are covered in amber rather than misreported: an override back onto a used number ("#n is already on file for this investment") and a gap ("Out of sequence: last draw is #n"). The title keeps the extracted number.
 
-## 3. Reconciliation form rebuilt — `SD_form_reconcileExtraction` v2
+**Verified by `testInterface` (designer).** Live payload, draw 74 with duplicate #67s on file: Draw Number **68**, amber renumbered chip, title "Reconcile extracted draw #67", Ties ✓, `error: null`. Control, Gateway draw 12 (only #11 on file): Draw Number 12, green "Next in sequence", `error: null`.
 
-Full width via one `a!paneLayout` inside the form (two `AUTO` panes, even split, dividers on):
-- **Left pane:** verdict strip — "EXTRACTION instance #849 · 13 header fields · 16 budget lines", the no-per-field-confidence line, and the tie-out chip at the right (green **Ties ✓ $2,604,252.23** / red "Does not tie · lines $x vs draw $y"); "DRAW HEADER · EXTRACTED"; two columns of normal-width fields, labels above (Draw Number / Fund / Funding Date / Cash-Equity / Over Budget Reason | Investment Name / Draw Type / Draw Amount / Budget status / Submitted By); **chips on exactly two fields** — Draw Number: green "Next in sequence" / amber "Out of sequence: last draw is #n" (hidden when no investment matched); Investment Name: green "Matches <investment> on file" / amber "No matching investment"; Purpose, Budget and Contingency Explanation, General Comments as full-width paragraphs; the 16-row editable grid (right-aligned numbers, DENSE, zebra) with the pinned line "Current Draw total $x vs draw amount $y · Ties ✓ / off by ($d)" recomputing from the grid's own locals.
-- **Right pane** (light grey, LESS padding): "SOURCE DOCUMENT", the xlsx name as a download link, then the workbook inline through DocCenter's `rule!AIA_UTIL_displayInlineDocument(documentId, sourceDocumentId, height: "TALL")` — the native `a!documentViewerField` cannot render Office files (docs), DocCenter's component plug-in can, and the instance already uses it.
-- **Single primary button** bottom right: **Confirm & Assemble Draw**. Inputs and saves unchanged, so the process's task node still binds.
-- **One security change outside the app:** `SD Draw Approvers` granted **Viewer** on DocCenter's `AIA Reconcile Connected System` (the plug-in's connected system; docs: component plug-ins need Viewer on it; `AIA All Users` holds neither persona). Readback confirms the roles; the readback also shows `inheritSecurity: true` where it read `false` before — recorded, with the one-call revert in TODO.
+## Not verified (and the browser checklist)
 
-### Verified (as the designer)
-- `testInterface` on the live payload (instance 849 / draw 74 / document 55270): `diagnostics.error: null`; every string above rendered in order, 16 rows, Ties ✓; the tree reads `formWidth: "FULL"`, both panes `showPaneDivider: true`, the viewer component present with `documentId 55270 / connectedSystem 47597`. The Draw Number chip read **"Out of sequence: last draw is #67"** — correct, because draw 75 is also #67.
-- **Control render** (draw 12 of Gateway, draw number 12, amount 100 vs one line of 90): "Next in sequence" (self-exclusion and investment filter proven), "Matches Gateway Logistics Park Phase II on file" from a lower-case input, "Does not tie · lines $90.00 vs draw $100.00", "off by ($10.00)". `error: null`.
-- Interface version 2 read back; connected-system role map read back.
-
-### Not verified
-- **Geometry** at common widths — the brief's "re-render checks at common widths if the tooling allows": it does not (sail carries no geometry, `testInterface` no widths). Browser check, Scott.
-- **The inline viewer as `sd.accountant`** — `testInterface` runs as the designer, who is in `AIA All Users`. Browser check step 3, with the fallback symptom ("cannot be displayed … download") and the revert recipe written down.
-- **The persona submit of the rebuilt form** — a task; browser check by ruling. The pre-rebuild submit is evidenced by draw 75.
-- **Chip and total behaviour on live edits** — recompute proven by the control render; the interaction itself is browser-only.
-
-## Browser checklist (Scott, before the first rehearsal) — `TODO.md` "The rebuilt full-width reconciliation form"
-1. Reset per "Ingestion demo reset"; as `sd.accountant` Receive Capital Call with the template; after ~80 s Summary → **Reconcile Extraction**.
-2. Full-width two-pane form; verdict strip with the green Ties chip; two-column header, labels above, no mid-word wraps; the two chips only; three full-width paragraphs; 16-row grid with the pinned total.
-3. Right pane: download link and the workbook rendered inline at TALL height, no fallback link.
-4. Edit Hard Costs' Current Draw to 2490296.00 → total $2,604,252.00, both tie chips red "off by ($0.23)"; restore. Type "abc" in Investment Name → amber "No matching investment", Draw Number chip disappears; restore.
-5. **Confirm & Assemble Draw** → #67 · In Progress · 1 of 9 · Accountant · Priya Raman; document row "confirmed by Priya Raman".
-6. Repeat at ~1280 px and phone width.
+- **Intake page in a browser** (`TODO.md`, new item): the confirmation card, Go to Draws landing on the Draws page in the same tab, Receive Another; the error line was never provoked.
+- **Rebuilt reconciliation form** (existing item, chip wording updated): the amber renumbered chip with 68 prefilled while other #67s exist; typing 67 back → "#67 is already on file for this investment"; an override surviving edits to other fields; the inline viewer as the persona; geometry.
+- Draws 76 and 77's pipelines were not followed to their tasks (unchanged pipeline).
 
 ## Defects found and fixed
-- `a!gridLayout` rejects `marginBelow` ("Unrecognized Keyword", `updateInterface`) — removed. Staged.
+
+- `a!buttonWidget(link:)` rejected ("Unrecognized Keyword — link") → card-link.
+- `a!cardLayout` inside `a!sideBySideLayout` rejected — only once the hidden branch was rendered → columns layout. The probe-copy flip is what caught it.
+- `a!fileUploadField` value is a list → `document()` threw on the live persona click → `index(…, 1)` before `document()` and before the process parameter.
 
 ## Rulings needed
-- None new. Two housekeeping items for Scott: delete one of the two #67s (74 or 75) before a demo so the Draw Number chip reads "Next in sequence"; and confirm DocCenter's owners are fine with `SD Draw Approvers` as a Viewer on their connected system (else revert and fall back to the download link).
+
+None. Housekeeping for Scott: four ingested rows now exist beside the seed (reconciled #67s 74 and 75; Ingesting shells 76 and 77 with open reconciliation tasks) — keep one specimen, `--cleanup-ingested` the rest before a rehearsal (`TODO.md` reset note has the ids).
 
 ## Promotion candidates
-3 found — `a!gridLayout` `marginBelow` rejection; `updateObjectSecurity` `inheritSecurity` readback flip; DocCenter inline xlsx viewer and its Viewer requirement — listed at gate 1, none promoted. No trigger fired. Checkpoint current through this entry. Repo and user-level `appian-supplemental` unchanged.
+
+5 found — no `link` on `a!buttonWidget` (the tree's `"link": null` is not settable); card rejected in a side-by-side, and only when the branch renders; upload field saves a list; submit-then-start ordering for a process that reads the file; sail drives an in-page state flip and prints it — listed at gate 1, none promoted. No trigger fired. Checkpoint current through this entry. Supplemental unchanged.
 
 ## Repo changes
-`PROJECT_INSTRUCTIONS.md`, `BUILD_PLAN.md`, `BUILD_LOG.md` (entry + 3 staged candidates + checkpoint), `TODO.md`, `CLAUDE.md` (form row with the DocCenter dependency; seed-texture name), `scripts/seed_draw66.py`, `.work/sail/SD_form_reconcileExtraction.sail`, `Closeout.md`.
+
+`PROJECT_INSTRUCTIONS.md`, `CLAUDE.md`, `BUILD_PLAN.md`, `BUILD_LOG.md` (entry + 5 staged candidates + checkpoint), `TODO.md`, `Closeout.md`, `.work/sail/SD_page_receiveCapitalCall.sail` (new), `.work/sail/SD_form_reconcileExtraction.sail`, `.work/sail/SD_form_receiveCapitalCall.sail` (removed).
 
 ## TODO changes
-Closed: the Ramen/Raman item (→ Done); Funding History and General Comments client-validation questions (struck with pointers to the rulings). Rewritten: the reconciliation browser check (now the rebuilt form, six steps, persona submit evidenced); the Phase 3 geometry item; the ingestion demo reset (two #67s, cleanup for either). Added: Deferred — the connected-system Viewer grant with its revert recipe; Done — rename sync, rulings, form rebuild.
+
+Removed: the frozen intake launcher (Deferred). Added: Browser checks — the rebuilt intake page. Updated: the ingestion demo reset (four ingested rows, the shells' ids, the chip wording under the collision rule); the rebuilt-form browser check's chip strings. Done: intake confirmation state; draw-number collision handling.
 
 ## BUILD_PLAN.md changes
-Phase 3: persona submit ✅ (ruled a browser check; evidenced by draw 75), Funding History ✅ ruled, General Comments ✅ ruled, chain-at-step-1 ✅ ruled, form rebuild ✅; new open items: the browser pass on the rebuilt form, and deleting one of the two #67s before a demo.
+
+Phase 3: intake confirmation ✅; draw-number collision handling ✅; the rebuilt-form browser pass reworded for the collision chip; new open items — the intake page browser pass, and cleaning up the four ingested rows (was: delete one of the two #67s).
