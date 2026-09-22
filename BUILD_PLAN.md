@@ -85,6 +85,7 @@ The canonical definition is in `PROJECT_INSTRUCTIONS.md` § Data model. Field vo
   - ✅ 2026-09-21 SD Draw to each child (one-to-many), SD Draw to SD Investment (many-to-one), and SD Investment to `SA Fund` (many-to-one).
   - ✅ 2026-09-21 Every relationship read back after it is written.
   - [ ] Record-level security: deferred with the persona accounts (ruling 2026-09-21). Trigger: the persona accounts exist.
+  - [ ] **Interim tooling notice (ruled 2026-09-21):** the seeded draw 66 and `scripts/seed_draw66.py` are build tooling until Phase 3 ingestion creates demo runs from the standard template document; no generator or reset mechanism becomes a demo feature.
 - **Groups.**
   - ✅ 2026-09-21 `SD Draw Approvers` as the parent.
   - ✅ 2026-09-21 Role subgroups for the Asset Manager and the CEO only.
@@ -108,6 +109,8 @@ The canonical definition is in `PROJECT_INSTRUCTIONS.md` § Data model. Field vo
     - Every decision goes through `SD Apply Draw Approval Decision`.
     - Each step transition sends a plain-text placeholder notification; the real layout is Phase 4.
   - ✅ 2026-09-21 **Demo accelerator:** advances every step between the current one and order 9 as Approved, with generated decision dates, in one action.
+    - ✅ 2026-09-21 Decision dates spread 1 day per step (`dayOffsetPerStep` default 1); measured 09-23 → 09-27 against a 10-15 funding date.
+    - ✅ 2026-09-21 Settle phase added: the accelerator waits for a consistent, stable draw state before its first decision (race test passed; 87 s to the CEO task).
   - ✅ 2026-09-21 **Measure `createProcessModel(errorAlertGroupUuid)` persistence:** measured as unmeasurable over MCP (`getProcessModel` exposes no alert-group field); a Designer check is owed in `TODO.md`.
 
 **Dependencies:**
@@ -127,7 +130,7 @@ The canonical definition is in `PROJECT_INSTRUCTIONS.md` § Data model. Field vo
 
 **Built beyond the list:** `SD Draw Approval Step` (the step task process), `SD_form_drawApprovalDecision` (minimal task form, Phase 2 restyle target), `SD_getDrawState` and `SD_getDrawApprovalGroup`, five constants, `SD Draw.treasuryNotifiedAt`, and `scripts/seed_draw66.py` with its `--reset-csv` demo reset.
 
-**Verified 2026-09-21, as the designer** (`BUILD_LOG.md`): every pass condition above held, including the reject break-test. Not verified: email delivery, persona behaviour, widths over 255 through the production path.
+**Verified 2026-09-21, as the designer** (`BUILD_LOG.md`): every pass condition above held, including the reject break-test. **Phase 2a (same day):** email delivery confirmed by Scott; widths proven through the production path (4,000 and 1,000); the race test passed after the settle fix. Not verified: persona behaviour.
 
 **Demo-visible outcome.** No UI this phase. Draw #66 exists with its full data, and the approval chain runs from the Asset Manager through the accelerator to the CEO and on to Approved.
 
@@ -138,7 +141,7 @@ The canonical definition is in `PROJECT_INSTRUCTIONS.md` § Data model. Field vo
 - Persona accounts are deferred; Phase 1 verifies as the designer.
 
 **Objects:**
-- [ ] **HTML mockups** for the draw list and the draw summary views, committed to `mockups/`. They are reviewed and approved before any SAIL is written.
+- [ ] **HTML mockups** for the draw list and the draw summary views, delivered into `mockups/` **from the claude.ai Project** (ruled 2026-09-21: build sessions treat them as the UI contract and never author or modify them). They are reviewed and approved before any SAIL is written.
 - [ ] **`SD Draw` record list**, built against its approved mockup.
 - [ ] **`SD Draw` summary view**, built against its approved mockup: header facts, the budget grid by category group, the approval status table and the QIU table.
 - [ ] **Related actions:**
@@ -193,6 +196,7 @@ The canonical definition is in `PROJECT_INSTRUCTIONS.md` § Data model. Field vo
   - Budget Summary;
   - Remaining Contingency;
   - QIU Detail;
+  - Budget Summary **computed as roll-ups from the detail lines** (ruled 2026-09-21; the sample's printed summary does not reconcile and is not reproduced);
   - Approval Status, with contiguous orders 1–9; the sample's numbering gap is not reproduced;
   - the reply instruction.
 - [ ] **Data handling in the body:** every data value escaped; currency through `SD_formatCurrency`.

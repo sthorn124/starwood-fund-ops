@@ -1,88 +1,97 @@
-# Closeout — 2026-09-21 — Phase 1 built and verified: data model, seeded draw #66, sequential approval process with demo accelerator
+# Closeout — 2026-09-21 — Phase 2a: browser checks recorded, rulings applied, widths and race verified, accelerator dates spread
 
 ## Scope and identity
 
-- **Designer:** Dev MCP `appian` (157 tools) as `scott.thorn@appian.com`, from the session file; a member of `SD Administrators`, `SD Users`, and (added this session) the three draw approval step groups. Every readback below ran under that account. The draw types carry no row security yet, so nothing was filtered.
-- **Not used:** `appian-runtime`, sail (no persona sessions; personas deferred by ruling).
-- **Preflight:** plan gate passed; DevMCP 26.6.95 and sail 26.6.95 match their pins; skill copies identical; no ritual.
+- **Designer:** Dev MCP `appian` as `scott.thorn@appian.com` (session file), a member of `SD Administrators`, `SD Users` and the three draw approval step groups. Every readback below ran under that account. The draw types carry no row security, so nothing was filtered.
+- **Not used:** `appian-runtime`, sail (no persona sessions).
+- **Preflight:** plan gate passes; DevMCP 26.6.95 and sail 26.6.95 match their pins; skill copies identical.
+- **No interfaces, no mockups**, per the brief.
 
-## Step 0: restructure and rulings (docs)
+## Browser checks, run by Scott, now recorded
 
-- Interfaces moved out of Phase 1 into a new mockup-first Phase 2; ingestion is Phase 3, the email layout Phase 4, the failure path Phase 5, and the final work Phase 6. `BUILD_PLAN.md` and `PROJECT_INSTRUCTIONS.md` § Build phases agree.
-- **Ruling recorded:** draw views join the existing intake site, `SASite` ("Subscription Agreement Analyst", stub `subscription-agreement-analyst`), in a new page group. The site is not an object of `Starwood Demo`, which is why the baseline showed zero sites; it was found through `getObjectDependents`.
-- **Ruling recorded:** persona accounts deferred; this session verified as the designer.
+- **Outbound email works on this instance.** The treasury placeholder and the step notification emails arrived in the designer's inbox.
+- **`errorAlertGroupUuid` persists.** All four process models show `SD Administrators` under Properties → Alerts. The Dev MCP still cannot read it back; that gap stays recorded.
+- **The task form renders in Tempo** (step heading with role and approver, draw summary line, decision radios, comments), and a blank-comment reject is blocked by the required-field validation.
 
-## What was built (all in `Starwood Demo`, prefix `SD`; UUIDs in `CLAUDE.md`)
+All four TODO items are closed.
 
-| Object | Notes |
-|---|---|
-| `SD Investment`, `SD Draw`, `SD Draw Budget Line`, `SD Draw Approval`, `SD QIU Metric`, `SD Draw Document` | Six record types in `SA Fund`'s data source. Relationships: Investment → `SA Fund` (one-way; `SA Fund` untouched), Draw → Investment (both ways), Draw → four CASCADING children. `SD Draw` gained `cashEquityNeeded` (from the email sample), `activeStepProcessId` and `treasuryNotifiedAt`; `SD Draw Approval` gained `actedBy` and `decisionSource`. |
-| Seed | Investment 1 (Tamarack Hotel & Spa Vail, THSV, on fund 4); draw 66 ($2,604,252.23, PIP/Renovation, On Budget, funding 2026-10-15); 16 budget lines; 9 approval rows (orders 1–9, 1–2 Approved, 3 In Progress, 4–9 Pending); 10 QIU rows as formatted text. `scripts/seed_draw66.py` carries the data, reconciles the groups against the sample, and prints reset CSVs. |
-| Groups | `SD Draw Approvers` under `SD Users`, containing `SD Draw Asset Managers`, `SD Draw CEO`, `SD Draw Demo Approvers`. The designer is a direct member of the three step groups. |
-| Constants | Three GROUP constants (by name), `SD_DRAW_TREASURY_RECIPIENT` (USER, placeholder = the designer), `SD_DRAW_FINAL_APPROVAL_ORDER` (9). |
-| Rules | `SD_getDrawState(drawId)` (the one routing read), `SD_getDrawApprovalGroup(role)`. |
-| Interface | `SD_form_drawApprovalDecision`: minimal task form, **Phase 2 restyle target**. |
-| Processes | `SD Apply Draw Approval Decision` (the single transition, 28 nodes), `SD Draw Approval Step` (task + sync call to the transition), `SD Draw Approval Process` (launcher), `SD Advance Draw to CEO Step (Demo Accelerator)`. |
+## Rulings recorded
 
-## How it works
+In `PROJECT_INSTRUCTIONS.md` (§ Business rules, § Build phases) and `BUILD_PLAN.md`:
+1. Budget Summary figures are roll-ups of the budget detail lines, never the sample's printed figures; demo data must reconcile.
+2. Accelerator decision dates spread 1 day per step (`dayOffsetPerStep` = 1); the funding date stays after the last generated date.
+3. Mockups are authored in the claude.ai Project and delivered into `mockups/`; build sessions treat them as the UI contract and never author or modify them.
+4. New demo runs come from Phase 3 ingestion of the standard template; draw 66 and the reset script are interim tooling.
 
-- **One transition for every channel.** Task, accelerator and (Phase 6) email all call `SD Apply Draw Approval Decision` with the draw, the step, the decision, and a `source`. It guards against stale decisions, cancels a superseded open step task, writes the step row, then rejects, advances (activating the next row and starting its task), or on order 9 approves the draw and sends the treasury notification. Every business write is its own Write Records node with `ErrorOccurred` wired and downstream nodes gated on it. An inbound-email receiver later needs only to call it with `source: "EMAIL"`.
-- **Step tasks** are assigned by role: Asset Manager and CEO to their groups, every other role to the catch-all. Each step process registers its own process id on the draw so an external decision can cancel it.
-- **The accelerator** approves from the current step to order 9 one transition at a time (no next task started, ceiling 9), then starts the CEO task through the launcher. About 12 seconds per step on this instance.
-- **Placeholder notifications** (plain text in HTML) at each step and at final approval; the real layout is Phase 4.
+## Work item 1: column widths, definitive
 
-## Verified, as the designer
+Method: a throwaway model `zz SD Width Probe` (one Write Records node per record type, `PauseOnError` false, errors mapped to PVs), driven by `testProcessModel`; deleted afterwards, absence confirmed.
 
-Pass conditions were written in `BUILD_PLAN.md` before the run.
-1. Launcher on draw 66 → `STARTED step 3`; draw's `activeStepProcessId` = the step process; task "Approve or reject draw" listed.
-2. `completeTask(APPROVE)` → row 3 Approved (actor, source TASK); draw at step 4; row 4 In Progress; new step process registered.
-3. Accelerator → rows 4–8 Approved (source ACCELERATOR, ~12 s apart); draw at step 9; row 9 In Progress; the step-4 task cancelled (task total unchanged); CEO task open.
-4. `completeTask(APPROVE)` on the CEO task → draw Approved, all nine rows Approved, `treasuryNotifiedAt` set, which proves the notification node completed without an exception.
-5. Reset via the script's CSVs → seeded state read back.
-6. **Break-test:** fresh run, `completeTask(REJECT)` → draw Rejected at step 3, row 3 Rejected with attribution, rows 4–9 untouched, no notification, no task opened.
-7. Reset again → seeded state; no draw task open (task total back to the pre-existing 52).
+| Column | Requested | Readback | Measured |
+|---|---|---|---|
+| `SD Draw.contingencyExplanation` | 4,000 | `VARCHAR(4000)` | 1,200 characters written and read back intact |
+| `SD QIU Metric.notes` | 1,000 | `VARCHAR(255)` | 300 and 1,000 pass; 1,001 fails `Data too long for column 'NOTES'` |
+| `SD Investment.investmentDescription` | 1,000 | `VARCHAR(255)` | same: 1,000 passes, 1,001 fails |
+| `SD Draw Approval.comments` | 1,000 | `VARCHAR(255)` | 600-character comment written through the real transition, read back intact |
 
-Also: the transition returned `STALE` and wrote nothing when asked to decide step 5 at step 3; both rules tested against the seed; the form renders with `error: null`; every record type, relationship and group read back.
+**Result:** the physical width is exactly the requested length. The readback of `VARCHAR(255)` is wrong. Nothing truncates silently; a write past the limit fails loudly. **No column was altered:** the spec's paragraph fields hold 4,000 (`contingencyExplanation`) and 1,000 (QIU `notes`). Whether 1,000 is enough for a QIU note is flagged in `TODO.md`; widening would be a drop-and-recreate. Probe values were restored to the seed text and read back. Recorded in `reference/mcp-capability-boundaries.md`; the staged width finding is resolved.
+
+## Work item 2: accelerator date spread
+
+`dayOffsetPerStep` default changed 0 → 1 (read back). Two runs produced decisions for steps 4–8 on 2026-09-23, 24, 25, 26, 27, one day apart. The last generated date (09-27) precedes the funding date (10-15). As the ruling's narration allows, the CEO's live decision carries today's date, earlier than the President's generated one.
+
+## Work item 3: race and timing
+
+**First attempt, before any fix (observation first):** approval at 02:41:39 UTC, accelerator started 10 s later. It read a half-applied transition (rows 3 and 4 already updated, `currentStep` still 3), asked to decide step 3, was refused STALE by the transition's guard, and stopped after 0 iterations. **No data was harmed** and the Asset Manager's attribution stayed, but the demo sequence would have failed.
+
+**Fix:** a settle phase in the accelerator. On its first pass it re-reads every 5 s until the row at `currentStep` is In Progress and the state is identical across three reads (12-wait ceiling, else `SETTLE_TIMEOUT`); later iterations do not settle.
+
+**Race run, the exact demo sequence:**
+
+| Event | Time (UTC) | Offset |
+|---|---|---|
+| Asset Manager approval submitted | 02:46:54 | 0 s |
+| Accelerator started | 02:47:01 | +7 s |
+| First accelerator decision (step 4) | 02:47:25 | 24 s settle |
+| Steps 5, 6, 7, 8 | 02:47:37, :49, 02:48:00, :12 | ≈12 s each |
+| CEO step process registered on the draw | 02:48:28 | |
+| CEO task assigned | 02:48:30 | **87 s from accelerator start; 94 s from the approval** |
+
+Row 3 kept its `TASK` attribution; the superseded step-4 task was cancelled (task total unchanged); exactly one draw task was open at the end. **No stale-decision failure.** An idle-case run (open task, nothing in flight) took 81 s (18 s settle). Both `testProcessModel` calls hit the client's 60 s read timeout while the process completed; the data, not the call, is the evidence.
+
+**Demo-script fact:** clicking the accelerator to the CEO task being live is about a minute and a half. Narrate it.
+
+## State of the instance
+
+Draw 66 is at the seeded state (In Progress, step 3, orders 1–2 Approved, 3 In Progress, 4–9 Pending, no open step process), read back; task total 52, so no draw task is open. Each run was closed with a CEO approval before the reset, so two more treasury notifications were sent to the designer's inbox.
+
+## Verified
+
+Every fact above by readback as the designer or by a local timestamp around the call; each probe write by a readback of the stored value; the probe model's deletion by a failed `getProcessModel`.
 
 ## Not verified
 
-- **Email delivery** to any inbox (the nodes completed; the mailbox is a browser check).
-- **Step notification emails** on the parallel branch: not observed.
-- **`errorAlertGroupUuid` persistence:** `getProcessModel` exposes no alert-group field; Designer check owed.
-- **Column widths over 255** through the production write path (readbacks say `VARCHAR(255)` for every TEXT column; a 289-character insert succeeded).
-- **Persona behaviour and record-level security:** deferred with the persona accounts.
-- **The race** between a just-started step process and an immediately following accelerator run: not exercised.
-
-## Browser checklist (owner: Scott)
-
-- Inbox `scott.thorn@appian.com`: expect `[Placeholder] Draw #66 approved - execute cash payment` (2026-09-22 02:05 UTC) and the step notifications for steps 3 and 9.
-- Designer: each of the four process models → Properties → Alerts shows `SD Administrators`.
-- Designer: start the launcher on draw 66 after a reset, open the task, check the title, summary, radio and comment; reject without a comment and expect the required message; reset.
-
-## Rulings needed
-
-- Budget Summary figures: reproduce the sample as printed, or the roll-up of the detail lines?
-- Accelerator decision dates: all "now" (default), or spread by N days per step (`dayOffsetPerStep`)?
+- Email delivery for this session's runs (not re-checked; the capability is now confirmed).
+- Persona behaviour and record-level security (deferred with the persona accounts).
+- Widths on `purpose` and `overBudgetReason` (1,000 by inference from the same declaration, not probed).
 
 ## Findings and promotion
 
-7 candidates found, all STAGED at gate 1 with triggers (`BUILD_LOG.md` staging): width readbacks under-report at create; `addGroupMembers` works on 26.6.95 (the boundaries doc is updated); subprocess output mapping of the child's parameter PVs; `completeTask` input shape; the client ReadTimeout on ~60 s runs; empty CSV cells clear values; the alert group is unreadable over MCP. 0 promoted. Checkpoint current through this entry.
-
-Departures from the plan, logged: 16 budget lines, not 17 (the sample has 16); no reverse relationship on `SA Fund` (an intake object left untouched); display labels with `/`, `?` or `(` were rewritten by the platform on save (Phase 2 sets labels).
+- **Resolved:** the width readback finding (measured; recorded in the boundaries doc) and the alert-group persistence (confirmed in Designer).
+- **New, staged:** a driver that follows a multi-write transition must settle on a consistent, stable state before acting (trap and working form in the log; trigger named).
+- 0 promoted to the supplemental. Checkpoint current through this entry.
 
 ## Repo changes
 
-`CLAUDE.md` (build parameters filled: groups and site stub; a draw approval project section with UUIDs, rules as built, the reset procedure and known data artifacts), `BUILD_PLAN.md` (restructured; Phase 1 items ✅), `PROJECT_INSTRUCTIONS.md` (build phases, two resolved questions), `BUILD_LOG.md`, `TODO.md`, `reference/mcp-capability-boundaries.md` (group writes measured), `scripts/seed_draw66.py`, `.work/sail/*.sail` and `.work/pm/*.py` (the sources sent to the instance).
+`PROJECT_INSTRUCTIONS.md` (four rulings), `BUILD_PLAN.md` (rulings; Phase 1 date-spread and settle items ✅), `CLAUDE.md` (accelerator behaviour, timing fact, column widths), `reference/mcp-capability-boundaries.md` (widths entry), `BUILD_LOG.md`, `TODO.md`.
 
 ## TODO changes
 
-- **Added, Before demo:** accelerator timing; the demo reset procedure.
-- **Added, Browser checks owed:** the treasury email, the step emails, the process alert groups, the task form render and validation.
-- **Added, Client validation:** the Budget Summary artifact; accelerator decision dates.
-- **Added, Deferred:** column widths through the production path; record-level security on the draw types.
-- **Updated:** the `errorAlertGroupUuid` item (unmeasurable over MCP; moved to Designer); the supplemental §3 correction now also covers membership writes.
-- **Done:** Phase 1 core.
+- **Closed:** the four browser checks; the two client questions (Budget Summary, decision dates); the width proof.
+- **Updated:** "Accelerator timing" now carries the measured 87 s and the settle behaviour.
+- **Added, Deferred:** QIU `notes` width is 1,000; widening is a drop-and-recreate (trigger: a longer note, or Phase 3).
+- **Still open:** Before demo: the spec artifacts not on GitHub; persona accounts. Deferred: supplemental §3 correction; record-level security; remaining-object inventory; identity probe.
 
 ## BUILD_PLAN.md changes
 
-Phases renumbered 1–6 with the new Phase 2. Phase 1: 20 items ✅ 2026-09-21; record-level security stays open with its trigger. Next session: Phase 2, mockups first.
+Phase 1: two new ✅ items (date spread, settle phase). Phase 2 is next: mockups arrive from the Project into `mockups/` before Phase 2b.

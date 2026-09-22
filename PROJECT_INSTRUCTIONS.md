@@ -58,6 +58,7 @@ Field vocabulary follows the new approval email sample exactly.
 *Restructured by ruling on 2026-09-21: interfaces moved out of Phase 1 into a new mockup-first Phase 2, and the later phases shifted by one.*
 - Phase 1: data model (including SD Investment), seed data, data-driven sequential approval process with demo accelerator and treasury notification terminal step. No custom views.
 - Phase 2: UI foundation, mockup-first: HTML mockups for the draw list and draw summary views in mockups/, reviewed and approved before any SAIL is written; then the views built against them, on the existing intake site in a new page group.
+  - Mockups are authored in the claude.ai Project and delivered into mockups/. Build sessions treat them as the UI contract and do not author or modify them. Ruled 2026-09-21.
 - Phase 3: Doc Center ingestion success path: template in, extraction, accountant reconciliation, budget tables populated, data on the UI.
 - Phase 4: new approval email layout rendered as HTML email from live draw data, matched to the spec PDF.
 - Phase 5: ingestion failure path: plain-English alert email, AI diff against the last successful template.
@@ -80,6 +81,9 @@ Field vocabulary follows the new approval email sample exactly.
 - Doc Center extraction below confidence threshold routes to accountant reconciliation before data commits.
 - Over budget requires a reason; contingency utilization requires the explanation narrative (AI-drafted, accountant-approved).
 - Asset manager may modify budget lines only at their own approval step; edits are attributed and visible downstream.
+- Budget Summary figures (Land / Soft / Hard / Total) are computed as roll-ups from the budget detail lines, never reproduced from the sample as printed. The sample's summary contains arithmetic inconsistencies (totals shift by $57,753 while its adjustments column shows none); demo data must reconcile. Ruled 2026-09-21.
+- Accelerator decision dates spread 1 day per step (`dayOffsetPerStep` = 1), matching the "chain approves over subsequent days" narration. The funding date must stay after the last generated decision date. Ruled 2026-09-21.
+- New demo runs are created by Phase 3 ingestion of the standard template document, not by any generator or reset mechanism. The seeded draw 66 and the reset script are interim build tooling until ingestion exists. Ruled 2026-09-21.
 - The draw approval flow does not touch subscription intake data. No object in this flow reads or writes subscription records, and this build does not modify the intake demo's subscription data. The one intake object the flow relates to is SA Fund, through SD Investment.
 
 ## Open questions

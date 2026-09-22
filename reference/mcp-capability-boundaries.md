@@ -119,6 +119,8 @@ Recorded because a build assumed otherwise and lost time: `configureRecordEvents
   - Failures are swallowed and never block the write.
   - Nothing of this surfaces in a local stdio session. Do not treat it as a rollback mechanism here: `listObjectVersions` plus `get*(version)` remain the way to recover a prior version.
 
+**TEXT column widths on DevMCP 26.6.95 (measured 2026-09-21, one instance; re-verify per instance).** `createRecordType(fields[].length)` **does** apply: columns requested at 1,000 accepted 1,000 characters and refused 1,001 with `Data too long for column` through a Write Records node (`PauseOnError` false, error mapped to a PV). The **readback lies the other way from the supplemental's §7 case**: both `createRecordType`'s response and `getRecordType` report `VARCHAR(255)` for every requested length except 4,000 (which reads back `VARCHAR(4000)`), so a readback of 255 is not evidence of a 255 column. The write path fails loudly rather than truncating. Prove a width by a write of the real length through the production path; the supplemental's rule that ALTER does nothing was not re-tested here.
+
 ## 10. Beyond the Dev MCP: what the sail CLI reaches
 
 sail is a separate tool with its own identity (`CLAUDE.md` §6), not a Dev MCP capability, and nothing in §1–8 changes for the Dev MCP itself. What it changes is what a session can verify, as a persona, on published pages. Everything here was measured in one evaluation (`examples/persona-verification-walkthrough.md`, S-numbers) except entries marked *per sail's help*, which were not exercised. The tool's surface is in `toolchain.md` §12.

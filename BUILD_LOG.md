@@ -2,7 +2,7 @@
 
 What has actually been built in the environment, with object identifiers and the decisions behind them. Append after every build step; never rewrite a closed entry — a correction is a new entry that names what it corrects. Entry shape: date and title; scope line (the identity and group memberships every readback ran under); what changed, by object; decisions and why; verified (how, with counts and scope); not verified (and the browser checklist that covers it); promotion checkpoint. The contract is `CLAUDE.md` §7; the promotion loop is §9.
 
-**Promotion checkpoint: current through 2026-09-21 — Phase 1 build — level with the log tail.** A session touching promotion refuses to call itself complete if this checkpoint lags the log tail by more than one session.
+**Promotion checkpoint: current through 2026-09-21 — Phase 2a: browser checks, rulings, width and race verification — level with the log tail.** A session touching promotion refuses to call itself complete if this checkpoint lags the log tail by more than one session.
 
 ## Promotion candidates (staging)
 
@@ -20,13 +20,15 @@ What has actually been built in the environment, with object identifiers and the
   - *Follow-up:* the correction is a TODO for the skill's owner, not a new promotion.
   - *Membership writes:* `addGroupMembers` stays unverified. Its trigger remains the first session that adds a member to a draw approval group.
 
-- **STAGED (gate 1) — TEXT column widths under-report on readback at create time.** Fields created with `length` 1000 or 20 read back as `VARCHAR(255)`, while a 289-character `insertRecordData` write to a "1000" column succeeded and read back intact. Working form: treat the readback as a claim and prove width by a real-length write through the production path. *Trigger:* the first Write Records node write longer than 255 characters to a draw approval column (the `comments` or `contingencyExplanation` fields).
+- **[RESOLVED 2026-09-21: measured through the production path; promoted to `reference/mcp-capability-boundaries.md` §7-class entry, not to the supplemental until a second instance confirms it.]** **STAGED (gate 1) — TEXT column widths under-report on readback at create time.** Fields created with `length` 1000 or 20 read back as `VARCHAR(255)`, while a 289-character `insertRecordData` write to a "1000" column succeeded and read back intact. Working form: treat the readback as a claim and prove width by a real-length write through the production path. *Trigger:* the first Write Records node write longer than 255 characters to a draw approval column (the `comments` or `contingencyExplanation` fields).
 - **STAGED (gate 1) — `addGroupMembers` works on DevMCP 26.6.95.** Three user adds returned `status: success` and each read back with `listGroupMembers(directOnly)`. This closes the "writing unverified" gap in `reference/mcp-capability-boundaries.md` (updated in this session) and further dates supplemental §3. *Trigger:* the next group-membership write on another instance, to tag it "re-verify per instance" or general.
 - **STAGED (gate 1) — a subprocess node maps the child's parameter PVs back out through `outputs[].saveInto`.** With `referenceUuid` set, the schema lists every parameter PV as an output; `{"name": "outcome", "saveInto": "pv!decisionOutcome"}` carried the child's result to the parent on a synchronous call. Input mappings were bare `pv!x` strings in `inputs` with no `customInputs` block, and they worked. *Trigger:* the next subprocess node built on any build.
 - **STAGED (gate 1) — `completeTask(taskId, inputs: [{name, value}])` completes a user input task with ACP values, including ACPs the node reads back as `required: true`.** The form's own button logic does not run on this path, so every ACP must be supplied. *Trigger:* the next MCP-driven task completion.
 - **STAGED (gate 1) — `testProcessModel` with `timeoutSeconds: 60` returned a client `Network error: ReadTimeout` at roughly 60 s while the process kept running to completion.** The error is transport, not the process; verify by reading the data. *Trigger:* the next run expected to exceed 45 s.
 - **STAGED (gate 1) — `updateRecordData` with an empty CSV cell clears the value (sets null).** Measured on DATETIME, INTEGER and TEXT columns. *Trigger:* the next reset or backfill that must leave a column untouched, where the column is omitted from the CSV instead.
-- **STAGED (gate 1) — `createProcessModel(errorAlertGroupUuid)` cannot be read back over the Dev MCP.** `getProcessModel` returns no alert-group field at all, so persistence is unmeasurable here; the check is a Designer step. *Trigger:* the next Dev MCP generation, to see whether the readback gains the field.
+- **[RESOLVED 2026-09-21: the value persists; confirmed in Designer (Properties → Alerts shows `SD Administrators` on all four models). The readback gap stands as recorded.]** **STAGED (gate 1) — `createProcessModel(errorAlertGroupUuid)` cannot be read back over the Dev MCP.** `getProcessModel` returns no alert-group field at all, so persistence is unmeasurable here; the check is a Designer step. *Trigger:* the next Dev MCP generation, to see whether the readback gains the field.
+
+- **STAGED (gate 1) — an accelerator that reads a draw immediately after a task submit sees a half-applied transition and must settle first.** Measured: 10 s after `completeTask`, the approval rows were already updated but the draw's `currentStep` was not, so a decision computed from that read was refused as STALE. Working form: before the first decision, re-read on a 5 s timer until the row at `currentStep` is In Progress and the state is identical across three reads (18–24 s measured), with a ceiling that stops rather than guesses. Portable shape: "a multi-write transition is not atomic to a concurrent reader; a driver that follows one must wait for a consistent, stable state." *Trigger:* the next build with a process that chains decisions across a multi-node write transition.
 
 ## Entries
 
@@ -425,3 +427,43 @@ Promotion checkpoint: current through 2026-09-21 — Phase 0 discrepancy rulings
 **Rulings needed.** Listed in `TODO.md`: the Budget Summary artifact, and whether accelerator decision dates should be spread (`dayOffsetPerStep`).
 
 Promotion checkpoint: current through 2026-09-21 — Phase 1 build.
+
+### 2026-09-21 — Phase 2a: browser checks recorded, rulings applied, width and race verified, accelerator dates spread
+
+**Scope.**
+- **Designer:** Dev MCP `appian` as `scott.thorn@appian.com` (session file), a member of `SD Administrators`, `SD Users` and the three draw step groups. All readbacks ran under that account; the draw types carry no row security.
+- **Not used:** `appian-runtime`, sail.
+- **Preflight:** plan gate passes; DevMCP 26.6.95 and sail 26.6.95 match their pins; skills identical.
+
+**Browser checks, run by Scott, recorded as complete.**
+- **Outbound email works on this instance.** The treasury placeholder email and the step notification emails arrived in the designer's inbox.
+- **`errorAlertGroupUuid` persists.** All four process models show `SD Administrators` under Properties → Alerts. The MCP readback gap stands.
+- **The task form renders in Tempo:** step heading with role and approver, the draw summary line, the decision radios and the comments box; a reject with a blank comment is blocked by the required-field validation.
+
+**Rulings recorded** (in `PROJECT_INSTRUCTIONS.md` § Business rules / § Build phases and `BUILD_PLAN.md`): Budget Summary is a roll-up of the detail lines, never the sample's printed figures; accelerator dates spread 1 day per step with the funding date after the last generated date; mockups come from the claude.ai Project into `mockups/` and build sessions never author or modify them; new demo runs come from Phase 3 ingestion, and draw 66 plus the reset script are interim tooling.
+
+**Work item 1: column widths, definitive.** Throwaway model `zz SD Width Probe` (`0000f06e-be90-…`), one Write Records node per record type, `PauseOnError` false, errors mapped to PVs, driven by `testProcessModel`; deleted afterwards (`getProcessModel` → "Does not exist").
+- `SD Draw.contingencyExplanation` (created `length` 4000, reads back `VARCHAR(4000)`): a 1,200-character value written and read back intact.
+- `SD QIU Metric.notes` and `SD Investment.investmentDescription` (created `length` 1000, both read back `VARCHAR(255)`): 300 and 1,000 characters written and read back intact; 1,001 characters failed on both with `Data too long for column`. **The physical width is exactly the requested 1,000. The create-time readback of `VARCHAR(255)` is wrong. Nothing truncates silently; the node fails loudly past the limit.**
+- `SD Draw Approval.comments` (created 1000, reads back 255): a 600-character comment written through the real transition (`SD Apply Draw Approval Decision`) and read back intact.
+- Probe values restored to the seed text and read back; QIU 6601 `notes` cleared.
+- **No column was altered:** nothing truncated, and the spec's paragraph fields have 4,000 (`contingencyExplanation`) and 1,000 (`notes`) characters. Whether 1,000 is enough for QIU notes is flagged in `TODO.md`; widening would be a drop-and-recreate.
+- *Observation, unexplained:* the probe's `len(pv!longText)` reported 1,444 for a 1,200-character input, while the stored value read back as the text sent. The readback is the record.
+
+**Work item 2: accelerator date spread.** `dayOffsetPerStep` default changed from 0 to 1 (PV default read back as `"1"`). Re-run: steps 4–8 decided at 2026-09-23, 24, 25, 26, 27, one day apart; the last generated date (2026-09-27) precedes the funding date (2026-10-15). As the ruling anticipates, the CEO's later live decision carries today's date, earlier than the President's generated one.
+
+**Work item 3: race and timing.**
+- **First attempt, unfixed accelerator (observation before fix).** Approval at 02:41:39 UTC; accelerator started 02:41:49 (+10 s). Its read saw rows 3 Approved and 4 In Progress but `currentStep` still 3, asked to decide step 3, was refused STALE by the transition, and stopped after 0 iterations. **No data was harmed** (the guard held; the Asset Manager's TASK attribution stayed) but the demo sequence would have failed.
+- **Fix:** a settle phase in the accelerator. On its first pass it re-reads every 5 s (Timer `delayUntil: now() + intervalds(0, 0, 5)`) until the row at `currentStep` is In Progress and the state snapshot (`currentStep|rowStatus|activeStepProcessId`) is identical across three reads, up to 12 waits, else `SETTLE_TIMEOUT`. Later iterations do not settle.
+- **Idle-case run** (open step-4 task, no in-flight decision): start 02:44:06; first decision 02:44:24 (18 s settle); CEO task live 02:45:27. **81 s.**
+- **Race run, the demo sequence:** approval 02:46:54; accelerator start 02:47:01 (+7 s); first decision 02:47:25 (24 s settle); steps 4–8 at 02:47:25, :37, :49, 02:48:00, :12 (≈12 s each); CEO step process 38691 registered 02:48:28 and its task assigned 02:48:30. **87 s from accelerator start, 94 s from the approval.** Row 3 kept the TASK attribution; the superseded step-4 task was cancelled (task total unchanged); exactly one draw task open at the end. **No stale-decision failure.**
+- Both runs returned the client `ReadTimeout` at ~60 s while the process continued.
+- Each run closed with a CEO approval (draw Approved, `treasuryNotifiedAt` set) and a reset to the seeded state; final readback: seeded state, task total 52 (no draw task).
+
+**Verified.** Every fact above by readback as the designer or by a local timestamp around the call.
+
+**Not verified.** Email delivery for this session's runs (not re-checked; delivery is now confirmed as a capability). Persona behaviour. Widths on columns not probed (`purpose`, `overBudgetReason`, 1000-requested, by inference only).
+
+**Promotion.** 2 candidates resolved (width: measured and recorded in the boundaries doc; alert group: persists per Designer). 1 new candidate staged (the settle rule). 0 promoted to the supplemental.
+
+Promotion checkpoint: current through 2026-09-21 — Phase 2a: browser checks, rulings, width and race verification.
