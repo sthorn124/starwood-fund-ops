@@ -1,7 +1,7 @@
 /* Draw approval: routing state of one draw, read once by every process that decides or advances a step.
    Returns a map: found, drawId, drawNumber, drawStatus, currentStep, activeStepProcessId, amount,
    investmentName, fundName, current (approval row at currentStep), next (row at currentStep + 1, or null),
-   approvals (all rows, ordered). Rows are maps of id, approvalOrder, role, approverName, status. */
+   approvals (all rows, ordered). Rows are maps of id, approvalOrder, role, approverName, status, decisionDate, activatedAt. */
 a!localVariables(
   local!hasId: not(a!isNullOrEmpty(ri!drawId)),
   local!draw: if(
@@ -42,7 +42,9 @@ a!localVariables(
         'recordType!{02c207d5-c725-4d11-bf40-b33573e87ffa}SD Draw Approval.fields.{44b8ee63-1230-4abd-ae83-ca2cddf182b6}approvalOrder',
         'recordType!{02c207d5-c725-4d11-bf40-b33573e87ffa}SD Draw Approval.fields.{30524217-4621-4b41-9af4-490d2f082bdd}role',
         'recordType!{02c207d5-c725-4d11-bf40-b33573e87ffa}SD Draw Approval.fields.{983be1c0-67e4-464f-b7c2-1e3a1c735458}approverName',
-        'recordType!{02c207d5-c725-4d11-bf40-b33573e87ffa}SD Draw Approval.fields.{4c1bf7fb-0736-4c9a-946e-99f6989ac83a}status'
+        'recordType!{02c207d5-c725-4d11-bf40-b33573e87ffa}SD Draw Approval.fields.{4c1bf7fb-0736-4c9a-946e-99f6989ac83a}status',
+        'recordType!{02c207d5-c725-4d11-bf40-b33573e87ffa}SD Draw Approval.fields.{a6a03063-3b14-4f00-8cab-b5d10602405e}decisionDate',
+        'recordType!{02c207d5-c725-4d11-bf40-b33573e87ffa}SD Draw Approval.fields.{e6597b65-664d-4ccc-9dd0-f3e508ecdcc5}activatedAt'
       },
       filters: a!queryFilter(
         field: 'recordType!{02c207d5-c725-4d11-bf40-b33573e87ffa}SD Draw Approval.fields.{5dacd7ec-3f3f-4645-9d08-684793b0b54b}drawId',
@@ -66,7 +68,9 @@ a!localVariables(
       approvalOrder: fv!item['recordType!{02c207d5-c725-4d11-bf40-b33573e87ffa}SD Draw Approval.fields.{44b8ee63-1230-4abd-ae83-ca2cddf182b6}approvalOrder'],
       role: fv!item['recordType!{02c207d5-c725-4d11-bf40-b33573e87ffa}SD Draw Approval.fields.{30524217-4621-4b41-9af4-490d2f082bdd}role'],
       approverName: fv!item['recordType!{02c207d5-c725-4d11-bf40-b33573e87ffa}SD Draw Approval.fields.{983be1c0-67e4-464f-b7c2-1e3a1c735458}approverName'],
-      status: fv!item['recordType!{02c207d5-c725-4d11-bf40-b33573e87ffa}SD Draw Approval.fields.{4c1bf7fb-0736-4c9a-946e-99f6989ac83a}status']
+      status: fv!item['recordType!{02c207d5-c725-4d11-bf40-b33573e87ffa}SD Draw Approval.fields.{4c1bf7fb-0736-4c9a-946e-99f6989ac83a}status'],
+      decisionDate: fv!item['recordType!{02c207d5-c725-4d11-bf40-b33573e87ffa}SD Draw Approval.fields.{a6a03063-3b14-4f00-8cab-b5d10602405e}decisionDate'],
+      activatedAt: fv!item['recordType!{02c207d5-c725-4d11-bf40-b33573e87ffa}SD Draw Approval.fields.{e6597b65-664d-4ccc-9dd0-f3e508ecdcc5}activatedAt']
     )
   ),
   local!currentStep: if(local!found, local!draw['recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{51d3ea43-572b-4052-a36d-369d39f8d05d}currentStep'], null),
@@ -93,6 +97,10 @@ a!localVariables(
     fundName: if(local!found, local!draw['recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.relationships.{58a1018a-d85c-42b9-94ed-b51a9f0ef3d2}investment.relationships.{1b588a74-afbc-4756-aacf-69483491d566}fund.fields.{fb775e5a-1ed9-4ce9-85ca-bb1b43767475}fundName'], null),
     current: if(a!isNullOrEmpty(local!currentIdx), null, index(local!approvals, local!currentIdx[1], null)),
     next: if(a!isNullOrEmpty(local!nextIdx), null, index(local!approvals, local!nextIdx[1], null)),
+    previousDecisionDate: a!localVariables(
+      local!prevIdx: if(or(a!isNullOrEmpty(local!orders), a!isNullOrEmpty(local!currentStep)), {}, wherecontains(tointeger(local!currentStep) - 1, local!orders)),
+      if(a!isNullOrEmpty(local!prevIdx), null, index(index(local!approvals, local!prevIdx[1], null), "decisionDate", null))
+    ),
     approvals: local!approvals
   )
 )

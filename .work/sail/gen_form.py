@@ -1,4 +1,5 @@
-/* Draw approval: the step task form, restyled against mockups/task-approval.html (the UI contract).
+from refs import *
+sail = f"""/* Draw approval: the step task form, restyled against mockups/task-approval.html (the UI contract).
    Header (step position, role, assignee, aging, funding date) · context card linking to the draw record ·
    the two decision cards with data-driven consequence text · comments (optional on approve, required on reject).
    ri!drawId / ri!stepOrder drive every figure through rule!SD_getDrawDetail; ri!drawSummary / ri!stepLabel remain
@@ -10,13 +11,13 @@ a!localVariables(
   local!found: a!defaultValue(index(local!d, "found", false), false),
   local!step: a!defaultValue(ri!stepOrder, index(local!d, "currentStep", null)),
   local!total: a!defaultValue(index(local!d, "totalSteps", 9), 9),
-  local!approvals: a!defaultValue(index(local!d, "approvals", {}), {}),
+  local!approvals: a!defaultValue(index(local!d, "approvals", {{}}), {{}}),
   local!row: a!localVariables(
-    local!idx: if(or(a!isNullOrEmpty(local!approvals), a!isNullOrEmpty(local!step)), {}, wherecontains(tointeger(local!step), a!forEach(items: local!approvals, expression: tointeger(fv!item.approvalOrder)))),
+    local!idx: if(or(a!isNullOrEmpty(local!approvals), a!isNullOrEmpty(local!step)), {{}}, wherecontains(tointeger(local!step), a!forEach(items: local!approvals, expression: tointeger(fv!item.approvalOrder)))),
     if(a!isNullOrEmpty(local!idx), null, index(local!approvals, local!idx[1], null))
   ),
   local!nextRow: a!localVariables(
-    local!idx: if(or(a!isNullOrEmpty(local!approvals), a!isNullOrEmpty(local!step)), {}, wherecontains(tointeger(local!step) + 1, a!forEach(items: local!approvals, expression: tointeger(fv!item.approvalOrder)))),
+    local!idx: if(or(a!isNullOrEmpty(local!approvals), a!isNullOrEmpty(local!step)), {{}}, wherecontains(tointeger(local!step) + 1, a!forEach(items: local!approvals, expression: tointeger(fv!item.approvalOrder)))),
     if(a!isNullOrEmpty(local!idx), null, index(local!approvals, local!idx[1], null))
   ),
   local!role: if(a!isNullOrEmpty(local!row), null, index(local!row, "role", null)),
@@ -25,8 +26,8 @@ a!localVariables(
   local!fundingDate: index(local!d, "fundingDate", null),
   local!approvedRows: if(
     a!isNullOrEmpty(local!approvals),
-    {},
-    index(local!approvals, wherecontains("Approved", a!forEach(items: local!approvals, expression: tostring(a!defaultValue(fv!item.status, "")))), {})
+    {{}},
+    index(local!approvals, wherecontains("Approved", a!forEach(items: local!approvals, expression: tostring(a!defaultValue(fv!item.status, "")))), {{}})
   ),
   local!approvedLine: if(
     a!isNullOrEmpty(local!approvedRows),
@@ -54,45 +55,45 @@ a!localVariables(
       ),
       backgroundColor: "#16294D"
     ),
-    contents: {
+    contents: {{
       /* Context card */
       a!cardLayout(
-        contents: {
+        contents: {{
           a!richTextDisplayField(
             labelPosition: "COLLAPSED",
-            value: {
+            value: {{
               a!richTextItem(text: "DRAW", color: "#6B7280", size: "SMALL"),
               char(10),
               if(
                 local!found,
                 a!richTextItem(
                   text: "Draw #" & a!defaultValue(index(local!d, "drawNumber", ""), "") & " — " & a!defaultValue(index(local!d, "investmentName", ""), ""),
-                  link: a!recordLink(recordType: 'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw', identifier: ri!drawId, openLinkIn: "NEW_TAB"),
+                  link: a!recordLink(recordType: {rt(DRAW)}, identifier: ri!drawId, openLinkIn: "NEW_TAB"),
                   linkStyle: "STANDALONE",
                   size: "MEDIUM",
                   style: "STRONG"
                 ),
                 a!richTextItem(text: a!defaultValue(ri!drawSummary, "Draw details unavailable"), size: "MEDIUM", style: "STRONG", color: "#16294D")
               )
-            },
+            }},
             marginBelow: "STANDARD"
           ),
           a!columnsLayout(
-            columns: {
+            columns: {{
               a!columnLayout(contents: rule!SD_cmp_labelValue(label: "Amount", value: rule!SD_fmtMoney(value: index(local!d, "amount", null), showCents: true), emphasize: true, marginBelow: "NONE"), width: "AUTO"),
               a!columnLayout(contents: rule!SD_cmp_labelValue(label: "Draw Type", value: index(local!d, "drawType", null), marginBelow: "NONE"), width: "AUTO"),
               a!columnLayout(contents: rule!SD_cmp_labelValue(label: "On / Under / Over Budget", value: index(local!d, "budgetStatus", null), marginBelow: "NONE"), width: "AUTO"),
               a!columnLayout(contents: rule!SD_cmp_labelValue(label: "Fund", value: index(local!d, "fundName", null), marginBelow: "NONE"), width: "AUTO")
-            },
+            }},
             showWhen: local!found,
-            stackWhen: {"PHONE", "TABLET_PORTRAIT"},
+            stackWhen: {{"PHONE", "TABLET_PORTRAIT"}},
             marginBelow: "STANDARD"
           ),
           rule!SD_cmp_labelValue(label: "Purpose", value: index(local!d, "purpose", null)),
           rule!SD_cmp_labelValue(label: "Budget and Contingency Explanation", value: index(local!d, "contingencyExplanation", null)),
           a!richTextDisplayField(
             labelPosition: "COLLAPSED",
-            value: {
+            value: {{
               a!richTextItem(
                 text: count(local!approvedRows) & " of " & local!total & " approved" & if(local!approvedLine = "", "", " · " & local!approvedLine) & " · Review the full draw, budget detail, and documents on the ",
                 color: "#6B7280",
@@ -100,16 +101,16 @@ a!localVariables(
               ),
               a!richTextItem(
                 text: "draw record",
-                link: a!recordLink(recordType: 'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw', identifier: ri!drawId, openLinkIn: "NEW_TAB"),
+                link: a!recordLink(recordType: {rt(DRAW)}, identifier: ri!drawId, openLinkIn: "NEW_TAB"),
                 linkStyle: "STANDALONE",
                 size: "SMALL"
               ),
               a!richTextItem(text: ".", color: "#6B7280", size: "SMALL")
-            },
+            }},
             showWhen: local!found,
             marginBelow: "NONE"
           )
-        },
+        }},
         style: "NONE",
         shape: "SEMI_ROUNDED",
         padding: "STANDARD",
@@ -119,7 +120,7 @@ a!localVariables(
       ),
       /* Decision card */
       a!cardLayout(
-        contents: {
+        contents: {{
           a!richTextDisplayField(
             labelPosition: "COLLAPSED",
             value: a!richTextItem(text: "Your Decision", size: "MEDIUM", style: "STRONG", color: "#16294D"),
@@ -127,10 +128,10 @@ a!localVariables(
           ),
           a!cardChoiceField(
             labelPosition: "COLLAPSED",
-            data: {
+            data: {{
               a!map(id: "APPROVE", title: "Approve", description: local!approveText, icon: "check", color: "POSITIVE"),
               a!map(id: "REJECT", title: "Reject", description: "Terminate this draw request", icon: "times", color: "NEGATIVE")
-            },
+            }},
             cardTemplate: a!cardTemplateBarTextStacked(
               id: fv!data.id,
               primaryText: fv!data.title,
@@ -159,7 +160,7 @@ a!localVariables(
             height: "MEDIUM",
             marginBelow: "NONE"
           )
-        },
+        }},
         style: "NONE",
         shape: "SEMI_ROUNDED",
         padding: "STANDARD",
@@ -167,21 +168,24 @@ a!localVariables(
         showShadow: false,
         marginBelow: "STANDARD"
       )
-    },
+    }},
     buttons: a!buttonLayout(
       primaryButtons: a!buttonWidget(
         label: "Submit Decision",
         submit: true,
         style: "SOLID",
-        saveInto: {
+        saveInto: {{
           a!save(ri!actor, tostring(loggedInUser())),
           a!save(
             ri!decisionComment,
             if(or(a!isNullOrEmpty(ri!decisionComment), ri!decisionComment = "-"), "(no comment)", ri!decisionComment)
           )
-        }
+        }}
       )
     ),
     contentsWidth: "MEDIUM"
   )
 )
+"""
+open("SD_form_drawApprovalDecision.sail","w").write(sail)
+print("written", len(sail))

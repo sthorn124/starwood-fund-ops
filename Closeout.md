@@ -1,97 +1,87 @@
-# Closeout — 2026-09-21 — Phase 2a: browser checks recorded, rulings applied, widths and race verified, accelerator dates spread
+# Closeout — 2026-09-22 — Phase 2b: draw list page, tabbed draw record views, restyled approval task form, list-texture seed, monotonic decision dates, persona-verified
 
 ## Scope and identity
 
-- **Designer:** Dev MCP `appian` as `scott.thorn@appian.com` (session file), a member of `SD Administrators`, `SD Users` and the three draw approval step groups. Every readback below ran under that account. The draw types carry no row security, so nothing was filtered.
-- **Not used:** `appian-runtime`, sail (no persona sessions).
-- **Preflight:** plan gate passes; DevMCP 26.6.95 and sail 26.6.95 match their pins; skill copies identical.
-- **No interfaces, no mockups**, per the brief.
+- **Designer:** Dev MCP `appian` as `scott.thorn@appian.com` — member of `SD Administrators`, `SD Users` and all three draw approval step groups, so every designer render is full-scope and says nothing about a persona.
+- **Personas, via sail:** `sd.assetmanager` (`~/.sail-sd.assetmanager`, in `SD Draw Asset Managers`) and `sd.accountant` (`~/.sail-sd.accountant`, in `SD Draw Demo Approvers`), both in `SD Users`, both direct members of `SD Draw Approvers`. Both sessions were live all session. `--from-devmcp` was never used; `appian-runtime` was never used.
+- **Preflight:** plan gate passes; Dev MCP 26.6.95 / sail 26.6.95 match the pins; skill copies identical. The site returned 500 to both personas until the security change below.
+- **Docs gate honoured:** docs-search on every layout parameter in play before the first SAIL; pack references for header-content, side-by-side, columns, rich text and card choice read.
 
-## Browser checks, run by Scott, now recorded
+## What was built (the brief's items, in order)
 
-- **Outbound email works on this instance.** The treasury placeholder and the step notification emails arrived in the designer's inbox.
-- **`errorAlertGroupUuid` persists.** All four process models show `SD Administrators` under Properties → Alerts. The Dev MCP still cannot read it back; that gap stays recorded.
-- **The task form renders in Tempo** (step heading with role and approver, draw summary line, decision radios, comments), and a blank-comment reject is blocked by the required-field validation.
+0. **TODO closed:** the spec artifacts are in the Project (they stay out of GitHub by `.gitignore`).
+- **Personas:** account display names checked; seed rows now carry them. `sd.accountant` is **Priya Ramen** on the account (the mockups and spec say Raman) — flagged in `TODO.md`. `sd.assetmanager` = Elena Marchetti.
+1–3. **Seed texture:** investment 2 (Gateway Logistics Park Phase II), draws 63/64/65 (THSV, approved), 11 (Gateway, approved) and 12 (Gateway, In Progress at step 6, deliberately empty of lines, QIU and documents), 54 approval rows, QIU as-of 09/30/2026, `receivedDate` / `submittedBy` on draw 66, three metadata-only document rows. `scripts/seed_draw66.py` rewritten to carry it all.
+4. **Monotonic decision dates** in the transition: `max(requested, previous decision + 1 day)`, activation stamped on the next row. Verified end to end: nine ascending dates 10/06 → 10/14, funding 10/15 after the last; then reset.
+5. **Four record views on `SD Draw`** — Summary, Budget Detail, Approvals, Documents — against `mockups/draw-summary.html`, every figure computed from the rows (roll-ups, tie-out to the cent, PTD, contingency %, aging). Record title "Draw Funding Approval | <investment>". The Summary's action strip appears only to the current step's assignee group while a task is open, and its "Review & Approve" card links to that task.
+6. **Draws page on `SASite`** (`draws`) against `mockups/draw-list.html`: four computed KPIs, filters and search, the viewer-aware grid (YOUR ACTION, highlight, awaiting-first sort). `SD Draw Approvers` added as a site viewer so both personas reach it; the intake pages' stubs were preserved. The navigation page group is a Designer step.
+7. **Task form restyled** against `mockups/task-approval.html` (header, context card with record link, Approve/Reject choice cards with data-driven consequence text, comment optional/required). The step task node now passes `drawId` and `stepOrder`; the live task was cycled onto the new wiring (task 536874206, step process 536909940, is live for the Asset Managers).
 
-All four TODO items are closed.
+Supporting objects: `SD_getDrawDetail`, `SD_getDrawListRows`, `SD_getOpenTaskId` (+ constant `SD_CURRENT_TASKS_FOR_PROCESS_REPORT_ID`), `SD_getUserDisplayName`, `SD_fmtMoney`, `SD_fmtRelativeDays`, four `SD_cmp_*` interface pieces. UUIDs and stubs are in `CLAUDE.md`.
 
-## Rulings recorded
+## How it works
 
-In `PROJECT_INSTRUCTIONS.md` (§ Business rules, § Build phases) and `BUILD_PLAN.md`:
-1. Budget Summary figures are roll-ups of the budget detail lines, never the sample's printed figures; demo data must reconcile.
-2. Accelerator decision dates spread 1 day per step (`dayOffsetPerStep` = 1); the funding date stays after the last generated date.
-3. Mockups are authored in the claude.ai Project and delivered into `mockups/`; build sessions treat them as the UI contract and never author or modify them.
-4. New demo runs come from Phase 3 ingestion of the standard template; draw 66 and the reset script are interim tooling.
+- `SD_getDrawDetail(drawId)` is the one read behind every view and every list row: header fields, investment and fund, routing state (`SD_getDrawState`), `viewerIsAssignee` (membership of the current step's group), `awaitingViewer` (…and an open task exists), `openTaskId`, and day counts from `today()`.
+- The open task is found through the platform's own "Current Tasks for Process" system report (`a!queryProcessAnalytics`, context = the draw's `activeStepProcessId`), because a task's id is not otherwise reachable from SAIL before the task ends. The report's document id (39) is an instance constant, re-verify per instance.
+- "Awaiting My Action", the YOUR ACTION tag, the row highlight and the action strip all key off `awaitingViewer`, so a draw at a step with no task issued shows nothing to act on — which is what made `sd.accountant` read 0 against Gateway #12.
+- Every aging and "in N days" string is computed and clamps at 0. The seed's narrative sits in October 2026, so until then the seeded step reads "today" and the funding date "in 23 days" rather than the mockup's "2 days" / "in 12 days".
 
-## Work item 1: column widths, definitive
+## Mockup elements not matched in SAIL, and how they were approximated
 
-Method: a throwaway model `zz SD Width Probe` (one Write Records node per record type, `PauseOnError` false, errors mapped to PVs), driven by `testProcessModel`; deleted afterwards, absence confirmed.
-
-| Column | Requested | Readback | Measured |
-|---|---|---|---|
-| `SD Draw.contingencyExplanation` | 4,000 | `VARCHAR(4000)` | 1,200 characters written and read back intact |
-| `SD QIU Metric.notes` | 1,000 | `VARCHAR(255)` | 300 and 1,000 pass; 1,001 fails `Data too long for column 'NOTES'` |
-| `SD Investment.investmentDescription` | 1,000 | `VARCHAR(255)` | same: 1,000 passes, 1,001 fails |
-| `SD Draw Approval.comments` | 1,000 | `VARCHAR(255)` | 600-character comment written through the real transition, read back intact |
-
-**Result:** the physical width is exactly the requested length. The readback of `VARCHAR(255)` is wrong. Nothing truncates silently; a write past the limit fails loudly. **No column was altered:** the spec's paragraph fields hold 4,000 (`contingencyExplanation`) and 1,000 (QIU `notes`). Whether 1,000 is enough for a QIU note is flagged in `TODO.md`; widening would be a drop-and-recreate. Probe values were restored to the seed text and read back. Recorded in `reference/mcp-capability-boundaries.md`; the staged width finding is resolved.
-
-## Work item 2: accelerator date spread
-
-`dayOffsetPerStep` default changed 0 → 1 (read back). Two runs produced decisions for steps 4–8 on 2026-09-23, 24, 25, 26, 27, one day apart. The last generated date (09-27) precedes the funding date (10-15). As the ruling's narration allows, the CEO's live decision carries today's date, earlier than the President's generated one.
-
-## Work item 3: race and timing
-
-**First attempt, before any fix (observation first):** approval at 02:41:39 UTC, accelerator started 10 s later. It read a half-applied transition (rows 3 and 4 already updated, `currentStep` still 3), asked to decide step 3, was refused STALE by the transition's guard, and stopped after 0 iterations. **No data was harmed** and the Asset Manager's attribution stayed, but the demo sequence would have failed.
-
-**Fix:** a settle phase in the accelerator. On its first pass it re-reads every 5 s until the row at `currentStep` is In Progress and the state is identical across three reads (12-wait ceiling, else `SETTLE_TIMEOUT`); later iterations do not settle.
-
-**Race run, the exact demo sequence:**
-
-| Event | Time (UTC) | Offset |
-|---|---|---|
-| Asset Manager approval submitted | 02:46:54 | 0 s |
-| Accelerator started | 02:47:01 | +7 s |
-| First accelerator decision (step 4) | 02:47:25 | 24 s settle |
-| Steps 5, 6, 7, 8 | 02:47:37, :49, 02:48:00, :12 | ≈12 s each |
-| CEO step process registered on the draw | 02:48:28 | |
-| CEO task assigned | 02:48:30 | **87 s from accelerator start; 94 s from the approval** |
-
-Row 3 kept its `TASK` attribution; the superseded step-4 task was cancelled (task total unchanged); exactly one draw task was open at the end. **No stale-decision failure.** An idle-case run (open task, nothing in flight) took 81 s (18 s settle). Both `testProcessModel` calls hit the client's 60 s read timeout while the process completed; the data, not the call, is the evidence.
-
-**Demo-script fact:** clicking the accelerator to the CEO task being live is about a minute and a half. Narrate it.
-
-## State of the instance
-
-Draw 66 is at the seeded state (In Progress, step 3, orders 1–2 Approved, 3 In Progress, 4–9 Pending, no open step process), read back; task total 52, so no draw task is open. Each run was closed with a CEO approval before the reset, so two more treasury notifications were sent to the designer's inbox.
+| Mockup element | Built as |
+|---|---|
+| Navy band with crumb, h1 and fact strip above the tabs | Appian's record header carries the h1 (title expression); a white fact-strip card (Draw #, Amount, Status chip, Funding Date + "in N days", Draw Type, Fund) sits at the top of every view, under the tabs |
+| "Review & Approve" button | A linked card styled as a button (a button widget takes no link) |
+| Two-tone progress bar (22.2 % + 11.1 %) | Single-tone `a!progressBarField` (approved ÷ total) plus a nine-icon stepper: ✓ green approved, ● blue in progress, ○ grey pending, ✕ red rejected |
+| Row click opens the record | The Draw and Investment cells are record links |
+| "Save for Later" | Not built — a task form has no draft save without a process change (`TODO.md`, Deferred) |
+| Ingestion / Amount Verification badges | `a!tagField` chips: "Extracted & Confirmed" (from the document row's status), "Ties ✓" / "Does not tie" / "No budget lines" (computed) |
+| Budget Summary adjustments Soft +$57,753 / Hard ($57,753) | Computed roll-up prints "—" for all three groups (the seeded reallocation nets to zero inside Soft); totals $390,196,711 and $18,693,028 (cents on three lines). The roll-up ruling wins; the mockup is unchanged; recorded in `CLAUDE.md` § Known data artifacts |
+| Seeded approval rows' attribution | Rows whose source is "seed" show no source/actor line; "N/A" comments render "—" |
+| Persona name "Priya Raman" | "Priya Ramen" (the account's display name; flagged) |
 
 ## Verified
 
-Every fact above by readback as the designer or by a local timestamp around the call; each probe write by a readback of the stored value; the probe model's deletion by a failed `getProcessModel`.
+**As the designer (`testInterface`, `diagnostics.error: null`):** all four views for #66 and #12, the Draws page, and the form with decision NONE and REJECT. Figures: In Approval **$11,544,252 / 2 draws**; Funded YTD 2026 **$24,928,659 / 4 draws**; Awaiting 1; order #66, #12, #65, #64, #11, #63. Summary #66 reconciles: tie-out $2,604,252.23; Budget Summary total $390,196,711 / current draw $2,604,252; contingency 6.8 % → 6.5 % over $18,693,028; funded to date $368,899,431 (94.5 %), PTD 95.2 %; Budget Detail BUDGET row equals the mockup's row for row. Gateway #12 renders all four tabs with intentional empty states. Form: header, cards and the required-comment validation on reject.
 
-## Not verified
+**As `sd.assetmanager` via sail:** Draws page loads; Awaiting My Action = 1 (Draw #66 · Asset Manager step); #66 carries YOUR ACTION and sorts first; #66 Summary shows the strip and the "Review & Approve" card whose stored link is `ProcessTaskLink` task **536874206** — the id the task report returns for step process 536909940; Gateway #12: no strip, no YOUR ACTION, four tabs render.
 
-- Email delivery for this session's runs (not re-checked; the capability is now confirmed).
-- Persona behaviour and record-level security (deferred with the persona accounts).
-- Widths on `purpose` and `overBudgetReason` (1,000 by inference from the same declaration, not probed).
+**As `sd.accountant` via sail:** page loads; Awaiting = 0 ("Nothing waiting on you"); no YOUR ACTION; #66 Summary has no strip; Budget Detail, Approvals, Documents readable; #12's four tabs render. No tab was blocked.
 
-## Findings and promotion
+**Readbacks:** transition nodes 4 and 22; step node 9's ACPs and inputMap; the four views' stubs; the site's four pages (intake stubs unchanged) and role map; the probe rule's 404 after deletion; the monotonic-date run.
 
-- **Resolved:** the width readback finding (measured; recorded in the boundaries doc) and the alert-group persistence (confirmed in Designer).
-- **New, staged:** a driver that follows a multi-write transition must settle on a consistent, stable state before acting (trap and working form in the log; trigger named).
-- 0 promoted to the supplemental. Checkpoint current through this entry.
+## Not verified (and the browser checklist)
+
+- **Following the task link and submitting the restyled form as a persona.** sail lists a card link as `<display>` and cannot follow a task link. Checklist (Scott, as `sd.assetmanager`): Draws page → "AWAITING MY ACTION 1 · Draw #66 · Asset Manager step", #66 highlighted with YOUR ACTION and first → click #66 → strip "Your approval is pending — Asset Manager, step 3 of 9" + **Review & Approve** → the form reads "Step 3 of 9 — Asset Manager" / "Assigned to Elena Marchetti · with you since Oct 7 · funds scheduled Oct 15", cards "Advance to AM SVP (step 4 of 9)" and "Terminate this draw request" → select Reject and Submit with no comment: "A comment is required when rejecting a draw." → **do not submit**; select Approve; leave the task open.
+- **Geometry** of the three pages against the mockups (one-row KPI cards, column widths, the band, the strip's button alignment) — browser only.
+- **Document download links** — no files attached until Phase 3.
+- **Record-level security** — none exists; both personas see every draw. Deferred with a trigger.
+
+## Defects found and fixed this session
+
+- **`a!forEach` returning `{}` as a filter**: a viewer with nothing awaiting saw "Awaiting My Action 6" (null placeholders counted), and a draw without budget lines errored in `wherecontains` (the empty result kept the record list's type). Fixed everywhere with guarded `index(list, wherecontains(…), {})`.
+- **`text()` truncates** (…430.77 → 430): `SD_fmtMoney` rounds first.
+- **`min()` over dates** printed Oct 14 for Oct 15: the next funding date is computed as a day offset from today.
+- **Task-form wiring**: the live task predated `drawId` / `stepOrder`; it was rejected with a "build reset" comment (the transition stamped 10/08 11:05, per the monotonic rule), the draw reset through the two CSVs, and the launcher rerun.
+
+## Rulings needed
+
+1. **"Ramen" or "Raman"** for `sd.accountant` — fix the account or accept the seed.
+2. **Intake pages visible to draw personas** — `SD Draw Approvers` views the whole site; add a visibility expression to the intake pages, or leave it.
+3. **Whether the mockups get a pass** for the deltas above (record header/band, single-tone bar, "—" adjustments, Save for Later) — in the Project, per the mockup ruling.
+
+## Promotion candidates
+
+7 found, all STAGED at gate 1 with triggers (`BUILD_LOG.md` staging section): the `a!forEach`-as-filter trap (measured both directions); `text()` truncation; `min()` over dates; `updateSite` preserving stubs when existing pages are passed by uuid; the task-report route to a task id (instance-specific report id); sail not following task links; the record-link/summary-view ordering. 0 promoted; skill copies unchanged and identical. Checkpoint current through this entry.
 
 ## Repo changes
 
-`PROJECT_INSTRUCTIONS.md` (four rulings), `BUILD_PLAN.md` (rulings; Phase 1 date-spread and settle items ✅), `CLAUDE.md` (accelerator behaviour, timing fact, column widths), `reference/mcp-capability-boundaries.md` (widths entry), `BUILD_LOG.md`, `TODO.md`.
+`CLAUDE.md` (build parameters moved out of the §13 template into the project table and completed; objects table; business rules; demo repeatability; artifacts; seed texture; UI files), `BUILD_PLAN.md` (Phase 2 items ✅, new open items), `BUILD_LOG.md` (entry + 7 candidates), `TODO.md`, `Closeout.md`, `scripts/seed_draw66.py`, `.work/sail/*.sail` and generators, `.work/render_text.py`, `mockups/*.html` (committed first at `0bf29c2`, unmodified).
 
 ## TODO changes
 
-- **Closed:** the four browser checks; the two client questions (Budget Summary, decision dates); the width proof.
-- **Updated:** "Accelerator timing" now carries the measured 87 s and the settle behaviour.
-- **Added, Deferred:** QIU `notes` width is 1,000; widening is a drop-and-recreate (trigger: a longer note, or Phase 3).
-- **Still open:** Before demo: the spec artifacts not on GitHub; persona accounts. Deferred: supplemental §3 correction; record-level security; remaining-object inventory; identity probe.
+Closed: spec artifacts; persona accounts and sail logins. Added — Before demo: demo start (launch the process, wait ~10 s), the Ramen/Raman flag. Browser checks owed: task from the strip and form submit; geometry; document links. Deferred: intake pages visible to personas; page group; Save for Later; Advance-draw related action; seed dates versus the clock; record-title duplication. Updated: record-level security (personas exist; trigger is now a ruling).
 
 ## BUILD_PLAN.md changes
 
-Phase 1: two new ✅ items (date spread, settle phase). Phase 2 is next: mockups arrive from the Project into `mockups/` before Phase 2b.
+Phase 2: mockups, Draws page, four record views, task form restyle, site page, persona stub all ✅ 2026-09-22; "Record decision" related action struck as superseded by the action strip; "Advance draw (demo)" still open; new open items for the page group (Designer), the persona task browser check, and intake-page visibility.

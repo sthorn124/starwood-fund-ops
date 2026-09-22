@@ -141,18 +141,20 @@ The canonical definition is in `PROJECT_INSTRUCTIONS.md` § Data model. Field vo
 - Persona accounts are deferred; Phase 1 verifies as the designer.
 
 **Objects:**
-- [ ] **HTML mockups** for the draw list and the draw summary views, delivered into `mockups/` **from the claude.ai Project** (ruled 2026-09-21: build sessions treat them as the UI contract and never author or modify them). They are reviewed and approved before any SAIL is written.
-- [ ] **`SD Draw` record list**, built against its approved mockup.
-- [ ] **`SD Draw` summary view**, built against its approved mockup: header facts, the budget grid by category group, the approval status table and the QIU table.
+- ✅ 2026-09-22 **HTML mockups** for the draw list, the draw summary views and the task form, delivered into `mockups/` **from the claude.ai Project** (ruled 2026-09-21: build sessions treat them as the UI contract and never author or modify them), committed at `0bf29c2` before any SAIL was written.
+- ✅ 2026-09-22 **Draws page** (`SD_page_draws` on `SASite`, stub `draws`), built against `mockups/draw-list.html`: four computed KPI cards, filters and search, the viewer-aware grid (YOUR ACTION, highlight, awaiting-first sort). The record list itself is not used; rows open the record through links.
+- ✅ 2026-09-22 **`SD Draw` record views**, four tabs against `mockups/draw-summary.html`: Summary (action strip, progress, Draw Origin with tie-out, Draw Funding Detail, Budget Summary roll-up + Remaining Contingency, Funding History, QIU Detail), Budget Detail, Approvals, Documents. Record title expression set. All figures computed from the rows.
 - [ ] **Related actions:**
-  - "Record decision", visible only to the current step's role;
-  - "Advance draw (demo)", visible to administrators only.
-- [ ] **Restyle the Phase 1 task form**, if one was created, to the approved mockup's vocabulary.
-- [ ] **Site pages on `SASite`, in a new page group.**
-  - Page groups take interface pages only.
-  - Navigation grouping is not exposed over the Dev MCP, so the grouping may be a Designer step.
-  - `updateSite` regenerates every page's URL stub, so any reference to an intake page is re-checked afterwards.
-- [ ] **Persona site stub build parameter** set to `subscription-agreement-analyst`.
+  - ~~"Record decision", visible only to the current step's role~~ — superseded 2026-09-22 by the Summary's action strip, which links the current step's assignee group straight to the open task (`SD_getOpenTaskId`);
+  - "Advance draw (demo)", visible to administrators only — still open; the accelerator is started through `testProcessModel` today.
+- ✅ 2026-09-22 **Task form restyled** (`SD_form_drawApprovalDecision`) against `mockups/task-approval.html`; the step task node now passes `drawId` and `stepOrder`. "Save for Later" is not built (no draft save on a task form without a process change).
+- ✅ 2026-09-22 **Draws page added to `SASite`** (`updateSite`, existing pages passed by uuid; their stubs `2rcKrQ` / `VRvmbQ` / `tO9EuA` were preserved, so the earlier "regenerates every stub" warning did not apply to this form of the call). `SD Draw Approvers` added as a site viewer.
+  - [ ] **Page group** ("Draws" grouping in the site navigation) — a Designer step; not exposed over the Dev MCP. *Owner: Scott. Trigger: before the demo, if the flat page bar reads wrong.*
+- ✅ 2026-09-22 **Persona site stub build parameter** set to `subscription-agreement-analyst` (page `draws`); both persona sessions load it through sail.
+
+**Also done 2026-09-22 (Phase 2b):** seed texture for the list (investment 2, draws 63/64/65/11/12, 54 approval rows, QIU as-of, received/submitted-by, three document rows); monotonic decision dates in the transition (`max(now, previous decision + 1 day)`), verified end to end with nine ascending dates before the funding date; persona-verified through sail as `sd.assetmanager` and `sd.accountant` (`BUILD_LOG.md`).
+- [ ] **Persona task open from the strip and the restyled form's submit** — browser check (`TODO.md`): sail cannot follow a task link. *Owner: Scott. Trigger: before the first rehearsal.*
+- [ ] **Intake pages visible to draw personas** — `SD Draw Approvers` now views the whole site; decide whether the intake pages get a visibility expression. *Owner: Scott. Trigger: the first rehearsal as a persona.*
 
 **Dependencies:** Phase 1; mockup approval.
 
