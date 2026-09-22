@@ -1,56 +1,53 @@
-# Closeout — 2026-09-22 — Fix session: intake confirmation state, draw-number collision handling at reconciliation
+# Closeout — 2026-09-22 — Fix session: current approver action renders on the draw summary (draw 66, step 3)
 
 ## Scope and identity
 
-- **Designer:** Dev MCP `appian` as `scott.thorn@appian.com` — `SD Administrators`, `SD Users`, the three draw step groups. Every `testInterface`, `getProcessModel`, `getObjectSecurity`, `getSite` and `listRecordData` readback ran under it.
-- **Persona, via sail:** `sd.accountant` (`~/.sail-sd.accountant`, `SD Draw Demo Approvers` → `SD Draw Approvers`) drove the intake page end to end and read the Draws page. `--from-devmcp` and `appian-runtime` never used.
-- **Docs gate honoured** before the interface work: local-variable refresh semantics, file upload outside a start form (`a!submitUploadedFiles`), `a!startProcess` (Initiator, async `onSuccess`), `a!urlForSite` with `site!`, `a!safeLink(openLinkIn)`.
-- **Two items, no other changes.** No throwaway objects created.
+- **Designer:** Dev MCP `appian` as `scott.thorn@appian.com` — `SD Administrators`, `SD Users`, the three step groups; a direct member of `SD Draw Asset Managers` beside `sd.assetmanager` (group readback). Every rule test, task listing, security/model read, record read and the one process start ran under it.
+- **Personas, via sail:** `sd.assetmanager` (`~/.sail-sd.assetmanager`) and `sd.accountant` (`~/.sail-sd.accountant`). `--from-devmcp` and `appian-runtime` never used.
+- **One defect, no other changes.** One throwaway rule `zz_probeStepTask` was created to read the task report's full row and deleted (404 confirmed). No design object was modified.
 
-## 1. Intake confirmation
+## Symptom, reproduced first
 
-**Built.** `SD_page_receiveCapitalCall` (new interface, `…_571309`, v4) is now the `SASite` page **Receive Capital Call** (INTERFACE page; site v9; stub `receive-capital-call` preserved). Same navy header as the Draws page. **Receive** commits the upload (`a!submitUploadedFiles`) and, once the file is in `SD Draw Documents`, starts `SD Receive Capital Call` through `a!startProcess(cons!SD_RECEIVE_CAPITAL_CALL_PM, document)` — new PROCESS_MODEL constant `…_571303`. The same page then flips to the confirmation state: "Capital call received · Doc Center extraction is running on <file> · The draw appears in the Draws list immediately as a new draw (Ingesting). Reconciliation reaches the accountant in roughly 90 seconds, as the Reconcile Extraction task on that draw." with **Go to Draws** (a navy card-link through `a!urlForSite` to the Draws page, same tab — `a!buttonWidget` has no `link` keyword here) and **Receive Another** (resets). An error line covers a failed submit or start.
+As `sd.assetmanager` via sail: Draws page "AWAITING MY ACTION 0 · Nothing waiting on you", #66 listed without YOUR ACTION; #66 Summary shows the step card ("Step 3 of 9 · Asset Manager · Elena Marchetti") and no strip, no Review & Approve, no `ProcessTaskLink` in the stored YAML.
 
-**Deleted.** The frozen launcher `SD Receive Capital Call (Intake Form)` (`getProcessModel` → "Does not exist") and its start form `SD_form_receiveCapitalCall` (404), after `getObjectDependents` showed nothing but the application referencing them. The frozen-launcher item is gone from `TODO.md`; the pipeline itself is unchanged (`SD Draw Approvers` already held Initiator).
+## Diagnosis, in the brief's order
 
-**Verified as `sd.accountant` via sail.** Page loads with Receive disabled; upload → document 55289 and Receive enabled; the first Receive started the pipeline (draw **76** Ingesting, document row 6610) but the confirmation render threw — the upload field saves a *List of Document* even with `maxSelections: 1`, and `document()` rejected it. Fixed in v4 (`index(…, 1)`), re-run: upload → 55293, **Receive** → the page re-rendered to the confirmation state (all three lines, the Go to Draws url `…/subscription-agreement-analyst/page/draws`, Receive Another); **Receive Another** → the empty form; Draws page fresh → two "New draw · Ingesting · Doc Center extraction · Accountant reconciliation received Sep 22" rows (draws 76 and 77). The hidden confirmation branch was also rendered as the designer through a probe copy, restored, and read back.
+1. **Live step process and open task?** Draw 66 read `In Progress`, `currentStep 3`, `activeStepProcessId 536909940`. `SD_getOpenTaskId(536909940)` returned task 536874206 — a row came back, so the lookup "found a task". The probe read that row in full: **Status 7 = Aborted** (the docs' task-status list, 0-based), **Assignees = []**, Owner null. The designer's own task list (58 tasks) did not contain 536874206 although it listed every other live "Approve or reject draw" task. **Root cause: the step process behind draw 66 had been cancelled** (the Process Monitoring sweep — the TODO's cancel list included the `testProcessModel` launcher run 536909956 that started this step process), so there was no live task for step 3 and nothing for the Summary to link. Found at step 1; steps 2 and 3 were not needed:
+   - the assignment is right — `SD Draw Asset Managers` holds `sd.assetmanager` (and the designer), and the step model's Viewer is `SD Users`;
+   - the lookup is right — it does find the step's task; the task was dead.
+   - **Why the designer and the persona disagreed:** the designer's `SD_getDrawDetail(66)` read `awaitingViewer: true` on the aborted task (the report hands it to a full-scope reader), while the persona, who cannot see an unassigned aborted task, correctly got nothing. A §4 identity trap on a task report: recorded as a promotion candidate and as a hardening TODO (`SD_getOpenTaskId` should accept status 0/1 only) — deliberately not changed in this session.
 
-## 2. Draw-number collision handling
+2. **Fix.** `activeStepProcessId` on `SD Draw` 66 cleared by CSV (`id,activeStepProcessId` / `66,`) because the launcher's `canStart` refuses while it is set; **no approval row touched**. `SD Draw Approval Process` started with `drawId 66` → `COMPLETED`, "STARTED step 3 of draw 66 (step process **536909994**)"; the launcher's own state readback shows orders 1–2 Approved with their dates (10/06 15:20, 10/07 11:05) and order 3 In Progress, unchanged.
 
-**Ruling recorded** (`PROJECT_INSTRUCTIONS.md` Business rules): draw numbers are business data extracted from the template, never replaced silently; collisions are resolved at reconciliation.
+## Verified
 
-**Built** in `SD_form_reconcileExtraction` (v3): when the extracted number already exists for the matched investment (own row excluded), the Draw Number field is prefilled with the next available number and the chip reads amber **"Submitted as #<extracted>, already on file — renumbered to next in sequence"**; when the extracted number is genuinely next, green **"Next in sequence"**. The prefill happens once (`a!refreshVariable(refreshOnReferencedVarChange: false)`) so the accountant's override survives edits to other fields; whatever is confirmed commits. Two further values of the editable field are covered in amber rather than misreported: an override back onto a used number ("#n is already on file for this investment") and a gap ("Out of sequence: last draw is #n"). The title keeps the extracted number.
+- **Designer:** `SD_getDrawDetail(66)` → `activeStepProcessId 536909994` (written by the step process itself), `openTaskId 536876873`, `awaitingViewer true`, approvals unchanged. The task report's row for 536909994: task **536876873**, status **0 Assigned**, assignees **[1528] = SD Draw Asset Managers**. `listMyTasks` now 59, including 536876873 ("Approve or reject draw", SD Draw Approval Step 11:34 AM EDT).
+- **As `sd.assetmanager` via sail:** Draws page (fresh) "AWAITING MY ACTION 1 · Draw #66 · Asset Manager step · today", "#66 YOUR ACTION"; #66 Summary: "Your approval is pending — Asset Manager, step 3 of 9 · With you since Oct 7 · funds scheduled in 23 days" and **Review & Approve**; the stored YAML carries the `ProcessTaskLink` with `task.id 536876873`, site stub `subscription-agreement-analyst`, page `draws`.
+- **As `sd.accountant` via sail:** #66 Summary shows the step card only — no strip, zero `ProcessTaskLink` (not her step). Her Draws page still reads "AWAITING MY ACTION 5 · New draw (ingesting) · Accountant reconciliation": the reconciliation path is untouched and unchanged.
+- Probe rule deleted; `getExpressionRule` → 404.
 
-**Verified by `testInterface` (designer).** Live payload, draw 74 with duplicate #67s on file: Draw Number **68**, amber renumbered chip, title "Reconcile extracted draw #67", Ties ✓, `error: null`. Control, Gateway draw 12 (only #11 on file): Draw Number 12, green "Next in sequence", `error: null`.
+## Not verified
 
-## Not verified (and the browser checklist)
-
-- **Intake page in a browser** (`TODO.md`, new item): the confirmation card, Go to Draws landing on the Draws page in the same tab, Receive Another; the error line was never provoked.
-- **Rebuilt reconciliation form** (existing item, chip wording updated): the amber renumbered chip with 68 prefilled while other #67s exist; typing 67 back → "#67 is already on file for this investment"; an override surviving edits to other fields; the inline viewer as the persona; geometry.
-- Draws 76 and 77's pipelines were not followed to their tasks (unchanged pipeline).
-
-## Defects found and fixed
-
-- `a!buttonWidget(link:)` rejected ("Unrecognized Keyword — link") → card-link.
-- `a!cardLayout` inside `a!sideBySideLayout` rejected — only once the hidden branch was rendered → columns layout. The probe-copy flip is what caught it.
-- `a!fileUploadField` value is a list → `document()` threw on the live persona click → `index(…, 1)` before `document()` and before the process parameter.
+- The persona's click on Review & Approve — sail cannot follow a task link; the existing browser check ("Task opens from the Summary action strip…") covers it, and its task is now 536876873.
+- Process Monitoring's view of 536909940 (the Dev MCP has no process-instance read); the Aborted status and empty assignee list are the evidence.
+- Found on arrival, left as found: Scott's intake runs continue — draw 77 was reconciled as **#68** by the collision rule (as designed), draw 78 is a new Ingesting shell.
 
 ## Rulings needed
 
-None. Housekeeping for Scott: four ingested rows now exist beside the seed (reconciled #67s 74 and 75; Ingesting shells 76 and 77 with open reconciliation tasks) — keep one specimen, `--cleanup-ingested` the rest before a rehearsal (`TODO.md` reset note has the ids).
+None. One caution for the Process Monitoring cleanup: `SD Draw Approval Step` 536909994 and its parent run 536909993 are draw 66's live task — the TODO cancel list is annotated so they are not swept.
 
 ## Promotion candidates
 
-5 found — no `link` on `a!buttonWidget` (the tree's `"link": null` is not settable); card rejected in a side-by-side, and only when the branch renders; upload field saves a list; submit-then-start ordering for a process that reads the file; sail drives an in-page state flip and prints it — listed at gate 1, none promoted. No trigger fired. Checkpoint current through this entry. Supplemental unchanged.
+2 found — the "Current Tasks for Process" report returns an aborted task to an administrator (status 7, no assignees) and nothing to a group member, so a "row came back" lookup reads differently by identity; the designer's `listMyTasks` as a stand-in for a persona's task list when the designer is in the assignee group — listed at gate 1, none promoted. No trigger fired. Checkpoint current through this entry. Supplemental unchanged.
 
 ## Repo changes
 
-`PROJECT_INSTRUCTIONS.md`, `CLAUDE.md`, `BUILD_PLAN.md`, `BUILD_LOG.md` (entry + 5 staged candidates + checkpoint), `TODO.md`, `Closeout.md`, `.work/sail/SD_page_receiveCapitalCall.sail` (new), `.work/sail/SD_form_reconcileExtraction.sail`, `.work/sail/SD_form_receiveCapitalCall.sail` (removed).
+`BUILD_LOG.md` (entry + 2 staged candidates + checkpoint), `TODO.md`, `BUILD_PLAN.md`, `CLAUDE.md` (demo-repeatability note on a cancelled step process), `Closeout.md`. No SAIL files changed.
 
 ## TODO changes
 
-Removed: the frozen intake launcher (Deferred). Added: Browser checks — the rebuilt intake page. Updated: the ingestion demo reset (four ingested rows, the shells' ids, the chip wording under the collision rule); the rebuilt-form browser check's chip strings. Done: intake confirmation state; draw-number collision handling.
+Updated: Demo start (the live task is now 536876873 / step process 536909994; do not cancel step instances behind a live draw); the Process Monitoring cancel list (536909956 annotated; 536909993/536909994 protected). Added: Deferred — harden `SD_getOpenTaskId` to status 0/1. Done: draw 66's approver action restored.
 
 ## BUILD_PLAN.md changes
 
-Phase 3: intake confirmation ✅; draw-number collision handling ✅; the rebuilt-form browser pass reworded for the collision chip; new open items — the intake page browser pass, and cleaning up the four ingested rows (was: delete one of the two #67s).
+Phase 3: one ✅ line for the approver-action fix (root cause a cancelled step process, not the lookup; hardening parked).
