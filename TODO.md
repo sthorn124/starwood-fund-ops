@@ -25,24 +25,6 @@ Open items by class. Sessions add discovered items unprompted as they surface, a
 
 ## Client validation questions
 
-- **Phase 0 discrepancies found while transcribing.** These are to be ruled before the Phase 1 prompt is written. The transcription in `PROJECT_INSTRUCTIONS.md` is verbatim and was not altered.
-  - *Owner:* Scott, in the claude.ai Project.
-  - *Trigger:* before the Phase 1 build prompt.
-  1. **"Accounting manager" is not a canon role.** Narrative beat 4 says the accounting manager approval is shown pre-completed, but the role canon has no Accounting Manager. The workflow xlsx step 3 also says "accounting manager". Which canon role is it: Accounting Controller?
-  2. **"Executive" is two things.**
-     - The Personas section heads the live email approver "Executive (CEO)".
-     - The canon lists Executive and CEO as separate roles.
-     - "Remaining chain roles" includes Executive.
-
-     Confirm that the live email approver is the CEO role, order 9, and that the Executive role, order 5, is data only.
-  3. **Is the Fund Accountant the chain's "Accountant"?** The Fund Accountant persona is live (ingestion and reconciliation), while "Accountant" (order 1) is listed as a data-only chain role. Confirm that they are the same person but that the approval step is data only.
-  4. **Number of QIU metrics.** The data model says "the nine metrics from the email sample". The current email sample's QIU table shows ten rows by my read: IRR, Profit, Multiple, Peak Equity, Current Equity Contributions, Current Quarter Equity Contribution, Future Equity Contributions, Distributions To-Date, Current Quarter Distribution, Future Distributions. Re-count on a high-resolution render and rule nine or ten.
-  5. **Number of approval steps.** The narrative says "the 9-role approval chain", and the canon lists nine roles. The new email sample's approval status table appears to run to order 10 in the low-resolution render. Re-count at high resolution.
-  6. **The investment and property side has no entity.**
-     - The new email shows Investment Name, Investment Description ("from DealCloud") and Fund.
-     - The data model says SD Draw is "related to the existing investment/fund structure", but `Starwood Demo` has no investment or property record type, only `SA Fund` (id 4 is "Harborline Real Assets Fund II, L.P.").
-     - Rule one of two options: header fields on SD Draw, or a new SD Investment entity.
-  7. **Narrative continuity on Blue Granite.** Its subscriptions to fund 4 are all "Under Review" or earlier; none is Accepted. This was read as the designer, a member of `SD Administrators`. The narrative says its capital "entered" Harborline Fund II. Either accept this as narration, or have the intake demo end with an Accepted subscription.
 ## Deferred
 
 - **Correct appian-supplemental §3 on group membership.** It still states that `getGroup` and `listGroupMembers` return 403. That is the pre-26.6.90 behaviour. Reads work on 26.6.90 and on 26.6.95 (measured live 2026-09-21), and the repo's `reference/mcp-capability-boundaries.md` already records it.
@@ -67,3 +49,11 @@ Open items by class. Sessions add discovered items unprompted as they surface, a
 - ✅ 2026-09-21 — **Host application:** `Starwood Demo` (`dd3bb740-b105-421b-a866-29d542a144da`) is confirmed. `Capital Calls & Distributions` is another client's app and out of scope; do not read from it or reference it. Recorded in `PROJECT_INSTRUCTIONS.md` and `CLAUDE.md`.
 - ✅ 2026-09-21 — **Dev MCP updated from 26.6.90 to 26.6.95 and re-verified.** Both halves report build `20260911-210447`, and sail reports 26.6.95. The pins in `reference/toolchain.md` §1 and §12 are refreshed.
 - ✅ 2026-09-21 — **Phase 0 plan written.** `PROJECT_INSTRUCTIONS.md` is complete, and `BUILD_PLAN.md` is authored and passes the plan gate.
+- ✅ 2026-09-21 — **Phase 0 discrepancies: all seven ruled** and applied to `PROJECT_INSTRUCTIONS.md` and `BUILD_PLAN.md`.
+  1. "Accounting manager" means the Accounting Controller, order 2. Orders 1–2 are pre-completed, and the chain sits at the Asset Manager, order 3.
+  2. The CEO (order 9) is the live email approver. The Executive (order 5) is data only.
+  3. The Fund Accountant is the chain's Accountant (order 1); that step is data only.
+  4. There are ten QIU metrics, listed in canon order.
+  5. The chain has nine contiguous orders, 1–9. The sample's gap at order 4 is a source artifact and is not reproduced.
+  6. `SD Investment` is a record type (name and description, related to `SA Fund`). DealCloud is narrated, not integrated.
+  7. Blue Granite continuity is narration only. The flow never reads or writes subscription records.

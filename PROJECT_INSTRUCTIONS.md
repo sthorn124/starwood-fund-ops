@@ -23,23 +23,34 @@ Continuation of the subscription intake story on one platform: Blue Granite's ca
 1. The capital call and template arrive (narrated as the EY API/SFTP feed; triggered manually in demo).
 2. Ingestion fails on a malformed template. The alert email to the accountant and asset managers explains the failure in plain English, with an AI comparison against the last successfully ingested template describing what changed.
 3. The corrected template ingests via Doc Center. The accountant reviews extraction results and confirms; budget data lands in the draw tables and appears in the UI.
-4. QIU data is aggregated to the draw. The accounting manager approval is shown pre-completed.
+4. QIU data is aggregated to the draw. The pre-completed approvals are orders 1–2: the Accountant and the Accounting Controller are both Approved. The chain sits at the Asset Manager step, order 3.
 5. The asset manager reviews in the UI, edits a budget line at their approval step, and approves.
-6. The executive receives the new-format approval email, replies conversationally ("looks good, approve"), and AI interprets the reply as an approval. The chain completes.
+6. The CEO (order 9) receives the new-format approval email, replies conversationally ("looks good, approve"), and AI interprets the reply as an approval. The chain completes.
 7. Treasury receives the execution notification. Capital moves.
-The 9-role approval chain from the email sample exists as data and renders in the status table; live interactions are the asset manager (UI) and the CEO (email) only. Chain steps between the asset manager and the CEO are advanced by a demo accelerator, narrated as the chain approving over subsequent days.
+The 9-step approval chain (contiguous orders 1–9, as in the current email sample) exists as data and renders in the status table; live interactions are the asset manager (UI) and the CEO (email) only. Chain steps between the asset manager and the CEO are advanced by a demo accelerator, narrated as the chain approving over subsequent days.
 
 ## Personas
-- Fund Accountant. Owns ingestion. Receives failure alerts with the AI diff, reviews Doc Center extraction results, approves the AI-drafted contingency narrative.
+- Fund Accountant. Owns ingestion. Receives failure alerts with the AI diff, reviews Doc Center extraction results, approves the AI-drafted contingency narrative. This is the same person as the chain's Accountant role (order 1). The order 1 approval step is data only: it is seeded as Approved and never acted on live.
 - Asset Manager. Reviews the draw at their step, edits budget data at approval, receives ingestion failure alerts.
-- Executive (CEO). Approves by email reply only. Never opens the UI.
-- Remaining chain roles (Accountant, Accounting Controller, AM SVP, Executive, Chief Accounting Officer, CFO of Funds, President) exist as approval data, spoken to, not shown.
+- CEO (order 9). Approves by email reply only. Never opens the UI. The Executive role (order 5) is a separate, data-only chain role.
+- Remaining chain roles (Accountant, Accounting Controller, AM SVP, Executive, Chief Accounting Officer, CFO of Funds, President) exist as approval data, spoken to, not shown. The Accountant row is the Fund Accountant's data-only approval.
 
 ## Data model (entity level)
-- SD Draw: header facts (funding date, draw type, purpose, amount, budget status, over budget reason, general comments, contingency explanation, status, current step); related to the existing investment/fund structure.
+- SD Investment: name and description, mapping the new email's "Investment Name" and "Investment Description [from DealCloud]". It is related to the existing SA Fund. DealCloud is narrated as the upstream source and is not integrated.
+- SD Draw: header facts (funding date, draw type, purpose, amount, budget status, over budget reason, general comments, contingency explanation, status, current step); related to SD Investment, and through it to SA Fund.
 - SD Draw Budget Line: budget category, category group (Land/Soft/Hard), initial budget, revised approved budget, proposed adjustments this draw, proposed budget, current draw, total PTD ($ and %), balance to complete, in-this-draw flag.
 - SD Draw Approval: order, role, approver, status, decision date, comments. Drives both routing and the status table.
-- SD QIU Metric: the nine metrics from the email sample, model as-of date, current model value, current projection, variance, notes.
+- SD QIU Metric: the ten metrics from the email samples, model as-of date, current model value, current projection, variance, notes. The metrics, in order:
+  1. IRR
+  2. Profit
+  3. Multiple
+  4. Peak Equity
+  5. Current Equity Contributions (through prior quarter)
+  6. Current Quarter Equity Contribution
+  7. Future Equity Contributions (after current quarter)
+  8. Distributions To-Date (through prior quarter)
+  9. Current Quarter Distribution
+  10. Future Distributions (after current quarter)
 - SD Draw Document: the source template and backup documents attached to the draw.
 Field vocabulary follows the new approval email sample exactly.
 
@@ -57,6 +68,8 @@ Field vocabulary follows the new approval email sample exactly.
 - Category groups: Land, Soft, Hard.
 - Approval statuses: Pending, In Progress, Approved, Rejected.
 - QIU stays QIU, unexpanded. Extraction platform is Doc Center.
+- "Accounting manager" in source documents (narrative beat 4, workflow xlsx step 3) means the Accounting Controller, order 2. The term does not appear in object names or UI text.
+- Approval orders are contiguous 1–9: 1 Accountant, 2 Accounting Controller, 3 Asset Manager, 4 AM SVP, 5 Executive, 6 Chief Accounting Officer, 7 CFO of Funds, 8 President, 9 CEO. The new email sample's status table skips order 4 and runs to 10. That is a source artifact in the client mockup, not a tenth step; the build does not reproduce the gap.
 
 ## Business rules
 - Approvals are strictly sequential by order; Approve advances, Reject terminates the draw, final approval sets the draw Approved and triggers the treasury notification.
@@ -65,9 +78,11 @@ Field vocabulary follows the new approval email sample exactly.
 - Doc Center extraction below confidence threshold routes to accountant reconciliation before data commits.
 - Over budget requires a reason; contingency utilization requires the explanation narrative (AI-drafted, accountant-approved).
 - Asset manager may modify budget lines only at their own approval step; edits are attributed and visible downstream.
+- The draw approval flow does not touch subscription intake data. No object in this flow reads or writes subscription records, and this build does not modify the intake demo's subscription data. The one intake object the flow relates to is SA Fund, through SD Investment.
 
 ## Open questions
 - Audience: Starwood direct vs reusable FS asset (sets how literal the Starwood branding stays).
 - Outbound email delivery and inbound email receipt on the NY instance: verify capability in Phase 3/5, not assumed.
 - Doc Center handling of the Excel template format: confirm in Phase 2; fallback is extraction from a PDF rendition of the template.
 - Whether draw views join the existing intake site or get a dedicated site.
+- Resolved 2026-09-21: Blue Granite continuity is narration only. None of Blue Granite's subscriptions is Accepted, and that is left as it is; the narrative's "entered the fund" is spoken, not shown in data. See Business rules: this flow does not touch subscription intake data.

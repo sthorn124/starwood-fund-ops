@@ -1,60 +1,50 @@
-# Closeout — 2026-09-21 — Phase 0 transcribed; build plan authored, plan gate now passes
+# Closeout — 2026-09-21 — Phase 0 discrepancies ruled and applied; Phase 1 ready to prompt
 
-## Scope and identity
+## Scope
 
-- **Docs only.** No build work and no instance writes.
-- **Two read-only Dev MCP reads** ran as `scott.thorn@appian.com`, a member of `SD Administrators` and `SD Users`: `listRecordData` on `SA Fund` and on `Subscription Agreement`.
-- **Not used:** `appian-runtime` and sail.
+Docs only: no build work, and no instance, MCP or sail calls.
 
-## What changed
+## Rulings applied
 
-- **`PROJECT_INSTRUCTIONS.md`:**
-  - Filled the seven sections with the supplied text: Demo narrative, Personas, Data model, Build phases, Vocabulary canon, Business rules, Open questions. A diff against the supplied text shows it byte-identical.
-  - The header facts are unchanged. The italic status line now reads "Phase 0 complete".
-- **`BUILD_PLAN.md`:** rewritten from the stub into the standard format.
-  - The Demo Narrative, Personas and Data Model sections point to `PROJECT_INSTRUCTIONS.md` as canonical.
-  - Phases 0–5 each list the objects, dependencies, verification (pass conditions and break-tests stated in advance), and demo-visible outcome.
-  - Phase 0 items are marked ✅ 2026-09-21. **Phase 1 is marked as the next session's scope.**
-- **`TODO.md` and `BUILD_LOG.md`:** updated; see below.
+| # | Ruling | Where it landed |
+|---|---|---|
+| 1 | "Accounting manager" means the Accounting Controller, order 2. Orders 1–2 are pre-completed as Approved, and the chain sits at the Asset Manager, order 3. | Narrative beat 4; a new canon rule (the term is never used in object names or UI text); the Phase 1 seed |
+| 2 | The CEO (order 9) is the live email approver. The Executive (order 5) is data only. | Narrative beat 6 now says "The CEO (order 9)"; the persona is renamed from "Executive (CEO)" to "CEO (order 9)"; the plan's persona table and Phase 3 outcome |
+| 3 | The Fund Accountant is the chain's Accountant (order 1); that step is data only. | Personas in both files |
+| 4 | Ten QIU metrics, listed in order. | Data model, with all ten listed; Phase 1 record type and seed |
+| 5 | Nine contiguous orders, 1–9. The sample's gap at order 4 and its order 10 are a source artifact, not reproduced. | A new canon rule with the full order-by-role list; the narrative; Phase 1 seed pass conditions; the Phase 3 Approval Status section |
+| 6 | `SD Investment` is a record type: name and description ("Investment Name", "Investment Description [from DealCloud]"), related to `SA Fund`. SD Draw relates to it. DealCloud is narrated, not integrated. | Data model in both files; Phase 1 now has six record types, the Draw → Investment → SA Fund relationships and an investment seed row |
+| 7 | Blue Granite continuity is narration only. The flow never reads or writes subscription records. | Business rules (a new constraint); Open questions (recorded as resolved) |
 
-## Plan gate
+## Files changed
 
-**PASS.** The stub marker is gone, and `## Build Phases` holds 53 checklist items under Phases 0–5. The next session's preflight will allow build work.
-
-## Key design decisions in the plan
-
-- **One unattended decision process.** `SD Apply Draw Approval Decision` implements the sequential routing: Approve advances, Reject terminates, final approval sets the draw Approved and notifies treasury. The UI step, the email step and the demo accelerator all call it. Because it has no attended nodes, every path can be tested with `testProcessModel`, including break-tests.
-- **The treasury notification is gated on the final-approval write's success,** not just placed after it.
-- **Phase 2 starts from the instance's own working Doc Center example** (`SD Process Packet (async)`).
-- **AI outputs pass a deterministic validation gate** before any alert or state change uses them: the failure diff, the reply intent, and the contingency narrative. Ambiguous replies never change state.
-- **Email capabilities are tried on the instance first,** and nothing is assumed: outbound delivery in Phase 3, inbound receipt in Phase 5.
-
-## Facts read from the instance (as the designer)
-
-- `SA Fund` id 4 = "Harborline Real Assets Fund II, L.P.", so the narrative's fund exists.
-- Blue Granite Pension Trust's subscriptions to fund 4 are all "Under Review" or earlier; none is Accepted.
-- There is no investment or property record type in `Starwood Demo`.
-
-## Rulings needed before the Phase 1 prompt
-
-These are in `TODO.md` → Client validation questions. The transcription itself was not altered.
-1. **"Accounting manager" in narrative beat 4** is not a canon role. Is it the Accounting Controller?
-2. **"Executive (CEO)":** confirm the live email approver is the CEO, order 9, and that Executive, order 5, is data only.
-3. **Fund Accountant and the chain's "Accountant":** are they the same person, with the approval step data only?
-4. **QIU metric count:** "nine" is stated, but the email sample reads as ten rows. Re-count at high resolution.
-5. **Approval step count:** "9-role chain" is stated, but the new sample appears to run to order 10. Re-count at high resolution.
-6. **Investment and property:** header fields on SD Draw, or a new SD Investment entity? The new email shows Investment Name and Description "from DealCloud".
-7. **Blue Granite continuity:** its capital "entered" the fund, but no subscription is Accepted.
+- `PROJECT_INSTRUCTIONS.md`: the narrative, personas, data model, vocabulary canon, business rules and open questions, per the table above. The header facts are unchanged.
+- `BUILD_PLAN.md`:
+  - the Phase 0 discrepancy item is ✅ 2026-09-21;
+  - the personas table, the data-model table and the Phase 1 objects, seed and pass conditions follow the rulings;
+  - Phase 3's Approval Status now uses contiguous orders;
+  - the plan gate still passes, with 55 items.
+- `TODO.md`: "Phase 0 discrepancies" moved to Done.
+- `BUILD_LOG.md`: a ruling entry.
 
 ## Verified
 
-- The verbatim transcription, by diff.
-- The plan gate, by a structural check.
-- The two record reads, with scope stated.
+- Each edit was asserted to match its target exactly once.
+- A grep finds no remaining "Executive (CEO)" and no "nine metrics". "Accounting manager" survives only in the canon rule that maps it.
+- The plan-gate check passes.
 
 ## Not verified
 
-- The fine print of the spec PDFs, where questions 4 and 5 depend on a high-resolution re-read.
+Nothing on the instance was touched this session.
+
+## Next
+
+Phase 1 is the next session's scope: six record types, the seed, the decision process, the accelerator, the treasury notification and the base views.
+
+**Still to settle before Phase 1 views and persona checks:**
+- whether draw views join the intake site or a dedicated one;
+- the mockup for the draw summary view;
+- the persona accounts.
 
 ## Promotion candidates
 
@@ -62,15 +52,12 @@ These are in `TODO.md` → Client validation questions. The transcription itself
 
 ## TODO changes
 
-- **Closed and moved to Done:** Blocking "Phase 0 plan for draw approval" (✅ 2026-09-21).
-- **Added:** Client validation "Phase 0 discrepancies" (7 items; Scott; trigger: before the Phase 1 prompt).
-- **Sharpened:** "Persona accounts and sail logins", which now names the Fund Accountant and Asset Manager accounts and the steps.
+- **Closed and moved to Done:** "Phase 0 discrepancies" (all seven ruled, ✅ 2026-09-21).
 - **Still open:**
-  - Before demo: the spec artifacts not on GitHub, and the persona accounts.
+  - Before demo: the spec artifacts not on GitHub, and the persona accounts with sail logins.
   - Deferred: the supplemental §3 correction, `errorAlertGroupUuid` persistence, the remaining-object inventory, and the identity probe.
 
 ## BUILD_PLAN.md changes
 
-- Authored from the stub.
-- Phase 0: five items ✅ 2026-09-21 and one open (discrepancies ruled).
-- Phases 1–5: all open. Phase 1 is the next session's scope.
+- The Phase 0 discrepancy item is ✅ 2026-09-21. All Phase 0 items are now complete.
+- Phase 1's object list now includes `SD Investment`, making six record types. The relationships, seed and pass conditions are updated.

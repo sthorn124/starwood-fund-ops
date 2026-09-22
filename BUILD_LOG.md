@@ -2,7 +2,7 @@
 
 What has actually been built in the environment, with object identifiers and the decisions behind them. Append after every build step; never rewrite a closed entry — a correction is a new entry that names what it corrects. Entry shape: date and title; scope line (the identity and group memberships every readback ran under); what changed, by object; decisions and why; verified (how, with counts and scope); not verified (and the browser checklist that covers it); promotion checkpoint. The contract is `CLAUDE.md` §7; the promotion loop is §9.
 
-**Promotion checkpoint: current through 2026-09-21 — Phase 0 transcription and build plan — level with the log tail.** A session touching promotion refuses to call itself complete if this checkpoint lags the log tail by more than one session.
+**Promotion checkpoint: current through 2026-09-21 — Phase 0 discrepancy rulings applied — level with the log tail.** A session touching promotion refuses to call itself complete if this checkpoint lags the log tail by more than one session.
 
 ## Promotion candidates (staging)
 
@@ -270,3 +270,52 @@ Promotion checkpoint: current through 2026-09-21 — Dev MCP update, Phase 2 (re
 **Promotion.** 0 candidates found.
 
 Promotion checkpoint: current through 2026-09-21 — Phase 0 transcription and build plan.
+
+### 2026-09-21 — Phase 0 discrepancy rulings applied
+
+**Scope.** Docs only: no build work, no instance reads or writes, and no MCP or sail calls.
+
+**This corrects the Phase 0 transcription entry.** The operator ruled all seven discrepancies raised there. The text of `PROJECT_INSTRUCTIONS.md` changes for the first time since the verbatim transcription.
+
+**`PROJECT_INSTRUCTIONS.md`:**
+- **Narrative.**
+  - Beat 4: orders 1–2 (Accountant, Accounting Controller) are pre-completed as Approved, and the chain sits at the Asset Manager, order 3.
+  - Beat 6 names the CEO (order 9).
+  - The chain is described as 9 steps with contiguous orders 1–9.
+- **Personas.**
+  - The Fund Accountant is the chain's Accountant (order 1), and that step is data only.
+  - "Executive (CEO)" becomes "CEO (order 9)", with the Executive (order 5) noted as a separate, data-only role.
+- **Data model.**
+  - SD Investment added: name and description, related to SA Fund; DealCloud narrated, not integrated.
+  - SD Draw now relates to SD Investment.
+  - SD QIU Metric says "ten metrics", and they are listed explicitly in order.
+- **Vocabulary canon.**
+  - Added the Accounting Controller mapping for "accounting manager"; the term is not used in object names or UI text.
+  - Added the contiguous orders 1–9 by role. The sample's gap is not reproduced.
+- **Business rules.** Added the constraint that the flow does not touch subscription intake data. SA Fund is the one intake object it relates to, through SD Investment.
+- **Open questions.** The Blue Granite continuity question is recorded as resolved: narration only.
+
+**`BUILD_PLAN.md`:**
+- The Phase 0 discrepancy item is ✅ 2026-09-21.
+- Personas and the data-model table follow the rulings: SD Investment added, the CEO at order 9, 9 approval rows, 10 QIU rows.
+- **Phase 1:**
+  - six record types, SD Investment first;
+  - relationships Draw → Investment → SA Fund;
+  - an SD Investment seed row;
+  - the seeded chain with orders 1–2 Approved, 3 In Progress, 4–9 Pending;
+  - seed pass conditions of 1 investment, 1 draw, 10 QIU rows, and 9 approvals with no gap.
+- **Phase 3:** the email's Approval Status uses contiguous orders.
+- The plan gate still passes, with 55 checklist items.
+
+**`TODO.md`:** "Phase 0 discrepancies" closed and moved to Done with the seven rulings.
+
+**Verified.**
+- Each replacement was asserted to match its target exactly once.
+- A grep finds no remaining "Executive (CEO)", no "nine metrics", and "accounting manager" only in the canon rule that maps it.
+- The plan-gate check passes.
+
+**Not verified.** Nothing on the instance was touched.
+
+**Promotion.** 0 candidates.
+
+Promotion checkpoint: current through 2026-09-21 — Phase 0 discrepancy rulings applied.
