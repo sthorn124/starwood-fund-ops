@@ -97,7 +97,12 @@ Connectors configured in the **Claude desktop app** (claude.ai connectors and pl
 
 ## 5. Skills and packs
 
-- **Vendor pack.** The Appian Dev MCP plugin skill lives at user level (`~/.claude/skills/appian/skills/appian/`); its `references/` directory carries the layout, component, and object references that the supplemental names for grounding. Load the applicable references before object work.
+- **Vendor pack.** Appian's base skill for the Dev MCP, the `skills/appian` folder of `https://github.com/appian/dev-mcp-skills`.
+  - **Where it lives.** It is installed at user level as `~/.claude/skills/appian/`, with `SKILL.md` at the top of that folder, so Claude Code loads it as a skill named `appian` alongside the supplemental. Its `references/` directory carries the layout, component, and object references that the supplemental names for grounding. Load the applicable references before object work.
+  - **Installed version.** On the verified machine, from commit `6e87fb6` (2026-09-23).
+  - **How to install or update it.** Clone the repo to a temporary folder and copy its `skills/appian` folder into place, as Appian's README does. The first-launch setup prompt (`GETTING_STARTED.md` §1, step f) does this.
+  - **How to check for an update.** Diff a fresh clone's `skills/appian` against the installed folder.
+  - **The older layout never loaded.** An older install cloned the whole repo into `~/.claude/skills/appian/`. That left `SKILL.md` two folders down, so Claude Code never registered the skill, and sessions reached its references only by path.
 - **appian-supplemental.** Installed at `~/.claude/skills/appian-supplemental/SKILL.md` from this repo's `skills/appian-supplemental/`. It corrects the pack where the pack is measured wrong and carries the portable method. Grow it only through the promotion gate in `CLAUDE.md` §9.
 - **Frontend design guidance.** The frontend-design plugin skill is loaded before any interface layout or styling edit, per the supplemental's UI grounding section.
 - **Project skill.** A `.claude/skills/<prefix>-standards/SKILL.md` inside the build folder carries only what is specific to that build (palette, naming prefix, layout applications). Environment-general facts discovered while building it are written to the supplemental as candidates, never to the project skill.
