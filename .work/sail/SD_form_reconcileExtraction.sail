@@ -15,7 +15,13 @@
    replaced silently; a collision is resolved here, at reconciliation. When the extracted number already exists for the
    extracted investment, the field is prefilled with the next available number for that investment and an amber chip
    says so ("Submitted as #<extracted>, already on file — renumbered to next in sequence"); the accountant can override,
-   and whatever is confirmed commits. When the extracted number is genuinely next in sequence the chip is green. */
+   and whatever is confirmed commits. When the extracted number is genuinely next in sequence the chip is green.
+   Corroboration (Phase 5.5, 2026-09-25): beneath the budget lines, every supporting document that came with the package
+   (rule!SD_getSupportingDocuments, re-read every 30 s and on Refresh while any is still being read) is tied out against
+   the lines on this form as edited (rule!SD_corroborateDocuments, no model): pay application against the Hard Costs
+   current draw, invoice against the budget line with the same current draw, lien waiver and backup listed as received,
+   and an amber line when a pay application came without a lien waiver. The chips inform the accountant; nothing here
+   blocks Confirm. A package with no supporting documents shows one neutral line. */
 a!localVariables(
   local!headerIn: if(a!isNullOrEmpty(ri!headerJson), {}, a!fromJson(ri!headerJson)),
   local!hmap: if(
@@ -132,6 +138,19 @@ a!localVariables(
   local!green: a!map(bg: "#E6F4EC", fg: "#1E7E46"),
   local!amber: a!map(bg: "#FDF3E0", fg: "#92600A"),
   local!red: a!map(bg: "#FDECEC", fg: "#B42318"),
+  /* Corroboration: the supporting documents as the reading process has left them, tied out against the live lines. */
+  local!docsRefresh: 0,
+  local!supportingDocs: a!refreshVariable(
+    value: rule!SD_getSupportingDocuments(drawId: ri!drawId),
+    refreshInterval: 0.5,
+    refreshOnVarChange: local!docsRefresh
+  ),
+  local!corroboration: rule!SD_corroborateDocuments(
+    documents: local!supportingDocs,
+    lineCategories: if(a!isNullOrEmpty(local!lines), {}, a!forEach(items: local!lines, expression: tostring(a!defaultValue(fv!item.budgetCategory, "")))),
+    lineCurrentDraws: if(a!isNullOrEmpty(local!lines), {}, a!forEach(items: local!lines, expression: todecimal(a!defaultValue(fv!item.currentDraw, 0))))
+  ),
+  local!supportingCount: a!defaultValue(index(local!corroboration, "count", 0), 0),
   a!formLayout(
     titleBar: a!headerTemplateFull(
       title: "Reconcile extracted draw" & if(a!isNullOrEmpty(local!extractedDrawNumber), "", " #" & local!extractedDrawNumber),
@@ -322,6 +341,121 @@ a!localVariables(
                   )
                 },
                 marginBelow: "STANDARD"
+              ),
+              /* Supporting documents, tied out against the lines above. */
+              a!richTextDisplayField(
+                labelPosition: "COLLAPSED",
+                value: {
+                  a!richTextItem(text: "SUPPORTING DOCUMENTS · CORROBORATION", color: "#6B7280", size: "SMALL", style: "STRONG"),
+                  a!richTextItem(
+                    text: if(
+                      local!supportingCount = 0,
+                      "  none with this package",
+                      "  " & local!supportingCount & " with the package · figures read by AI, tied out against the lines above"
+                    ),
+                    color: "#6B7280",
+                    size: "SMALL"
+                  ),
+                  if(
+                    a!defaultValue(index(local!corroboration, "pendingCount", 0), 0) > 0,
+                    {
+                      a!richTextItem(text: "  ·  ", color: "#6B7280", size: "SMALL"),
+                      a!richTextItem(
+                        text: "Refresh",
+                        link: a!dynamicLink(saveInto: a!save(local!docsRefresh, local!docsRefresh + 1)),
+                        size: "SMALL"
+                      )
+                    },
+                    {}
+                  )
+                },
+                marginAbove: "MORE",
+                marginBelow: "LESS"
+              ),
+              if(
+                local!supportingCount = 0,
+                a!richTextDisplayField(
+                  labelPosition: "COLLAPSED",
+                  value: a!richTextItem(
+                    text: "No supporting documents came with this package; the template is reconciled on its own.",
+                    color: "#6B7280",
+                    size: "SMALL"
+                  ),
+                  marginBelow: "STANDARD"
+                ),
+                {
+                  a!gridField(
+                    labelPosition: "COLLAPSED",
+                    data: index(local!corroboration, "items", {}),
+                    columns: {
+                      a!gridColumn(
+                        label: "Document",
+                        value: a!richTextDisplayField(
+                          value: {
+                            if(
+                              a!isNullOrEmpty(fv!row.document),
+                              a!richTextItem(text: fv!row.name, style: "STRONG"),
+                              a!richTextItem(text: fv!row.name, link: a!documentDownloadLink(document: fv!row.document), linkStyle: "STANDALONE", style: "STRONG")
+                            ),
+                            char(10),
+                            a!richTextItem(
+                              text: joinarray(reject(fn!isnull, { if(fv!row.party = "", null, fv!row.party), if(fv!row.reference = "", null, fv!row.reference) }), " · "),
+                              color: "#6B7280",
+                              size: "SMALL"
+                            )
+                          }
+                        ),
+                        width: "3X"
+                      ),
+                      a!gridColumn(label: "Type", value: fv!row.type, width: "1X"),
+                      a!gridColumn(
+                        label: "Document figure",
+                        value: a!richTextDisplayField(
+                          value: {
+                            a!richTextItem(text: if(a!isNullOrEmpty(fv!row.figure), "—", rule!SD_fmtMoney(value: fv!row.figure, showCents: true)), style: "STRONG"),
+                            char(10),
+                            a!richTextItem(text: fv!row.figureLabel, color: "#6B7280", size: "SMALL")
+                          }
+                        ),
+                        align: "END",
+                        width: "2X"
+                      ),
+                      a!gridColumn(
+                        label: "Template figure",
+                        value: a!richTextDisplayField(
+                          value: {
+                            a!richTextItem(text: if(a!isNullOrEmpty(fv!row.templateFigure), "—", rule!SD_fmtMoney(value: fv!row.templateFigure, showCents: true)), style: "STRONG"),
+                            char(10),
+                            a!richTextItem(text: fv!row.templateLabel, color: "#6B7280", size: "SMALL")
+                          }
+                        ),
+                        align: "END",
+                        width: "2X"
+                      ),
+                      a!gridColumn(
+                        label: "Tie-out",
+                        value: a!tagField(
+                          labelPosition: "COLLAPSED",
+                          tags: a!tagItem(text: fv!row.chip, backgroundColor: fv!row.chipBg, textColor: fv!row.chipFg),
+                          size: "SMALL"
+                        ),
+                        width: "3X"
+                      )
+                    },
+                    pageSize: 20,
+                    spacing: "DENSE",
+                    borderStyle: "LIGHT",
+                    shadeAlternateRows: false,
+                    emptyGridMessage: "No supporting documents"
+                  ),
+                  a!tagField(
+                    labelPosition: "COLLAPSED",
+                    tags: a!tagItem(text: "No lien waiver received with the pay application", backgroundColor: local!amber.bg, textColor: local!amber.fg),
+                    size: "SMALL",
+                    showWhen: a!defaultValue(index(local!corroboration, "waiverMissing", false), false),
+                    marginBelow: "STANDARD"
+                  )
+                }
               )
             },
             width: "AUTO",

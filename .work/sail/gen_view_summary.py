@@ -600,6 +600,58 @@ a!localVariables(
         }},
         stackWhen: {{"PHONE", "TABLET_PORTRAIT"}},
         marginBelow: "NONE"
+      ),
+      /* Backup line (Phase 5.5): the supporting documents' corroboration, written on the draw at reconciliation
+         (corroborationSummary / corroborationState). Draws assembled before Phase 5.5 carry neither and show nothing. */
+      a!richTextDisplayField(
+        labelPosition: "COLLAPSED",
+        value: a!richTextItem(text: "SUPPORTING DOCUMENTS", color: "#6B7280", size: "SMALL"),
+        marginAbove: "STANDARD",
+        marginBelow: "EVEN_LESS",
+        showWhen: not(a!isNullOrEmpty(index(local!d, "corroborationSummary", null)))
+      ),
+      a!sideBySideLayout(
+        items: {{
+          a!sideBySideItem(
+            item: a!tagField(
+              labelPosition: "COLLAPSED",
+              tags: a!tagItem(
+                text: a!match(
+                  value: a!defaultValue(index(local!d, "corroborationState", null), "NONE"),
+                  equals: "TIES", then: "Package ties",
+                  equals: "ATTENTION", then: "Needs attention",
+                  default: "None received"
+                ),
+                backgroundColor: a!match(
+                  value: a!defaultValue(index(local!d, "corroborationState", null), "NONE"),
+                  equals: "TIES", then: "#E6F4EC",
+                  equals: "ATTENTION", then: "#FDF3E0",
+                  default: "#EEF1F5"
+                ),
+                textColor: a!match(
+                  value: a!defaultValue(index(local!d, "corroborationState", null), "NONE"),
+                  equals: "TIES", then: "#1E7E46",
+                  equals: "ATTENTION", then: "#92600A",
+                  default: "#64748B"
+                )
+              ),
+              size: "SMALL"
+            ),
+            width: "MINIMIZE"
+          ),
+          a!sideBySideItem(
+            item: a!richTextDisplayField(
+              labelPosition: "COLLAPSED",
+              value: a!richTextItem(text: a!defaultValue(index(local!d, "corroborationSummary", null), ""), color: "#6B7280", size: "SMALL"),
+              marginBelow: "NONE"
+            ),
+            width: "AUTO"
+          )
+        }},
+        alignVertical: "MIDDLE",
+        spacing: "DENSE",
+        marginBelow: "NONE",
+        showWhen: not(a!isNullOrEmpty(index(local!d, "corroborationSummary", null)))
       )
     {card_close},
     /* Draw Funding Detail */

@@ -3,7 +3,7 @@ d = lambda n: fld(DRAW, n)
 fields = ["id","drawNumber","amount","cashEquityNeeded","fundingDate","drawType","purpose","budgetStatus",
           "overBudgetReason","generalComments","contingencyExplanation","status","currentStep","activeStepProcessId",
           "createdAt","updatedAt","treasuryNotifiedAt","receivedDate","submittedBy","investmentId","extractionInstanceId","ingestionProcessId",
-          "ingestionFailureReason","ingestionComparison"]
+          "ingestionFailureReason","ingestionComparison","corroborationSummary","corroborationState"]
 sel = ",\n          ".join(d(n) for n in fields)
 sel += ",\n          " + rel_fld(DRAW,"investment",INV,"investmentName")
 sel += ",\n          " + rel_fld(DRAW,"investment",INV,"investmentDescription")

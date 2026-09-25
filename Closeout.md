@@ -1,173 +1,204 @@
-# Closeout — 2026-09-25 — Phase 5: ingestion failure path with AI template comparison
+# Closeout — 2026-09-25 — Phase 5.5: multi-document corroboration at intake
 
 ## Scope and identity
 
-- **Designer:** Dev MCP `appian` as `scott.thorn@appian.com` (`SD Administrators`, `SD Users`, the three step groups). Every design change, rule test, process test and record readback ran under it, so all of them have full scope.
-- **Personas:** sail with `~/.sail-sd.accountant` for both uploads and all persona reads; `~/.sail-sd.assetmanager` for the second persona's reads. `appian-runtime` and `--from-devmcp` were not used.
-- **Draw 66 untouched:** step 3, Elena's task 536876873 open, `updatedAt` still 2026-09-22.
-- **Preflight:** design surface present (157 tools; `listRecordTypes` returned 20 types). Dev MCP 26.6.95 and sail 26.6.95 match their pins. The skill copies are identical. `sd.accountant` and `sd.assetmanager` are live.
-  - **Flag:** the App Market has Dev MCP **26.6.100**. The site admin updates the plugin first; the bundle is at `https://ny.appiancloud.com/suite/plugins/servlet/stateless/downloads` (direct: `…/lcp-mcp-bundle`). Logged; tracked in TODO Deferred.
+- **Design work:** the Dev MCP `appian` as `scott.thorn@appian.com`. This account is full scope: a member of `SD Administrators`, `SD Users` and the three step groups. Every `testRule`, `testInterface`, `listRecordData`, `completeTask` and `testProcessModel` call below ran as this account.
+- **Persona reads:** sail as `sd.accountant` (`~/.sail-sd.accountant`) and `sd.assetmanager` (`~/.sail-sd.assetmanager`). Both sessions were live. The default `~/.sail` holds no session.
+- **Not used:** `appian-runtime` and `--from-devmcp`.
+- **Draw 66:** untouched. Elena's task 536876873 and step process 536909994 are still open.
+- **Preflight:** earlier this session. Dev MCP 26.6.95 (26.6.100 is on the App Market, flagged), sail 26.6.95, skill copies identical.
+
+**Framing, recorded in `BUILD_PLAN.md` from the client meeting.** Corroboration catches bad submissions before the approval chain starts, and it evidences the package on the draw record. Its value is verification: fewer error loops, fewer approver interruptions, lien exposure surfaced, audit evidence. It is deliberately not extraction-labour savings.
 
 ## 0. Bookkeeping
 
-- The Phase 4 Gmail check is marked done (no clipping; tables render correctly).
-- **Ruling recorded** (`PROJECT_INSTRUCTIONS.md`, `BUILD_PLAN.md` Phase 4, `TODO.md` Done): Gmail routing stays exactly as wired. scott.thorn@appian.com receives every step email and plays the CEO; no persona addresses, no overrides. This closes Phase 4, now marked COMPLETE.
-- **`BUILD_PLAN.md`, documentation only:**
-  - Phase 5.5: multi-document corroboration at intake. The template plus supporting documents such as a contractor pay application; key figures tied out at reconciliation, with a mismatch shown as an amber chip; it catches bad submissions before the chain starts.
-  - Phase 6 additions:
-    - email thread continuity, with the exchange mirrored onto the draw;
-    - low-confidence reply interpretation goes to a super-user exception queue and never changes state;
-    - a dollar-threshold guardrail: draws above it must be approved in the UI.
+- **TODO:** the Phase 5 browser checks moved to Done. You verified the alert in Gmail and the failed-draw card in the UI as the persona.
+- **BUILD_PLAN, documentation only:**
+  - The final demo's intake arrives through a simulated feed (email-in or a watched drop location), narrated as the EY API/SFTP feed.
+  - Receive Capital Call is build-time tooling.
+  - Feed-arrival simulation is a Phase 6 staging item. Intake stays "a set of documents in, one draw out".
 
-## 1. Failure detection
+## 1. The demo package (`scripts/gen_draw_package.py`, committed)
 
-`SD Receive Capital Call` gains nodes 31–41. After extraction, node 31 runs `SD_validateIngestedTemplate`. The no-extraction branch goes there too.
+The generator reads `THSV_Draw67_Budget_Template.xlsx` itself, so every tie is exact. It writes four one-page PDFs in pure Python, because this machine has no PDF library.
 
-A template fails when any of these hold:
-- Doc Center returned no instance.
-- The budget table isn't found.
-- A standard column or category row is missing. This is read **from the workbook itself** with Excel Tools `readexcelsheet`, because Doc Center's model quietly mapped "Draw Funding This Period" onto Current Draw.
-- Investment Name, Draw Number, Funding Date or Draw Amount came back blank.
+**Keep these four files.** They sit at the repo root and are gitignored:
 
-A pass goes to the reconciliation task, unchanged. A failure creates no task:
-- **Node 37** writes the draw **Ingestion Failed** with `ingestionFailureReason` and `ingestionComparison` (new TEXT 4000 fields; 4,000 characters measured through Write Records, 4,001 fails loudly) and the investment matched by name. It never writes the draw number, so the collision rule is untouched.
-- **Node 41** marks the template row Ingestion Failed with a notes line.
+| File | Bytes | md5 | What it carries |
+|---|---|---|---|
+| `THSV_Draw67_PayApp_G702.pdf` | 7,637 | efc383e6… | G702-style application from **Stonebridge Construction Group** (GC) to THSV Holdings LLC c/o Vail Peak Management LLC. Application No. 14, period 10/01–10/31/2026. **Current Payment Due $2,490,296.23**, which is the template's Hard Costs current draw. |
+| `THSV_Draw67_PayApp_G702_mismatch.pdf` | 7,637 | 4bcaa3da… | Identical except **Current Payment Due $2,527,796.23** (+$37,500.00). |
+| `THSV_Draw67_Invoice_AlderFinch.pdf` | 3,865 | 7637859c… | Invoice AF-2026-1087 from Alder & Finch Architects, LLP, dated 10/31/2026. Total **$59,582.00**, which is the **A&E - Architectural** current draw; the generator names that line. |
+| `THSV_Draw67_LienWaiver_Conditional.pdf` | 4,285 | 6415b9f9… | Conditional waiver and release on progress payment from Stonebridge, through 10/31/2026. It is there to be present; no figure is read from it. |
 
-## 2. The AI comparison
+Regenerate the files with `python3 scripts/gen_draw_package.py`.
 
-**The call:** one **Execute Generative AI Skill** call (node 35).
-- DocCenter's Text Input skill with a Runtime Prompt; model **Claude Sonnet 4.6** (`cons!SD_TEMPLATE_COMPARISON_MODEL`).
-- Input: both workbooks' labels only (header fields, column headings, category rows; no amounts).
-- Baseline: the last successfully ingested template for the same investment (`SD_getLastGoodTemplate`; today, draw 80's #72). The standard template is the fallback.
+**One interpretation:** "Hard Costs current draw subtotal" is taken as the **Hard Costs line** ($2,490,296.23), the GC's contract line. The Hard group roll-up ($2,491,584.23) adds FF&E, which a GC pay application does not carry.
 
-**The gate:** `SD_checkTemplateComparison` decides whether the answer is used.
-- Every CHANGE line must be a difference the rules found.
-- A rename must sit in the same position once the other changes are set aside.
-- Nothing may be missed or doubled.
-- The overview must summarise without counting, quoting or restating changes.
-- If only the overview fails, the checked lines are kept under standard summary wording. If the lines fail, the text is listed by rules.
-- The footer always says which kind of text it is.
-- The gauntlet (`.work/sail/gauntlet_SD_checkTemplateComparison.sail`) proves every check with a specimen that must fail: 2 pass, 13 fail as expected, and 1 composes the no-difference text.
+## 2. Intake accepts a package
 
-**Accuracy test:** met on both live runs, and on 7 of 7 probe calls for the change lines. The stored text for draw 83:
+**Receive Capital Call** (`SD_page_receiveCapitalCall` v8) takes:
+- the template: one xlsx, required;
+- supporting documents: **upload slots**, one PDF each. A new empty slot opens after each upload, up to 10.
 
-> The budget table columns and budget category rows in the new file are laid out differently from the last template that loaded, so figures cannot be matched to the right columns and budget lines of the draw. The sender should restore the standard column headings and budget category rows and resend the file.
-> • The “Current Draw” column is now headed “Draw Funding This Period”.
-> • The “Total PTD inc. This Draw (%)” column is missing.
-> • The “Insurance” budget line is missing.
-> • The “Start-up/Marketing” budget line is missing.
-> Compared with THSV_Draw67_Budget_Template.xlsx (Draw #72, received 09/22/2026) by AI (Claude Sonnet 4.6); every change listed was checked against both workbooks.
+One Receive commits every upload and passes `supportingDocuments` to the pipeline. The confirmation reads "N supporting documents are being classified and read…" or "No supporting documents came with this package."
 
-It names all three seeded differences and nothing else.
+**Why slots, not one multi-file field (measured, the session's main finding).** The first live run used a single multi-file field.
+- After three uploads through sail, only the last PDF existed; the first two were "Document Does Not Exist".
+- An upload that replaces a field's value discards the temporary file it replaced, and sail's upload sends only the new file.
+- The pipeline was handed two dead documents. It still ran the template path to a reconciliation task on time, because reading is asynchronous and never blocks. The reading child wrote nothing.
+- One file per field keeps every upload in its own field. That run's draw 85 was deleted.
 
-**Tokens and latency:**
-- **4.9 s and 4 AI actions** for the live call (4.7–6.4 s in the probes).
-- Prompt 2,868 plus input 1,969 characters, about 1.2k input tokens; about 700 characters out, about 180 tokens. The token counts are estimates, because the node reports AI actions, not tokens.
-- End to end, submit to failure recorded: **92 s**, almost all Doc Center extraction.
+**Pipeline `SD Receive Capital Call`** (48 PVs; nodes 42–45 added, validator clean):
+- Node 42 sends any supporting documents to the new **`SD Read Supporting Documents`** child, **asynchronously**.
+- The template path (extraction, validation, failure branch) is unchanged. A package with no documents takes node 42's default path, exactly as before.
+- The child registers each PDF as an `SD Draw Document` row (Received).
+- It makes **one AI call per PDF** (DocCenter's Doc Input skill 267, Claude Sonnet 4.6). The call classifies the document as Pay Application, Invoice, Lien Waiver or Backup and reads party, reference and one figure.
+- It gates the answer with a deterministic parser. Unknown or failed → Backup, "Not read".
+- It then rewrites the row: type, status Read, amount, party, reference, and a notes line with the AI time and actions.
 
-**Prompt tuning, measured:** the first two probe overviews miscounted or double-described (one said a second column had been renamed). The prompt and the gate were tightened. Afterwards the probes' overviews passed 3 of 5 and fell back to standard wording 2 of 5; both live runs' overviews passed.
+**AI time and actions, measured on the live runs:**
 
-## 3. The alert email
+| Document | Time | AI actions |
+|---|---|---|
+| Pay application | 7.9 s | 3 |
+| Mismatch pay application | 6.8 s | 3 |
+| Pay application (failure run) | 6.4 s | 3 |
+| Invoice | 6.1 s | 2 |
+| Lien waiver | 6.7 s | 2 |
+| Lien waiver (failure run) | 5.3 s | 2 |
 
-`SD_buildIngestionFailureEmail` produces the alert in the Phase 4 visual language: navy bands, inline styles, no images, links or classes, 8.7 KB.
-- Subject: "Draw template could not be loaded: Tamarack Hotel & Spa Vail · Draw #67 (as submitted) · THSV_Draw67_Budget_Template_v2.xlsx".
-- Body sections:
-  - WHAT WENT WRONG: the reason, in a pink panel;
-  - WHAT CHANGED SINCE THE LAST TEMPLATE THAT LOADED: the comparison and its footer;
-  - THE FILE: the file name, received time, investment, draw number and sender;
-  - WHAT HAPPENS NEXT: correct and resubmit through Receive Capital Call; the draw stays on the list as Ingestion Failed.
-- Node 40 sends it from the failure branch to `SD Draw Demo Approvers` and `SD Draw Asset Managers`.
-- The rendered copy is at [.work/email/draw83_ingestion_failure.html](.work/email/draw83_ingestion_failure.html).
+A three-document package was fully read before the reconciliation task arrived, about 80 s after submit.
 
-## 4. The record
+**Documents tab:** it lists every row with its type, a status chip (Read is green, Not read is amber) and the AI notes line.
 
-- **Summary** of a failed draw:
-  - a red state card in the action strip's slot: why, what changed (bulleted), what happens next, with a link to Receive Capital Call;
-  - the fact strip and Draw Origin; the sections describing a loaded draw are hidden;
-  - no action and no YOUR ACTION.
-- **Draws list:** the row reads "Not loaded · Template could not be loaded · received Sep 25 · resubmit via Receive Capital Call" with a red **Ingestion Failed** tag, and the status filter gains Ingestion Failed. The fact strip's breadcrumb reads "Received template (not loaded)".
+## 3. Corroboration at reconciliation
 
-## 5. Live verification
+The reconciliation form (`SD_form_reconcileExtraction` v4) gains **SUPPORTING DOCUMENTS · CORROBORATION** under the budget grid. It is a read-only grid with the columns Document (party · reference beneath), Type, Document figure, Template figure and Tie-out. It is computed by rules over the lines **as the accountant edits them**; no model is involved.
 
-**Run 1** (as `sd.accountant`, draw 82):
-- The branch fired and wrote the draw correctly, but the template row was never marked, so node 41 did not run.
-- **Isolation:** node 39's rule and node 41's expression both evaluated cleanly. A control copy of node 40 run as the designer **completed**.
-- The difference was identity: node 40 ran as the persona, who isn't in `SD Draw Asset Managers`. **Fix:** node 40 now runs as the designer.
-- The control showed `count(ac!ToValidAddresses)` is 0 for group recipients, so the notes no longer report a count.
-- Draw 82 (incomplete) and its row were deleted by explicit id, absence confirmed. Process 38992 is left for cancellation (TODO).
-- The control sent one "[build test]" alert at ~16:40 UTC.
+**Tie-out rules:**
+- **Pay Application:** Current Payment Due against the Hard Costs current draw.
+- **Invoice:** the total against the budget line with exactly that current draw. If no line matches: "Does not tie: $X · no matching budget line".
+- **Lien Waiver:** green "Lien waiver received".
+- **Backup:** grey "Received".
 
-**Run 2** (as `sd.accountant`, draw 83):
-- Ingestion Failed at 16:43:31.
-- Template row 6617 reads "Template check failed … Comparison: AI (Claude Sonnet 4.6); AI call 0::00:00:04.896, 4 AI actions; alert email sent to the accountant and asset manager groups". That downstream write proves the send node completed.
-- **Break-test** (as the designer): 0 lines, 0 approvals and 0 QIU; no open task.
-- **Persona reads**, identical for `sd.accountant` and `sd.assetmanager`: the list row and the Summary as described above, with no action. `sd.assetmanager`'s Awaiting My Action is still "1 · Draw #66".
+**Chips and lines:**
+- Green **Ties**, or amber **Does not tie: <doc figure> vs <template figure>**.
+- A pay application without a lien waiver adds the amber line **No lien waiver received with the pay application**.
+- No documents at all → the neutral line "No supporting documents came with this package; the template is reconciled on its own."
+- While a document is still being read, a Refresh link shows, and the section re-reads every 30 s.
+- **Nothing blocks Confirm.**
 
-**Regression** (clean template as `sd.accountant`, draw 84): the reconciliation task (536885220) was open 94 s after submit, with no failure texts and the template row untouched.
+**After Confirm**, pipeline nodes 44/45 recompute over the committed lines and write two fields on the draw:
+- `corroborationSummary`, for example "3 supporting documents · pay application ties · invoice ties · lien waiver received";
+- `corroborationState`: TIES, ATTENTION or NONE.
+
+The **Summary's Draw Origin card** ends with a **SUPPORTING DOCUMENTS** line: a Package ties / Needs attention / None received chip and the summary. It shows only on draws that carry a summary, so draw 66 and the other seeded draws look exactly as before.
+
+## 4. Live verification (sail as `sd.accountant`; readbacks as the designer)
+
+| Run | Draw | What was verified |
+|---|---|---|
+| **Clean package** (template + pay application + invoice + lien waiver) | 86 → **#73** | Form: two green **Ties** (Pay App $2,490,296.23 vs Hard Costs · current draw $2,490,296.23; Invoice $59,582.00 vs A&E - Architectural · current draw $59,582.00) and green **Lien waiver received**. Confirmed. Draw: TIES, "3 supporting documents · pay application ties · invoice ties · lien waiver received". **As `sd.accountant`:** Draw Origin chip green **Package ties** with that line; Documents tab lists 4 rows with types (Budget Template / Pay Application / Invoice / Lien Waiver). |
+| **Mismatch** (template + mismatch pay application, no waiver) | 87 → **#74** | Form: amber **Does not tie: $2,527,796.23 vs $2,490,296.23** and the amber no-waiver line; Confirm enabled. Confirmed. Draw: ATTENTION. **As `sd.accountant`:** chip amber **Needs attention**, "1 supporting document · pay application does not tie ($2,527,796.23 vs $2,490,296.23) · no lien waiver with the pay application". |
+| **Template only** (regression) | 88 → **#75** | Page: "No supporting documents came with this package." Form: the neutral line; no grid, no amber; everything else as before (Ties ✓, collision renumbering). Confirmed. Draw: NONE, "No supporting documents received". **As `sd.accountant`:** grey **None received**. |
+| **Failure regression** (v2 template + pay application + lien waiver) | 89 | Both PDFs read, and the template still took the **Ingestion Failed** branch: the same reasons and comparison as Phase 5; no reconciliation task; the alert sent (row 6628 written after the send node). One more alert is in the inbox. |
+| **Draw 66** | 66 | Untouched (designer readback). `sd.assetmanager` still sees "Awaiting My Action 1 · Draw #66 · Asset Manager step". |
+
+**How the tasks were confirmed.** sail cannot open a task link, a known limit, reproduced here. Each reconciliation form was therefore:
+- rendered with `testInterface` as the designer, using the task's real inputs;
+- completed with `completeTask` as the designer, sending exactly what the form's Confirm button serialises (reproduced by a throwaway rule).
+
+The template rows therefore read "confirmed by Scott Thorn".
+
+**Cleanup.**
+- **Stale Ingesting shells.** Four rows all read "New draw", and sail refused the ambiguous link. Draws **81, 84, 85** were deleted by explicit id, children first, and their absence was confirmed.
+- **Throwaway rules.** `zz_probeCorroboration` and `zz_probeReports` were deleted; both return 404.
 
 ## Objects changed
 
-- **Record type `SD Draw`:** fields `ingestionFailureReason` (`3139df20-…`) and `ingestionComparison` (`74b593a2-…`).
-- **Constants:** `SD_DRAW_TEMPLATE_COLUMNS` (…_573159), `SD_DRAW_TEMPLATE_CATEGORIES` (…_573165), `SD_DRAW_TEMPLATE_HEADER_LABELS` (…_573171), `SD_TEMPLATE_COMPARISON_MODEL` (…_573177).
-- **New rules:** `SD_readTemplateStructure` (…_573199), `SD_listMinus` (…_573187), `SD_joinQuoted` (…_573193), `SD_diffTemplateStructure` (…_573223), `SD_validateIngestedTemplate` (…_573229), `SD_getLastGoodTemplate` (…_573246), `SD_buildTemplateComparisonRequest` (…_573273), `SD_checkTemplateComparison` (…_573286), `SD_curlQuotes` (…_573267), `SD_splitIngestionText` (…_573353), `SD_buildIngestionFailureEmail` (…_573363).
-- **Updated rule:** `SD_getDrawDetail` v7.
-- **Process `SD Receive Capital Call`:** 46 PVs; nodes 31–41; nodes 11 and 13 rewired. Validator: no errors.
-- **Interfaces:** `SD_view_drawSummary` v7, `SD_page_draws` v7, `SD_cmp_statusTag` v2, `SD_cmp_drawFactStrip` v3.
-- **Throwaways, all deleted with absence confirmed:** `zz_probeReadExcel`, `zz_probeWidth`, `zz_probeAiCompare`, `zz_probeAlertSend`.
-- **The width probe** wrote and then cleared the two new columns on draw 76, an ingested #71, not a shell as my notes said. Net zero; `updatedAt` unchanged.
+- **New process:** `SD Read Supporting Documents` (`0000f073-a7ee-8000-25b1-7f0000014e7a`).
+- **New rules:**
+  - `SD_supportingDocumentPrompt` (`…_573543`);
+  - `SD_parseSupportingDocReading` (`…_573549`);
+  - `SD_getSupportingDocuments` (`…_573555`);
+  - `SD_corroborateDocuments` (`…_573561`, v2);
+  - `SD_getDrawCorroboration` (`…_573567`).
+- **New constants:** `SD_DOCUMENT_READING_MODEL` (`…_573531`), `SD_PAY_APP_TIE_CATEGORY` (`…_573537`).
+- **New fields:**
+  - `SD Draw Document`: `extractedAmount`, `extractedParty`, `extractedReference`;
+  - `SD Draw`: `corroborationSummary`, `corroborationState`.
+- **Changed:**
+  - `SD Receive Capital Call`: 48 PVs, nodes 42–45, 8 → 42, 22 → 44;
+  - `SD_page_receiveCapitalCall` v8;
+  - `SD_form_reconcileExtraction` v4;
+  - `SD_getDrawDetail` v8;
+  - `SD_view_drawSummary` v8;
+  - `SD_cmp_statusTag` v3.
+- **Data:**
+  - new draws 86–89 and their rows;
+  - draws 81, 84, 85 and rows 6615, 6618, 6620 deleted.
 
 ## Not verified, and the browser checklist
 
-**Not verified:**
-- **Gmail rendering of the alert.** Checklist in `TODO.md` Browser checks, with the subject and time.
-- **Why the persona-run send stopped.** Inferred; there is no process-instance read.
-- **Live runs of three paths:** the standard-template baseline, the skipped-AI path and the rules-only fallback. Covered by rule tests and the gauntlet only (TODO Deferred).
-- **Geometry** of the red card and the list row (TODO).
+- **The accountant's own Confirm from the task:** sail cannot open task links. The Dev MCP designer completed it instead.
+- **Geometry,** all browser-only:
+  - the upload slots;
+  - the corroboration grid and its chips (fit, wrapping);
+  - the Draw Origin line;
+  - the Documents tab.
+- **PDF download as the persona.**
+- **Live paths not yet exercised:** "no matching budget line", a Backup document and a "Not read" reading. They are covered only by the gauntlet (C3/C6/C7) and the child's break-test.
 
-**Browser checklist (Scott):**
-1. Gmail: open "Draw template could not be loaded: Tamarack Hotel & Spa Vail · Draw #67 (as submitted) · …_v2.xlsx" (~16:43 UTC). Check the navy header and red chip, the pink WHAT WENT WRONG panel with two red bullets, four navy comparison bullets with a grey italic footer, THE FILE rows, WHAT HAPPENS NEXT, no clipping and curly quotes intact. Ignore the "[build test]" copy.
-2. As `sd.accountant`, open the Draws page: the "Not loaded" row shows a red Ingestion Failed tag. Open it: the red card sits under the fact strip, its bullets indent cleanly, the Receive Capital Call link opens the intake page, and only Draw Origin appears below.
+The full checklist is in `TODO.md` → Browser checks owed → "Phase 5.5 package intake, corroboration section and Documents tab, as the persona". In short:
+1. As `sd.accountant`, attach the template and the three PDFs, one per slot. Clear and re-attach a slot. Try a non-PDF. Receive.
+2. Reconcile Extraction. Expect two green Ties and "Lien waiver received". Edit Hard Costs to see the pay-app chip turn amber, restore it, then Confirm.
+3. Expect Draw Origin to show "Package ties", and the Documents tab to list 4 typed rows that download.
+4. Run the mismatch package. Expect amber "Does not tie: $2,527,796.23 vs $2,490,296.23", the amber no-waiver line, and "Needs attention".
 
 ## Rulings needed
 
-None blocking. For awareness: the comparison uses Claude Sonnet 4.6, not DocCenter's default Haiku 4.5. That is one call of about 5 s and 4 AI actions per failed template.
+None blocking. Two notes for you:
+- **Demo clutter:** `sd.accountant` now has 9 draws awaiting action. The package beat's reset is in `TODO.md` (Before demo).
+- **Stranded process instances** (draw 85's pipeline 39011 and its child; the deleted shells' pipelines for 81 and 84) are listed in `TODO.md`. Cancel them in Process Monitoring, and do not resume them.
 
 ## Promotion candidates
 
-8 found, all staged at gate 1 in `BUILD_LOG.md`, none promoted:
-- Send E-Mail run as a persona to a group that persona isn't in;
-- `ToValidAddresses` is 0 for group recipients;
-- `length()` / `count()` / `split()` with blank items;
-- `contains()` on an empty Any Type list, and eager `and()` / `or()`;
-- `a!fromJson` and `try()` at validation;
-- AI-skill inputs must be sent as `customInputs`, and `getAiSkill` errors;
-- the Excel Tools result wrapper;
-- a method note: summaries over itemised facts miscount.
+**3 found, staged at gate 1:**
+- A replaced upload discards its temporary file, and sail's upload sends only the new file.
+- An `a!forEach` whose items are all skipped yields `[[]]`, which `count()` counts and `len()` skips.
+- sail cannot address repeated link labels.
 
-One trigger fired: the Phase 4 "send completion unreadable" candidate was applied and re-staged. The checkpoint is current through this entry. The supplemental is unchanged.
+**2 triggers fired:**
+- The AI-skill `customInputs` form was confirmed on a second skill and extended: a document input must be sent typed `DOCUMENT`. It is proposed for promotion at the next template sync and was not promoted here.
+- "sail does not follow a task link" was reproduced.
+
+**Promoted:** none. The supplemental is unchanged, and the repo and user-level copies are identical.
 
 ## TODO changes
 
-- **Done:** the Phase 4 Gmail check; the Gmail routing ruling; Phase 5 built.
-- **Added:**
-  - Browser checks: the alert in Gmail; the failed-draw card geometry.
-  - Before demo: the ingestion reset state as read 2026-09-25 (74–80 reconciled #67–#72; 81 and 84 Ingesting; 83 the failure specimen); instance 38992 added to the stranded-instances list.
-  - Deferred, each with a trigger: the untested comparison paths; the overview fallback rate; dependencies to re-verify per instance; the Dev MCP 26.6.100 update.
+- **Updated (Before demo):** the ingestion reset state. #73–#75 added; 81/84/85 removed; failed draws 83 and 89; package-beat reset steps.
+- **Extended:** the stranded-instances cancellation list (39011 and its child, plus the pipelines for 81 and 84).
+- **Added (Browser checks owed):** the Phase 5.5 package, corroboration and Documents checklist.
+- **Added (Deferred):** live "no matching line", Backup and Not read paths; the Doc Input skill and model are instance-specific.
+- **Struck through:** "Backup documents on an ingested draw", now built.
+- **Done:** Phase 5.5.
 
 ## BUILD_PLAN.md changes
 
-- Phase 4 marked COMPLETE 2026-09-25: the Gmail check and the routing ruling are closed.
-- Phase 5 rewritten as built: five items ✅, the Gmail eyeball open, pass conditions met with evidence.
-- Phase 5.5 added, and three Phase 6 items added (documentation only).
+- Phase 5.5 is marked ✅ 2026-09-25, and all four objects are ✅.
+- Two open follow-ups were added: the persona-driven confirm and geometry (browser), and the untested live paths.
+- Phase 6 carries the feed-arrival simulation item.
 
 ## Repo changes
 
-- `BUILD_LOG.md`, `BUILD_PLAN.md`, `TODO.md`, `CLAUDE.md` (objects, business rule, repeatability, a known artifact, files), `PROJECT_INSTRUCTIONS.md` (the routing ruling), `Closeout.md`.
-- `.work/sail/`:
-  - 11 new `.sail` rule files, plus the regenerated Summary, Draws page, detail rule, status tag and fact strip;
-  - generators `gen_last_good.py`, `gen_failure_email.py`, `gen_receive_failure.py`;
-  - `receive_failure_payloads.json`;
-  - the gauntlet;
-  - `refs.py`.
-- `.work/save_rule_html.py`.
-- `.work/email/draw83_ingestion_failure.html` and `.txt`.
+- **Added:**
+  - `scripts/gen_draw_package.py`;
+  - `.work/sail/gen_corroboration.py`, `gen_read_supporting.py`, `gen_receive_corroboration.py` and their payload JSONs;
+  - `gauntlet_SD_corroboration.sail` and the five rule `.sail` files.
+- **Updated:**
+  - the page, form, summary, detail and status-tag sources and generators;
+  - `refs.py`;
+  - `CLAUDE.md`: objects, business rule, repeatability, files;
+  - `BUILD_LOG.md`, `BUILD_PLAN.md`, `TODO.md`.
+- **Not committed:** the PDFs (gitignored).

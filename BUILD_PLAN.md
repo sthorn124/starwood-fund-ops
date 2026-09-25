@@ -242,14 +242,21 @@ The canonical definition is in `PROJECT_INSTRUCTIONS.md` § Data model. Field vo
 
 **Demo-visible outcome:** the malformed template fails, the draw shows why in plain English, and the alert explains what changed against the last template that loaded.
 
-### Phase 5.5 — Multi-document corroboration at intake  ← documented 2026-09-25 (post-meeting scope; not started)
+### Phase 5.5 — Multi-document corroboration at intake  ✅ built and verified 2026-09-25
+
+**Framing (client meeting):** corroboration catches bad submissions before the approval chain starts, and it evidences the package on the draw record. Its value is verification: fewer error loops, fewer approver interruptions, lien exposure surfaced, audit evidence. It is deliberately not sold as savings on extraction labour.
 
 **Objects:**
-- [ ] **Multi-document intake:** Receive Capital Call takes the budget template plus supporting documents (for example the contractor's pay application).
-- [ ] **Tie-out at reconciliation:** the key figures in the supporting documents are tied out against the template on the reconciliation form; a mismatch shows as an amber chip beside the figure.
-- [ ] **Framing:** it catches a bad submission before the approval chain starts.
+- ✅ 2026-09-25 **Demo package documents:** a committed generator writes the PDFs to the repo root (gitignored): a G702-style GC pay application tied to the template's Hard Costs current draw, a design-vendor invoice tied to one soft-cost line, a conditional lien waiver, and a mismatch pay application.
+- ✅ 2026-09-25 **Intake accepts a package:** Receive Capital Call takes one xlsx template (required) and supporting PDFs (optional, several). Each PDF is classified by AI as Pay Application, Invoice, Lien Waiver or Backup (Backup when unsure) and stored as a typed `SD Draw Document`. The template path is unchanged and never blocked; a template-only package behaves as before.
+- ✅ 2026-09-25 **Corroboration at reconciliation:** the pay application's Current Payment Due is tied to the Hard Costs current draw, and each invoice total to its matching line (matched by amount). The chips read green "Ties" or amber "Does not tie: <doc> vs <template>". Lien waivers are listed, with an amber line when a pay application arrives without one; Backup is listed; no documents gives a neutral note. Nothing blocks confirm.
+- ✅ 2026-09-25 **On the draw:** after confirm, the corroboration result lands on the draw and shows as a backup line on the Summary's Draw Origin card.
+- [ ] **Persona-driven confirm and geometry** (browser): the corroboration section's layout, the upload slots and the Documents tab, and the accountant's own Confirm from the task (sail cannot open a task; confirmed over the Dev MCP this phase). Checklist in `TODO.md`.
+- [ ] **Invoice with no matching line, Backup and "Not read" paths live** (covered by the gauntlet and the break-test only): a fabricated invoice for an amount on no line, and an unrelated PDF, through a live package. Trigger: the next package-generator change.
 
-**Dependencies:** Phases 3 and 5. *Trigger: planning in the claude.ai Project after Phase 5.*
+**Dependencies:** Phases 3 and 5.
+
+**Demo staging note (documentation only, 2026-09-25):** in the final demo the package arrives through a simulated feed (email-in or a watched drop location), narrated as the EY API/SFTP feed. Manual upload through Receive Capital Call is build-time tooling. Simulating the feed is a staging and polish item for Phase 6 or later. Intake built now must stay compatible with it: a set of documents in, one draw out.
 
 ### Phase 6 — Email approval, Asset Manager edit, narrative, polish
 
@@ -265,6 +272,7 @@ The canonical definition is in `PROJECT_INSTRUCTIONS.md` § Data model. Field vo
 - [ ] **Email thread continuity** (client question, 2026-09-25): replies stay in one thread, and the exchange is mirrored onto the draw record.
 - [ ] **Low-confidence interpretation → super-user exception queue** (client question, 2026-09-25): a reply the AI cannot classify with confidence goes to a super-user queue, never to a state change.
 - [ ] **Dollar-threshold guardrail** (client question, 2026-09-25): draws above a threshold cannot be approved by email and require the UI.
+- [ ] **Feed-arrival simulation** (staging/polish): the package arrives by email-in or a watched drop location, narrated as the EY API/SFTP feed, and starts the same intake (a set of documents in, one draw out). Receive Capital Call remains build-time tooling.
 - [ ] **Treasury notification content** finalised.
 - [ ] **Polish and demo readiness:** a reset action with an explicit id list, a verify-ready check, and a rehearsal on the live path.
 

@@ -36,6 +36,8 @@ a!localVariables(
           'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{e418c5aa-c0db-4e02-8fb9-a4ce72ccdcef}ingestionProcessId',
           'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{3139df20-a318-49b1-a9e7-13f6317880ef}ingestionFailureReason',
           'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{74b593a2-ffea-4eb9-90af-49729fcdcb25}ingestionComparison',
+          'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{37d76e51-3aa8-4ab0-a2fb-26eec0bebf51}corroborationSummary',
+          'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{8d2c7d6c-f7c0-4845-b49d-f1278f9b09bc}corroborationState',
           'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.relationships.{58a1018a-d85c-42b9-94ed-b51a9f0ef3d2}investment.fields.{e79c63ed-a43c-4951-b679-e2578ed5cbf6}investmentName',
           'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.relationships.{58a1018a-d85c-42b9-94ed-b51a9f0ef3d2}investment.fields.{fc86153c-eedd-41de-a0dd-a20def74fd2d}investmentDescription',
           'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.relationships.{58a1018a-d85c-42b9-94ed-b51a9f0ef3d2}investment.relationships.{1b588a74-afbc-4756-aacf-69483491d566}fund.fields.{fb775e5a-1ed9-4ce9-85ca-bb1b43767475}fundName'
@@ -123,6 +125,8 @@ a!localVariables(
     ingestionProcessId: if(local!found, local!draw['recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{e418c5aa-c0db-4e02-8fb9-a4ce72ccdcef}ingestionProcessId'], null),
     ingestionFailureReason: if(local!found, local!draw['recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{3139df20-a318-49b1-a9e7-13f6317880ef}ingestionFailureReason'], null),
     ingestionComparison: if(local!found, local!draw['recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{74b593a2-ffea-4eb9-90af-49729fcdcb25}ingestionComparison'], null),
+    corroborationSummary: if(local!found, local!draw['recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{37d76e51-3aa8-4ab0-a2fb-26eec0bebf51}corroborationSummary'], null),
+    corroborationState: if(local!found, local!draw['recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{8d2c7d6c-f7c0-4845-b49d-f1278f9b09bc}corroborationState'], null),
     investmentName: if(local!found, local!draw['recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.relationships.{58a1018a-d85c-42b9-94ed-b51a9f0ef3d2}investment.fields.{e79c63ed-a43c-4951-b679-e2578ed5cbf6}investmentName'], null),
     investmentDescription: if(local!found, local!draw['recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.relationships.{58a1018a-d85c-42b9-94ed-b51a9f0ef3d2}investment.fields.{fc86153c-eedd-41de-a0dd-a20def74fd2d}investmentDescription'], null),
     fundName: if(local!found, local!draw['recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.relationships.{58a1018a-d85c-42b9-94ed-b51a9f0ef3d2}investment.relationships.{1b588a74-afbc-4756-aacf-69483491d566}fund.fields.{fb775e5a-1ed9-4ce9-85ca-bb1b43767475}fundName'], null),

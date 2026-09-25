@@ -1,8 +1,14 @@
-/* Draw approval (Phase 3, intake fixed 2026-09-22): the SASite page "Receive Capital Call" — the intake trigger, narrated
-   in the demo as the EY API/SFTP feed delivering a property manager's budget template. A regular site-page interface,
-   not a start form: one upload (xlsx) into SD_DRAW_DOCUMENTS_FOLDER; Receive first commits the upload
-   (a!submitUploadedFiles — outside a start form the file stays in a temporary folder until then) and, once it is in the
-   folder, starts SD Receive Capital Call through a!startProcess with the document as its parameter. The same interface
+/* Draw approval (Phase 3, intake fixed 2026-09-22; package intake Phase 5.5, 2026-09-25): the SASite page "Receive
+   Capital Call" — build-time intake tooling, narrated in the demo as the EY API/SFTP feed delivering a property manager's
+   draw package. The package is the budget template (one xlsx, required) plus supporting documents (PDFs, optional,
+   several): pay application, invoice, lien waiver, backup. One Receive submits every upload on the page (no documents
+   argument, per the a!submitUploadedFiles docs) and passes both to the pipeline; the supporting documents are read by a
+   separate asynchronous process, so the template path never waits on them and a package without them behaves as before.
+   Supporting documents are taken in upload slots, one file each (see the slot comment below for why).
+   A regular site-page interface, not a start form: both uploads target SD_DRAW_DOCUMENTS_FOLDER; Receive first commits
+   them (a!submitUploadedFiles — outside a start form files stay in a temporary folder until then) and, once they are in
+   the folder, starts SD Receive Capital Call through a!startProcess with the template (document) and the supporting
+   documents (supportingDocuments) as its parameters. The same interface
    then flips to a confirmation state: received, extraction running, the draw is on the Draws list now, the accountant's
    reconciliation task follows in about 90 seconds; Go to Draws (site page link) and Receive Another (resets the form).
    Draw number, investment and every header fact come from the document, never from this page. The viewer needs Initiator
@@ -12,6 +18,15 @@ a!localVariables(
   /* The upload field saves a List of Document even with maxSelections 1 (measured: document() threw "Received the type
      List of Document" on the confirmation render); everything downstream uses the first item. */
   local!uploaded: index(local!document, 1, null),
+  /* Supporting documents, one position per upload slot; a cleared slot keeps its position as null. */
+  local!supporting: {},
+  local!supportingDocs: if(
+    count(local!supporting) = 0,
+    {},
+    index(local!supporting, where(a!forEach(items: local!supporting, expression: not(a!isNullOrEmpty(fv!item)))), {})
+  ),
+  local!supportingCount: if(a!isNullOrEmpty(local!supportingDocs), 0, length(a!forEach(items: local!supportingDocs, expression: 1))),
+  local!supportingSlots: min(10, count(local!supporting) + 1),
   local!state: "form",
   local!error,
   a!headerContentLayout(
@@ -25,7 +40,7 @@ a!localVariables(
               char(10),
               a!richTextItem(text: "Receive Capital Call", size: "LARGE", style: "STRONG", color: "#FFFFFF"),
               char(10),
-              a!richTextItem(text: "Budget template intake · Doc Center extraction · accountant reconciliation", color: "#C7D2E5", size: "SMALL")
+              a!richTextItem(text: "Draw package intake · Doc Center extraction · supporting-document tie-out · accountant reconciliation", color: "#C7D2E5", size: "SMALL")
             },
             marginBelow: "NONE"
           )
@@ -77,6 +92,58 @@ a!localVariables(
           ),
           a!richTextDisplayField(
             labelPosition: "COLLAPSED",
+            value: {
+              a!richTextItem(text: "SUPPORTING DOCUMENTS · OPTIONAL", color: "#6B7280", size: "SMALL", style: "STRONG"),
+              char(10),
+              a!richTextItem(
+                text: "The rest of the draw package as received: GC pay application, vendor invoices, lien waivers, other backup. Each PDF is classified and its key figure read by AI, then tied out against the template at reconciliation. A package without them is received exactly the same way.",
+                color: "#374151"
+              )
+            },
+            marginAbove: "MORE",
+            marginBelow: "STANDARD"
+          ),
+          /* One upload slot per supporting document, and a new empty slot after each upload (up to 10). A single
+             multi-file field was tried first (2026-09-25) and is not used: an upload that replaces a field's value
+             discards the temporary files it replaced (measured: sail's upload sends only the new file; of three PDFs
+             only the last existed after Receive, and the pipeline was handed two missing documents). In slots, no file
+             ever leaves its field's value except by the user clearing it. A cleared slot keeps its position as null;
+             only the documents present go to the process. */
+          a!forEach(
+            items: enumerate(local!supportingSlots) + 1,
+            expression: a!localVariables(
+              local!slot: fv!item,
+              a!fileUploadField(
+                label: "Supporting document " & local!slot,
+                labelPosition: "ABOVE",
+                instructions: if(local!slot = local!supportingSlots, "PDF. Another slot opens after each upload (up to 10).", null),
+                target: cons!SD_DRAW_DOCUMENTS_FOLDER,
+                maxSelections: 1,
+                value: index(local!supporting, local!slot, null),
+                saveInto: a!save(
+                  local!supporting,
+                  if(
+                    local!slot > count(local!supporting),
+                    append(local!supporting, index(save!value, 1, null)),
+                    a!update(local!supporting, local!slot, index(save!value, 1, null))
+                  )
+                ),
+                validations: if(
+                  a!isNullOrEmpty(index(local!supporting, local!slot, null)),
+                  null,
+                  if(
+                    or(upper(fv!files.extension) = "PDF"),
+                    null,
+                    "Supporting documents must be PDF files. Received ." & index(fv!files.extension, 1, "")
+                  )
+                ),
+                dropZoneStyle: "COMPACT",
+                marginBelow: "LESS"
+              )
+            )
+          ),
+          a!richTextDisplayField(
+            labelPosition: "COLLAPSED",
             value: a!richTextItem(
               text: "The capital call could not be received: " & a!defaultValue(local!error, "the ingestion process did not start") & ". The template was not sent; try again or tell the build owner.",
               color: "#B42318",
@@ -99,7 +166,7 @@ a!localVariables(
                     onSuccess: {
                       a!startProcess(
                         processModel: cons!SD_RECEIVE_CAPITAL_CALL_PM,
-                        processParameters: a!map(document: local!uploaded),
+                        processParameters: a!map(document: local!uploaded, supportingDocuments: local!supportingDocs),
                         onSuccess: a!save(local!state, "received"),
                         onError: { a!save(local!state, "error"), a!save(local!error, "the ingestion process did not start") }
                       )
@@ -132,6 +199,15 @@ a!localVariables(
               char(10),
               a!richTextItem(
                 text: "Doc Center extraction is running on " & if(a!isNullOrEmpty(local!uploaded), "the template", document(local!uploaded, "name") & "." & document(local!uploaded, "extension")) & ".",
+                color: "#374151"
+              ),
+              char(10),
+              a!richTextItem(
+                text: if(
+                  local!supportingCount = 0,
+                  "No supporting documents came with this package.",
+                  local!supportingCount & if(local!supportingCount = 1, " supporting document is", " supporting documents are") & " being classified and read; the figures are tied out against the template on the reconciliation task."
+                ),
                 color: "#374151"
               ),
               char(10),
@@ -174,7 +250,7 @@ a!localVariables(
                   buttons: a!buttonWidget(
                     label: "Receive Another",
                     style: "OUTLINE",
-                    saveInto: { a!save(local!document, null), a!save(local!error, null), a!save(local!state, "form") }
+                    saveInto: { a!save(local!document, null), a!save(local!supporting, {}), a!save(local!error, null), a!save(local!state, "form") }
                   ),
                   align: "START",
                   marginBelow: "NONE"
