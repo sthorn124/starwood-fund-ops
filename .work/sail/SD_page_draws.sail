@@ -230,8 +230,8 @@ a!localVariables(
                 contents: a!dropdownField(
                   labelPosition: "COLLAPSED",
                   placeholder: "Status: All",
-                  choiceLabels: {"Ingesting", "In Progress", "Approved", "Rejected"},
-                  choiceValues: {"Ingesting", "In Progress", "Approved", "Rejected"},
+                  choiceLabels: {"Ingesting", "Ingestion Failed", "In Progress", "Approved", "Rejected"},
+                  choiceValues: {"Ingesting", "Ingestion Failed", "In Progress", "Approved", "Rejected"},
                   value: local!status,
                   saveInto: local!status,
                   marginBelow: "NONE"
@@ -299,7 +299,11 @@ a!localVariables(
                 value: a!richTextDisplayField(
                   value: {
                     a!richTextItem(
-                      text: if(a!isNullOrEmpty(fv!row.drawNumber), "New draw", "#" & fv!row.drawNumber),
+                      text: if(
+                        a!isNullOrEmpty(fv!row.drawNumber),
+                        if(tostring(a!defaultValue(fv!row.status, "")) = "Ingestion Failed", "Not loaded", "New draw"),
+                        "#" & fv!row.drawNumber
+                      ),
                       link: a!recordLink(recordType: 'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw', identifier: fv!row.id),
                       linkStyle: "STANDALONE",
                       style: "STRONG"
@@ -376,7 +380,15 @@ a!localVariables(
                               char(10),
                               a!richTextItem(text: "received " & if(a!isNullOrEmpty(fv!row.receivedDate), "—", text(todate(fv!row.receivedDate), "MMM D")), color: "#6B7280", size: "SMALL")
                             },
-                            a!richTextItem(text: "—", color: "#6B7280")
+                            if(
+                              local!s = "Ingestion Failed",
+                              {
+                                a!richTextItem(text: "Template could not be loaded", color: "#B42318"),
+                                char(10),
+                                a!richTextItem(text: "received " & if(a!isNullOrEmpty(fv!row.receivedDate), "—", text(todate(fv!row.receivedDate), "MMM D")) & " · resubmit via Receive Capital Call", color: "#6B7280", size: "SMALL")
+                              },
+                              a!richTextItem(text: "—", color: "#6B7280")
+                            )
                           )
                         )
                       )

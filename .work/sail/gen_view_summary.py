@@ -45,6 +45,8 @@ card_close = '''},
     marginBelow: "STANDARD"
   )'''
 
+card_close_hide = card_close.replace('style: "NONE",', 'style: "NONE",\n    showWhen: not(local!failed),')
+
 def heading(text_expr, src_expr=None):
     h = f'''a!richTextDisplayField(
         labelPosition: "COLLAPSED",
@@ -56,7 +58,8 @@ def heading(text_expr, src_expr=None):
     return h
 
 sail = f"""/* Draw approval: the Summary view of a draw record, built against mockups/draw-summary.html (the UI contract).
-   Section order: fact strip · action strip (current step's assignee group only) · approval progress · Draw Origin ·
+   Section order: fact strip · action strip (current step's assignee group only) · ingestion-failed state card (Phase 5,
+   failed draws only, which then show just the fact strip, the card and Draw Origin) · approval progress · Draw Origin ·
    Draw Funding Detail · Budget Summary + Remaining Contingency · Funding History · QIU Detail.
    Every figure is computed from the draw's rows: roll-ups from the budget lines, tie-out of the current draw lines
    against the header amount, PTD from the lines, aging from today(). Nothing is typed in from the sample. */
@@ -207,6 +210,11 @@ a!localVariables(
     local!idx: if(a!isNullOrEmpty(local!docs), {{}}, wherecontains("Budget Template", a!forEach(items: local!docs, expression: tostring(a!defaultValue(fv!item.documentType, ""))))),
     if(a!isNullOrEmpty(local!idx), if(a!isNullOrEmpty(local!docs), null, index(local!docs, 1, null)), index(local!docs, local!idx[1], null))
   ),
+  /* Phase 5: a draw whose budget template failed the ingestion checks. The state card below takes the action strip's
+     slot; the sections that describe a loaded draw (progress, funding detail, budget, history, QIU) are hidden. */
+  local!failed: a!defaultValue(index(local!d, "ingestionFailed", false), false),
+  local!reason: if(local!failed, rule!SD_splitIngestionText(text: index(local!d, "ingestionFailureReason", "")), null),
+  local!comparison: if(local!failed, rule!SD_splitIngestionText(text: index(local!d, "ingestionComparison", "")), null),
   {{
     a!richTextDisplayField(
       labelPosition: "COLLAPSED",
@@ -284,6 +292,78 @@ a!localVariables(
       style: "#E8F0FC",
       decorativeBarPosition: "START",
       decorativeBarColor: "#1D5BBF",
+      shape: "SEMI_ROUNDED",
+      padding: "STANDARD",
+      showBorder: false,
+      showShadow: false,
+      marginBelow: "STANDARD"
+    ),
+    /* Ingestion failed: plain state card, red, in the action strip's slot. No task, no action — resubmission happens
+       on the Receive Capital Call page. */
+    a!cardLayout(
+      contents: {{
+        a!richTextDisplayField(
+          labelPosition: "COLLAPSED",
+          value: {{
+            a!richTextIcon(icon: "exclamation-circle", color: "#B42318"),
+            " ",
+            a!richTextItem(text: "Ingestion failed — this budget template could not be loaded", size: "MEDIUM", style: "STRONG", color: "#B42318"),
+            char(10),
+            a!richTextItem(
+              text: "Received " & if(a!isNullOrEmpty(index(local!d, "receivedDate", null)), "—", text(index(local!d, "receivedDate", null), "MMMM D, YYYY"))
+                & if(a!isNullOrEmpty(local!sourceDoc), "", " · " & a!defaultValue(local!sourceDoc.documentName, ""))
+                & " · nothing was loaded and no reconciliation task was created",
+              color: "#6B7280",
+              size: "SMALL"
+            )
+          }},
+          marginBelow: "STANDARD"
+        ),
+        a!richTextDisplayField(
+          labelPosition: "COLLAPSED",
+          value: {{
+            a!richTextItem(text: "WHY IT COULD NOT BE LOADED", color: "#6B7280", size: "SMALL", style: "STRONG"),
+            char(10),
+            a!richTextItem(text: a!defaultValue(index(local!reason, "lead", ""), "No reason was recorded."), color: "#1F2937"),
+            a!richTextBulletedList(items: index(local!reason, "bullets", {{}})),
+            a!richTextItem(text: index(local!reason, "tail", ""), color: "#1F2937")
+          }},
+          marginBelow: "STANDARD"
+        ),
+        a!richTextDisplayField(
+          labelPosition: "COLLAPSED",
+          value: {{
+            a!richTextItem(text: "WHAT CHANGED SINCE THE LAST TEMPLATE THAT LOADED", color: "#6B7280", size: "SMALL", style: "STRONG"),
+            char(10),
+            a!richTextItem(text: a!defaultValue(index(local!comparison, "lead", ""), "No comparison was recorded for this file."), color: "#1F2937"),
+            a!richTextBulletedList(items: index(local!comparison, "bullets", {{}})),
+            a!richTextItem(text: index(local!comparison, "tail", ""), color: "#6B7280", size: "SMALL", style: "EMPHASIS")
+          }},
+          marginBelow: "STANDARD"
+        ),
+        a!richTextDisplayField(
+          labelPosition: "COLLAPSED",
+          value: {{
+            a!richTextItem(text: "WHAT HAPPENS NEXT", color: "#6B7280", size: "SMALL", style: "STRONG"),
+            char(10),
+            "Correct the workbook and resubmit it through ",
+            a!richTextItem(
+              text: "Receive Capital Call",
+              link: a!safeLink(
+                uri: a!urlForSite(sitePage: 'site!{{ffae752f-b3d1-44d5-a9ba-c408b66bdb65}}SASite.pages.{{cec364e7-214a-43ee-bdf5-22aeb0979522}}receive-capital-call'),
+                openLinkIn: "SAME_TAB"
+              ),
+              linkStyle: "INLINE"
+            ),
+            ". This draw stays on the Draws list as Ingestion Failed, as a record of what was received; it will not be approved or funded."
+          }},
+          marginBelow: "NONE"
+        )
+      }},
+      showWhen: and(local!found, local!failed),
+      style: "#FDECEC",
+      decorativeBarPosition: "START",
+      decorativeBarColor: "#B42318",
       shape: "SEMI_ROUNDED",
       padding: "STANDARD",
       showBorder: false,
@@ -405,7 +485,7 @@ a!localVariables(
         alignVertical: "MIDDLE",
         marginBelow: "NONE"
       )
-    {card_close},
+    {card_close_hide},
     /* Draw Origin */
     {card_open()}
       {heading('"Draw Origin"', '"Capital call request received via EY data feed · budget extracted by Doc Center"')},
@@ -548,7 +628,7 @@ a!localVariables(
         stackWhen: {{"PHONE"}},
         marginBelow: "NONE"
       )
-    {card_close},
+    {card_close_hide},
     /* Budget Summary and Remaining Contingency, side by side */
     a!columnsLayout(
       columns: {{
@@ -599,6 +679,7 @@ a!localVariables(
         )
       }},
       stackWhen: {{"PHONE", "TABLET_PORTRAIT"}},
+      showWhen: not(local!failed),
       marginBelow: "NONE"
     ),
     /* Funding History */
@@ -641,7 +722,7 @@ a!localVariables(
         emptyGridMessage: "No prior draws on this investment"
       ),
       rule!SD_cmp_sourceLine(text: "Showing the last 3 funded draws. Full history on the investment record.")
-    {card_close},
+    {card_close_hide},
     /* QIU Detail */
     {card_open()}
       {heading('"QIU Detail — " & a!defaultValue(index(local!d, "investmentName", ""), "")', '"Aggregated from the QIU model for this investment" & if(a!isNullOrEmpty(local!qiuAsOf), "", " · model as of " & text(local!qiuAsOf, "MM/DD/YYYY"))')},
@@ -661,7 +742,7 @@ a!localVariables(
         rowHeader: 1,
         emptyGridMessage: "No QIU metrics on this draw"
       )
-    {card_close}
+    {card_close_hide}
   }}
 )
 """

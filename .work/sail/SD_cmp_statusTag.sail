@@ -1,5 +1,5 @@
 /* Draw approval: one status chip, coloured by the vocabulary canon.
-   Approved / Extracted & Confirmed / Funded → green; In Progress → blue; Rejected → red; everything else (Pending, Attached, …) → grey. */
+   Approved / Extracted & Confirmed / Funded → green; In Progress → blue; Rejected, Ingestion Failed → red; everything else (Pending, Attached, …) → grey. */
 a!localVariables(
   local!s: trim(a!defaultValue(ri!status, "")),
   local!bg: a!match(
@@ -9,6 +9,7 @@ a!localVariables(
     equals: "Funded", then: "#E6F4EC",
     equals: "In Progress", then: "#E8F0FC",
     equals: "Rejected", then: "#FDECEC",
+    equals: "Ingestion Failed", then: "#FDECEC",
     default: "#EEF1F5"
   ),
   local!fg: a!match(
@@ -18,6 +19,7 @@ a!localVariables(
     equals: "Funded", then: "#1E7E46",
     equals: "In Progress", then: "#1D5BBF",
     equals: "Rejected", then: "#B42318",
+    equals: "Ingestion Failed", then: "#B42318",
     default: "#64748B"
   ),
   a!tagField(

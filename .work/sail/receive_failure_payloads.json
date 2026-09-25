@@ -1,0 +1,699 @@
+{
+ "processVariables": [
+  {
+   "name": "document",
+   "type": "Document",
+   "isParameter": true,
+   "multiple": false
+  },
+  {
+   "name": "cancel",
+   "type": "Boolean",
+   "isParameter": true,
+   "multiple": false
+  },
+  {
+   "name": "modelKey",
+   "type": "Text",
+   "isParameter": false,
+   "multiple": false,
+   "value": "\"drawBudgetTemplate\""
+  },
+  {
+   "name": "drawShell",
+   "type": "{urn:com:appian:recordtype:datatype}c9d3a947-71aa-4024-879e-363873a12860",
+   "isParameter": false,
+   "multiple": true
+  },
+  {
+   "name": "drawId",
+   "type": "Number (Integer)",
+   "isParameter": false,
+   "multiple": false
+  },
+  {
+   "name": "docRows",
+   "type": "{urn:com:appian:recordtype:datatype}f3e0033f-2047-4c68-8f6f-cf32166091e9",
+   "isParameter": false,
+   "multiple": true
+  },
+  {
+   "name": "docRowId",
+   "type": "Number (Integer)",
+   "isParameter": false,
+   "multiple": false
+  },
+  {
+   "name": "extractionInstance",
+   "type": "{urn:com:appian:recordtype:datatype}64322398-e457-4695-87d5-09794164cf77",
+   "isParameter": false,
+   "multiple": false
+  },
+  {
+   "name": "extractionInstanceId",
+   "type": "Number (Integer)",
+   "isParameter": false,
+   "multiple": false
+  },
+  {
+   "name": "headerJson",
+   "type": "Text",
+   "isParameter": false,
+   "multiple": false
+  },
+  {
+   "name": "linesJson",
+   "type": "Text",
+   "isParameter": false,
+   "multiple": false
+  },
+  {
+   "name": "confirmedHeaderJson",
+   "type": "Text",
+   "isParameter": false,
+   "multiple": false
+  },
+  {
+   "name": "confirmedLinesJson",
+   "type": "Text",
+   "isParameter": false,
+   "multiple": false
+  },
+  {
+   "name": "confirmedBy",
+   "type": "Text",
+   "isParameter": false,
+   "multiple": false
+  },
+  {
+   "name": "investmentId",
+   "type": "Number (Integer)",
+   "isParameter": false,
+   "multiple": false
+  },
+  {
+   "name": "drawNumber",
+   "type": "Number (Integer)",
+   "isParameter": false,
+   "multiple": false
+  },
+  {
+   "name": "amount",
+   "type": "Number (Decimal)",
+   "isParameter": false,
+   "multiple": false
+  },
+  {
+   "name": "fundingDate",
+   "type": "Date",
+   "isParameter": false,
+   "multiple": false
+  },
+  {
+   "name": "drawType",
+   "type": "Text",
+   "isParameter": false,
+   "multiple": false
+  },
+  {
+   "name": "cashEquityNeeded",
+   "type": "Text",
+   "isParameter": false,
+   "multiple": false
+  },
+  {
+   "name": "budgetStatus",
+   "type": "Text",
+   "isParameter": false,
+   "multiple": false
+  },
+  {
+   "name": "overBudgetReason",
+   "type": "Text",
+   "isParameter": false,
+   "multiple": false
+  },
+  {
+   "name": "purpose",
+   "type": "Text",
+   "isParameter": false,
+   "multiple": false
+  },
+  {
+   "name": "contingencyExplanation",
+   "type": "Text",
+   "isParameter": false,
+   "multiple": false
+  },
+  {
+   "name": "generalComments",
+   "type": "Text",
+   "isParameter": false,
+   "multiple": false
+  },
+  {
+   "name": "submittedBy",
+   "type": "Text",
+   "isParameter": false,
+   "multiple": false
+  },
+  {
+   "name": "investmentName",
+   "type": "Text",
+   "isParameter": false,
+   "multiple": false
+  },
+  {
+   "name": "fundName",
+   "type": "Text",
+   "isParameter": false,
+   "multiple": false
+  },
+  {
+   "name": "writeError",
+   "type": "Boolean",
+   "isParameter": false,
+   "multiple": false
+  },
+  {
+   "name": "writeErrorText",
+   "type": "Text",
+   "isParameter": false,
+   "multiple": false
+  },
+  {
+   "name": "outcome",
+   "type": "Text",
+   "isParameter": false,
+   "multiple": false
+  },
+  {
+   "name": "qiuRows",
+   "type": "{urn:com:appian:recordtype:datatype}a0920e4c-0c76-4494-a61a-6e38d5db390a",
+   "isParameter": false,
+   "multiple": true
+  },
+  {
+   "name": "chainRows",
+   "type": "{urn:com:appian:recordtype:datatype}02c207d5-c725-4d11-bf40-b33573e87ffa",
+   "isParameter": false,
+   "multiple": true
+  },
+  {
+   "name": "confirmedHeader",
+   "type": "Map",
+   "isParameter": false,
+   "multiple": false
+  },
+  {
+   "name": "templateCheck",
+   "type": "Map",
+   "isParameter": false,
+   "multiple": false
+  },
+  {
+   "name": "comparisonRequest",
+   "type": "Map",
+   "isParameter": false,
+   "multiple": false
+  },
+  {
+   "name": "aiSuccess",
+   "type": "Boolean",
+   "isParameter": false,
+   "multiple": false
+  },
+  {
+   "name": "aiResponse",
+   "type": "Text",
+   "isParameter": false,
+   "multiple": false
+  },
+  {
+   "name": "aiError",
+   "type": "Text",
+   "isParameter": false,
+   "multiple": false
+  },
+  {
+   "name": "aiActions",
+   "type": "Number (Decimal)",
+   "isParameter": false,
+   "multiple": false
+  },
+  {
+   "name": "aiModel",
+   "type": "Text",
+   "isParameter": false,
+   "multiple": false
+  },
+  {
+   "name": "aiStartedAt",
+   "type": "Date and Time",
+   "isParameter": false,
+   "multiple": false
+  },
+  {
+   "name": "aiEndedAt",
+   "type": "Date and Time",
+   "isParameter": false,
+   "multiple": false
+  },
+  {
+   "name": "comparison",
+   "type": "Map",
+   "isParameter": false,
+   "multiple": false
+  },
+  {
+   "name": "alertEmail",
+   "type": "Map",
+   "isParameter": false,
+   "multiple": false
+  },
+  {
+   "name": "alertRecipientCount",
+   "type": "Number (Integer)",
+   "isParameter": false,
+   "multiple": false
+  }
+ ],
+ "nodes": [
+  {
+   "id": 31,
+   "type": "internal.16",
+   "name": "Check template (rules)",
+   "coordinates": [
+    1620,
+    380
+   ],
+   "connections": [
+    {
+     "targetNodeId": 32,
+     "activityChained": false
+    }
+   ],
+   "data": {
+    "customOutputs": [
+     {
+      "expression": "rule!SD_validateIngestedTemplate(document: pv!document, extractionInstanceId: pv!extractionInstanceId, headerJson: pv!headerJson)",
+      "saveInto": "pv!templateCheck"
+     }
+    ]
+   },
+   "assignment": {
+    "attended": false,
+    "runAs": "DESIGNER"
+   }
+  },
+  {
+   "id": 32,
+   "type": "core.4",
+   "name": "Template OK?",
+   "coordinates": [
+    1780,
+    380
+   ],
+   "connections": [
+    {
+     "targetNodeId": 14,
+     "activityChained": false
+    },
+    {
+     "targetNodeId": 33,
+     "activityChained": false
+    }
+   ],
+   "decision": {
+    "conditions": [
+     {
+      "expression": "=a!defaultValue(index(pv!templateCheck, \"ok\", false), false)",
+      "targetNodeId": 14,
+      "label": "yes"
+     }
+    ],
+    "defaultPath": 33
+   }
+  },
+  {
+   "id": 33,
+   "type": "internal.16",
+   "name": "Prepare template comparison",
+   "coordinates": [
+    1780,
+    560
+   ],
+   "connections": [
+    {
+     "targetNodeId": 34,
+     "activityChained": false
+    }
+   ],
+   "data": {
+    "customOutputs": [
+     {
+      "expression": "rule!SD_buildTemplateComparisonRequest(received: index(pv!templateCheck, \"structure\", null), receivedName: index(pv!templateCheck, \"documentName\", null), investmentName: index(pv!templateCheck, \"investmentName\", null), excludeDrawId: pv!drawId)",
+      "saveInto": "pv!comparisonRequest"
+     },
+     {
+      "expression": "now()",
+      "saveInto": "pv!aiStartedAt"
+     },
+     {
+      "expression": "\"FAILED: template check - \" & joinarray(index(pv!templateCheck, \"problems\", {}), \" \")",
+      "saveInto": "pv!outcome"
+     }
+    ]
+   },
+   "assignment": {
+    "attended": false,
+    "runAs": "DESIGNER"
+   }
+  },
+  {
+   "id": 34,
+   "type": "core.4",
+   "name": "Differences to explain?",
+   "coordinates": [
+    1930,
+    560
+   ],
+   "connections": [
+    {
+     "targetNodeId": 35,
+     "activityChained": false
+    },
+    {
+     "targetNodeId": 36,
+     "activityChained": false
+    }
+   ],
+   "decision": {
+    "conditions": [
+     {
+      "expression": "=a!defaultValue(index(index(pv!comparisonRequest, \"diff\", null), \"count\", 0), 0) > 0",
+      "targetNodeId": 35,
+      "label": "yes"
+     }
+    ],
+    "defaultPath": 36
+   }
+  },
+  {
+   "id": 35,
+   "type": "internal3.rs2_ai_skill_generative_ai5",
+   "name": "AI: compare with last good template",
+   "coordinates": [
+    2080,
+    680
+   ],
+   "connections": [
+    {
+     "targetNodeId": 36,
+     "activityChained": false
+    }
+   ],
+   "data": {
+    "inputs": [
+     {
+      "name": "AiSkill",
+      "value": 148
+     },
+     {
+      "name": "RemoteServiceKey",
+      "value": "ai_skill_generative_ai"
+     }
+    ],
+    "customInputs": [
+     {
+      "name": "Input Text",
+      "type": "TEXT",
+      "expression": "=index(pv!comparisonRequest, \"inputText\", \"\")"
+     },
+     {
+      "name": "Runtime Prompt",
+      "type": "TEXT",
+      "expression": "=index(pv!comparisonRequest, \"prompt\", \"\")"
+     },
+     {
+      "name": "Runtime Model",
+      "type": "TEXT",
+      "expression": "=cons!SD_TEMPLATE_COMPARISON_MODEL"
+     },
+     {
+      "name": "Enable Extended Thinking",
+      "type": "BOOLEAN",
+      "value": 0
+     }
+    ],
+    "outputs": [
+     {
+      "name": "Success",
+      "saveInto": "pv!aiSuccess"
+     },
+     {
+      "name": "Response",
+      "saveInto": "pv!aiResponse"
+     },
+     {
+      "name": "ErrorMessage",
+      "saveInto": "pv!aiError"
+     },
+     {
+      "name": "AiActions",
+      "saveInto": "pv!aiActions"
+     },
+     {
+      "name": "Model",
+      "saveInto": "pv!aiModel"
+     }
+    ]
+   },
+   "assignment": {
+    "attended": false,
+    "runAs": "DESIGNER"
+   }
+  },
+  {
+   "id": 36,
+   "type": "internal.16",
+   "name": "Check AI comparison (rules)",
+   "coordinates": [
+    2230,
+    560
+   ],
+   "connections": [
+    {
+     "targetNodeId": 37,
+     "activityChained": false
+    }
+   ],
+   "data": {
+    "customOutputs": [
+     {
+      "expression": "rule!SD_checkTemplateComparison(response: pv!aiResponse, success: pv!aiSuccess, errorMessage: pv!aiError, aiAttempted: not(isnull(pv!aiSuccess)), diff: index(pv!comparisonRequest, \"diff\", null), baselineLabel: index(pv!comparisonRequest, \"baselineLabel\", null))",
+      "saveInto": "pv!comparison"
+     },
+     {
+      "expression": "now()",
+      "saveInto": "pv!aiEndedAt"
+     }
+    ]
+   },
+   "assignment": {
+    "attended": false,
+    "runAs": "DESIGNER"
+   }
+  },
+  {
+   "id": 37,
+   "type": "internal3.write_records_to_source_23r3",
+   "name": "Draw Ingestion Failed (reason, comparison)",
+   "coordinates": [
+    2380,
+    560
+   ],
+   "connections": [
+    {
+     "targetNodeId": 38,
+     "activityChained": false
+    }
+   ],
+   "data": {
+    "inputs": [
+     {
+      "name": "Records",
+      "expression": "={ 'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw'('recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{443829ca-5971-4d31-8fac-ab7a317e509b}id': pv!drawId, 'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{e63818ec-ea02-40a0-bfdd-2c14b760dc2c}status': \"Ingestion Failed\", 'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{3139df20-a318-49b1-a9e7-13f6317880ef}ingestionFailureReason': left(a!defaultValue(index(pv!templateCheck, \"reason\", null), \"The budget template could not be loaded.\"), 4000), 'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{74b593a2-ffea-4eb9-90af-49729fcdcb25}ingestionComparison': index(pv!comparison, \"text\", null), 'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{09edf0b2-28a3-4a7f-b9dc-ae2afefa24d0}investmentId': index(pv!comparisonRequest, \"investmentId\", null), 'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{9b41d47b-ef3a-4ea7-bf7e-0935b9c83393}updatedAt': now()) }"
+     },
+     {
+      "name": "PauseOnError",
+      "value": 0
+     },
+     {
+      "name": "CaptureEvents",
+      "value": 0
+     }
+    ],
+    "outputs": [
+     {
+      "name": "ErrorOccurred",
+      "saveInto": "pv!writeError"
+     },
+     {
+      "name": "Error",
+      "saveInto": "pv!writeErrorText"
+     }
+    ]
+   },
+   "assignment": {
+    "attended": false,
+    "runAs": "INITIATOR"
+   }
+  },
+  {
+   "id": 38,
+   "type": "core.4",
+   "name": "Failure recorded?",
+   "coordinates": [
+    2530,
+    560
+   ],
+   "connections": [
+    {
+     "targetNodeId": 20,
+     "activityChained": false
+    },
+    {
+     "targetNodeId": 39,
+     "activityChained": false
+    }
+   ],
+   "decision": {
+    "conditions": [
+     {
+      "expression": "=a!defaultValue(pv!writeError, false)",
+      "targetNodeId": 20,
+      "label": "no"
+     }
+    ],
+    "defaultPath": 39
+   }
+  },
+  {
+   "id": 39,
+   "type": "internal.16",
+   "name": "Build alert email",
+   "coordinates": [
+    2680,
+    560
+   ],
+   "connections": [
+    {
+     "targetNodeId": 40,
+     "activityChained": false
+    }
+   ],
+   "data": {
+    "customOutputs": [
+     {
+      "expression": "rule!SD_buildIngestionFailureEmail(drawId: pv!drawId, fileInvestmentName: index(pv!templateCheck, \"investmentName\", null), fileDrawNumber: index(pv!templateCheck, \"drawNumber\", null))",
+      "saveInto": "pv!alertEmail"
+     }
+    ]
+   },
+   "assignment": {
+    "attended": false,
+    "runAs": "DESIGNER"
+   }
+  },
+  {
+   "id": 40,
+   "type": "internal3.sendemail3",
+   "name": "Ingestion failure alert (email)",
+   "coordinates": [
+    2830,
+    560
+   ],
+   "connections": [
+    {
+     "targetNodeId": 41,
+     "activityChained": false
+    }
+   ],
+   "data": {
+    "inputs": [
+     {
+      "name": "From",
+      "value": "Process Model"
+     },
+     {
+      "name": "To",
+      "expression": "={cons!SD_DRAW_DEMO_APPROVERS_GROUP, cons!SD_DRAW_ASSET_MANAGER_GROUP}"
+     },
+     {
+      "name": "Subject",
+      "expression": "=a!defaultValue(index(pv!alertEmail, \"subject\", null), \"Draw template could not be loaded\")"
+     },
+     {
+      "name": "Priority",
+      "value": 3
+     },
+     {
+      "name": "IsHTML",
+      "value": 1
+     },
+     {
+      "name": "BodyHTML",
+      "expression": "=a!defaultValue(index(pv!alertEmail, \"html\", null), \"<p>A draw budget template could not be loaded. Open the Draws list for the reason and the comparison.</p>\")"
+     }
+    ],
+    "customOutputs": [
+     {
+      "expression": "count(ac!ToValidAddresses)",
+      "saveInto": "pv!alertRecipientCount"
+     }
+    ]
+   },
+   "assignment": {
+    "attended": false,
+    "runAs": "DESIGNER"
+   }
+  },
+  {
+   "id": 41,
+   "type": "internal3.write_records_to_source_23r3",
+   "name": "Template document Ingestion Failed",
+   "coordinates": [
+    2980,
+    560
+   ],
+   "connections": [
+    {
+     "targetNodeId": 2,
+     "activityChained": false
+    }
+   ],
+   "data": {
+    "inputs": [
+     {
+      "name": "Records",
+      "expression": "={ 'recordType!{f3e0033f-2047-4c68-8f6f-cf32166091e9}SD Draw Document'('recordType!{f3e0033f-2047-4c68-8f6f-cf32166091e9}SD Draw Document.fields.{a0e2e466-e3fb-4f48-9744-481735a1ba8f}id': pv!docRowId, 'recordType!{f3e0033f-2047-4c68-8f6f-cf32166091e9}SD Draw Document.fields.{2863739f-c94b-4f6c-804a-b0fcef1572f7}status': \"Ingestion Failed\", 'recordType!{f3e0033f-2047-4c68-8f6f-cf32166091e9}SD Draw Document.fields.{2b7e89b7-8344-41ad-a71f-9bfb117a9e0c}notes': left(\"Template check failed \" & text(now(), \"MM/DD/YYYY h:mm AM/PM\") & \". Comparison: \" & if(a!defaultValue(index(pv!comparison, \"aiUsed\", false), false), \"AI (\" & a!localVariables(local!m: a!genAiModels(), index(index(local!m, \"name\", {}), index(wherecontains(tostring(pv!aiModel), touniformstring(index(local!m, \"id\", {}))), 1, 0), a!defaultValue(pv!aiModel, \"model?\"))) & \")\" & if(a!defaultValue(index(pv!comparison, \"overviewByAi\", false), false), \"\", \", summary in standard wording\"), \"rules\" & if(isnull(pv!aiSuccess), \" (no AI call)\", \" (AI answer not used: \" & index(index(pv!comparison, \"failures\", {}), 1, \"\") & \")\")) & if(isnull(pv!aiSuccess), \"\", \"; AI call \" & tostring(pv!aiEndedAt - pv!aiStartedAt) & \", \" & a!defaultValue(pv!aiActions, 0) & \" AI actions\") & \"; alert email sent to the accountant and asset manager groups.\", 1000)) }"
+     },
+     {
+      "name": "PauseOnError",
+      "value": 0
+     },
+     {
+      "name": "CaptureEvents",
+      "value": 0
+     }
+    ],
+    "outputs": []
+   },
+   "assignment": {
+    "attended": false,
+    "runAs": "INITIATOR"
+   }
+  }
+ ]
+}

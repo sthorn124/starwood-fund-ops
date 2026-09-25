@@ -201,15 +201,15 @@ The canonical definition is in `PROJECT_INSTRUCTIONS.md` § Data model. Field vo
 
 **Demo-visible outcome:** the template goes in; the accountant reconciles; draw #67 appears with lines, QIU, chain and document.
 
-### Phase 4 — New approval email layout  ← CORE COMPLETE 2026-09-22
+### Phase 4 — New approval email layout  ← COMPLETE 2026-09-25 (core 2026-09-22; Gmail check and routing ruling 2026-09-25)
 
 **Objects:**
 - ✅ 2026-09-22 **Capability check:** outbound email from the NY instance was confirmed in Phase 2a (treasury and step emails received); Phase 4 sends through the same node.
 - ✅ 2026-09-22 **`SD_buildApprovalEmail(drawId, stepOrder)`** (built as this name, not `SD_draw_approvalEmailBody`): subject + HTML body from the draw's records at send time, section by section against `New approval email sample blacklined.pdf` — navy header band with the header facts; greeting and the reply instruction; Draw Funding Detail; Draw Detail by Budget Category (In this Draw, All Other Budget Categories, BUDGET total); Budget Summary **rolled up from the lines** (ruled); Remaining Contingency; QIU Detail; Approval Status with contiguous orders 1–9 and the current step marked; reply footer. Helpers `SD_htmlEscape`, `SD_fmtMoneyDash`, `SD_emailCells`, `SD_emailRow`. Generator `.work/sail/gen_email.py`.
 - ✅ 2026-09-22 **Data handling:** every record text HTML-escaped; money through `SD_fmtMoney` (cents on the header amount only), dashes for null/zero, PTD as `0.0%`; correct with no lines / no QIU / no contingency line (draw 12 render).
 - ✅ 2026-09-22 **Send node:** `SD Draw Approval Step` node 8 "Step notification (approval email)" now sends `pv!email.subject` / `pv!email.html` (computed once in node 4 into the new Map PV `email`); recipients unchanged (`To: pv!assignGroup`, the step's group). The treasury notification stays a placeholder (Phase 6).
-- [ ] **Gmail check** of the live email (draw 75 / step 2, sent to `SD Draw Demo Approvers` = scott.thorn@appian.com + sd.accountant): section order, table rendering, the marked current row, QIU values, no clipping (44.9 KB body). *Owner: Scott. Trigger: before the first rehearsal.*
-- [ ] **Gmail routing for the demo** — the step emails go to the step group's members' addresses (see the closeout's routing table); decide the demo inbox and set the persona addresses / a recipient override. *Owner: Scott (ruling), then the build session. Trigger: Phase 6 planning.*
+- ✅ 2026-09-25 **Gmail check** of the live email (draw 75 / step 2): no clipping, the tables render correctly (Scott).
+- ✅ 2026-09-25 **Gmail routing for the demo — ruled: stays exactly as wired.** scott.thorn@appian.com receives every step email and plays the CEO at the demo's email beat; no persona addresses, no recipient overrides.
 
 **Dependencies:** Phase 1 data; Phase 2 views. The spec PDF read at full resolution (2026-09-22).
 
@@ -220,27 +220,36 @@ The canonical definition is in `PROJECT_INSTRUCTIONS.md` § Data model. Field vo
 
 **Demo-visible outcome:** each approver's inbox shows the new-format email with the full budget tables; the CEO's is the one the demo reads.
 
-### Phase 5 — Ingestion failure path
+### Phase 5 — Ingestion failure path  ← BUILT 2026-09-25
 
 **Objects:**
-- [ ] **Template validation** in `SD Ingest Draw Template`, which classifies the failure: file unreadable, structure changed, or values missing.
-- [ ] **Last-good baseline:** the last successfully ingested template kept as the comparison source.
-- [ ] **AI diff:** a model call comparing the failed template with the last good one, producing a plain-English explanation.
-  - It runs in the process or in an interface, never in an expression rule, because model calls cannot live there (supplemental §3).
-  - A deterministic validation gate sits on its output before the alert uses it (`examples/deterministic-validation-gauntlet.md`).
-- [ ] **Alert email** to the accountant and the asset managers: the failure reason plus the AI diff.
+- ✅ 2026-09-25 **Template validation** — built as `SD_validateIngestedTemplate`, node 31 of `SD Receive Capital Call` (not a separate `SD Ingest Draw Template`). It fails when there is no extraction instance, no budget table, a missing standard column or category row (read from the workbook with Excel Tools, not from the AI extraction), or a blank required header value. Pass keeps the reconciliation task unchanged.
+- ✅ 2026-09-25 **Last-good baseline** — `SD_getLastGoodTemplate`: the newest Budget Template document on a draw of the same investment that got past ingestion. The standard template (constants) is the fallback.
+- ✅ 2026-09-25 **AI comparison** — one Execute Generative AI Skill call in the process (node 35; DocCenter's Text Input skill with a Runtime Prompt, Claude Sonnet 4.6), over both workbooks' labels only. Gated by `SD_checkTemplateComparison` against the rule-computed diff; the gauntlet is in `.work/sail/`. It falls back to the AI's lines under standard wording, or to a rules-composed list.
+- ✅ 2026-09-25 **Alert email** — `SD_buildIngestionFailureEmail` (Phase 4 visual language), sent from the failure branch to the accountant and asset manager groups. The draw is written **Ingestion Failed** with the reason and the comparison; the template row is marked Ingestion Failed.
+- ✅ 2026-09-25 **The record** — the Summary shows a red state card (why, what changed, what happens next) and no action; the Draws list shows "Not loaded · Template could not be loaded".
+- [ ] **Gmail eyeball of the alert email** (`TODO.md` Browser checks). *Owner: Scott. Trigger: before the first rehearsal.*
 
-**Dependencies:** Phases 3 and 4; a malformed-template specimen.
+**Dependencies:** Phases 3 and 4; the malformed specimen `THSV_Draw67_Budget_Template_v2.xlsx`.
 
-**Verification:**
-- **Specimens held constant:** a malformed template and a clean template.
-- **Pass conditions:**
-  - The malformed template produces the alert, and no budget lines are written. This is the break-test.
-  - The diff names the real structural difference.
-  - The clean template produces no alert.
-- **Live run:** the AI output is judged on a live run, not a fixture.
+**Verification (2026-09-25):** see `BUILD_LOG.md`, Phase 5 entry.
+- **Specimens held constant:** v2 (md5 b839e3e8…) and the clean template (md5 f4f99f07…).
+- **Pass conditions (all met 2026-09-25, as `sd.accountant` via sail; readbacks as the designer):**
+  - ✅ The malformed template produces the alert, and no budget lines or reconciliation task are written. This is the break-test. Draw 83 is Ingestion Failed with 0 lines, approvals and QIU; no open task; the send was proven by the downstream write to the template row.
+  - ✅ The comparison names the three seeded differences and invents none: the Current Draw → Draw Funding This Period rename, Total PTD inc. This Draw (%) missing, and Insurance and Start-up/Marketing missing. The AI call took 4.9 s and 4 AI actions.
+  - ✅ The clean template still reaches the reconciliation task: draw 84, task 536885220, 94 s after submit.
+- **Found and fixed live:** the alert node run as the persona stopped the process (run 1). It now runs as the designer (run 2 completed).
 
-**Demo-visible outcome:** the malformed template fails, and the alert explains what changed in words the accountant understands.
+**Demo-visible outcome:** the malformed template fails, the draw shows why in plain English, and the alert explains what changed against the last template that loaded.
+
+### Phase 5.5 — Multi-document corroboration at intake  ← documented 2026-09-25 (post-meeting scope; not started)
+
+**Objects:**
+- [ ] **Multi-document intake:** Receive Capital Call takes the budget template plus supporting documents (for example the contractor's pay application).
+- [ ] **Tie-out at reconciliation:** the key figures in the supporting documents are tied out against the template on the reconciliation form; a mismatch shows as an amber chip beside the figure.
+- [ ] **Framing:** it catches a bad submission before the approval chain starts.
+
+**Dependencies:** Phases 3 and 5. *Trigger: planning in the claude.ai Project after Phase 5.*
 
 ### Phase 6 — Email approval, Asset Manager edit, narrative, polish
 
@@ -253,6 +262,9 @@ The canonical definition is in `PROJECT_INSTRUCTIONS.md` § Data model. Field vo
   - Edits are attributed by record events, composed at write time.
   - Edits are visible downstream in the view and the email.
 - [ ] **Stretch: AI-drafted contingency narrative** with Fund Accountant review; the approved text lands in the draw's contingency explanation field.
+- [ ] **Email thread continuity** (client question, 2026-09-25): replies stay in one thread, and the exchange is mirrored onto the draw record.
+- [ ] **Low-confidence interpretation → super-user exception queue** (client question, 2026-09-25): a reply the AI cannot classify with confidence goes to a super-user queue, never to a state change.
+- [ ] **Dollar-threshold guardrail** (client question, 2026-09-25): draws above a threshold cannot be approved by email and require the UI.
 - [ ] **Treasury notification content** finalised.
 - [ ] **Polish and demo readiness:** a reset action with an explicit id list, a verify-ready check, and a rehearsal on the live path.
 

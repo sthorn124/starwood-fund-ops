@@ -34,6 +34,8 @@ a!localVariables(
           'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{09edf0b2-28a3-4a7f-b9dc-ae2afefa24d0}investmentId',
           'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{1c798a00-4519-49c1-9c04-27e7fb78a9d3}extractionInstanceId',
           'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{e418c5aa-c0db-4e02-8fb9-a4ce72ccdcef}ingestionProcessId',
+          'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{3139df20-a318-49b1-a9e7-13f6317880ef}ingestionFailureReason',
+          'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{74b593a2-ffea-4eb9-90af-49729fcdcb25}ingestionComparison',
           'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.relationships.{58a1018a-d85c-42b9-94ed-b51a9f0ef3d2}investment.fields.{e79c63ed-a43c-4951-b679-e2578ed5cbf6}investmentName',
           'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.relationships.{58a1018a-d85c-42b9-94ed-b51a9f0ef3d2}investment.fields.{fc86153c-eedd-41de-a0dd-a20def74fd2d}investmentDescription',
           'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.relationships.{58a1018a-d85c-42b9-94ed-b51a9f0ef3d2}investment.relationships.{1b588a74-afbc-4756-aacf-69483491d566}fund.fields.{fb775e5a-1ed9-4ce9-85ca-bb1b43767475}fundName'
@@ -63,13 +65,15 @@ a!localVariables(
   /* an Ingesting draw (Phase 3) is the accountant group's: its reconciliation task is open on the ingestion process,
      whose id the shell carries in ingestionProcessId (activeStepProcessId stays free for the approval steps) */
   local!ingesting: and(local!found, local!statusText = "Ingesting"),
+  /* an Ingestion Failed draw (Phase 5) has no step and no task: nobody's to act on, whatever process ids it carries */
+  local!ingestionFailed: and(local!found, local!statusText = "Ingestion Failed"),
   local!currentGroup: if(
     local!inProgress,
     rule!SD_getDrawApprovalGroup(role: index(local!current, "role", "")),
     if(local!ingesting, cons!SD_DRAW_DEMO_APPROVERS_GROUP, null)
   ),
   local!viewerIsAssignee: if(
-    a!isNullOrEmpty(local!currentGroup),
+    or(local!ingestionFailed, a!isNullOrEmpty(local!currentGroup)),
     false,
     a!defaultValue(a!isUserMemberOfGroup(username: loggedInUser(), groups: local!currentGroup), false)
   ),
@@ -117,6 +121,8 @@ a!localVariables(
     investmentId: if(local!found, local!draw['recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{09edf0b2-28a3-4a7f-b9dc-ae2afefa24d0}investmentId'], null),
     extractionInstanceId: if(local!found, local!draw['recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{1c798a00-4519-49c1-9c04-27e7fb78a9d3}extractionInstanceId'], null),
     ingestionProcessId: if(local!found, local!draw['recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{e418c5aa-c0db-4e02-8fb9-a4ce72ccdcef}ingestionProcessId'], null),
+    ingestionFailureReason: if(local!found, local!draw['recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{3139df20-a318-49b1-a9e7-13f6317880ef}ingestionFailureReason'], null),
+    ingestionComparison: if(local!found, local!draw['recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{74b593a2-ffea-4eb9-90af-49729fcdcb25}ingestionComparison'], null),
     investmentName: if(local!found, local!draw['recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.relationships.{58a1018a-d85c-42b9-94ed-b51a9f0ef3d2}investment.fields.{e79c63ed-a43c-4951-b679-e2578ed5cbf6}investmentName'], null),
     investmentDescription: if(local!found, local!draw['recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.relationships.{58a1018a-d85c-42b9-94ed-b51a9f0ef3d2}investment.fields.{fc86153c-eedd-41de-a0dd-a20def74fd2d}investmentDescription'], null),
     fundName: if(local!found, local!draw['recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.relationships.{58a1018a-d85c-42b9-94ed-b51a9f0ef3d2}investment.relationships.{1b588a74-afbc-4756-aacf-69483491d566}fund.fields.{fb775e5a-1ed9-4ce9-85ca-bb1b43767475}fundName'], null),
@@ -127,6 +133,7 @@ a!localVariables(
     approvedCount: local!approvedCount,
     inProgress: local!inProgress,
     ingesting: local!ingesting,
+    ingestionFailed: local!ingestionFailed,
     currentRole: if(local!ingesting, "Accountant reconciliation", if(a!isNullOrEmpty(local!current), null, index(local!current, "role", null))),
     currentApprover: if(a!isNullOrEmpty(local!current), null, index(local!current, "approverName", null)),
     currentActivatedAt: if(local!ingesting, local!draw['recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{039b9281-34a3-468c-881e-20a4ce03d900}receivedDate'], local!activatedAt),

@@ -2,7 +2,8 @@ from refs import *
 d = lambda n: fld(DRAW, n)
 fields = ["id","drawNumber","amount","cashEquityNeeded","fundingDate","drawType","purpose","budgetStatus",
           "overBudgetReason","generalComments","contingencyExplanation","status","currentStep","activeStepProcessId",
-          "createdAt","updatedAt","treasuryNotifiedAt","receivedDate","submittedBy","investmentId","extractionInstanceId","ingestionProcessId"]
+          "createdAt","updatedAt","treasuryNotifiedAt","receivedDate","submittedBy","investmentId","extractionInstanceId","ingestionProcessId",
+          "ingestionFailureReason","ingestionComparison"]
 sel = ",\n          ".join(d(n) for n in fields)
 sel += ",\n          " + rel_fld(DRAW,"investment",INV,"investmentName")
 sel += ",\n          " + rel_fld(DRAW,"investment",INV,"investmentDescription")
@@ -49,13 +50,15 @@ a!localVariables(
   /* an Ingesting draw (Phase 3) is the accountant group's: its reconciliation task is open on the ingestion process,
      whose id the shell carries in ingestionProcessId (activeStepProcessId stays free for the approval steps) */
   local!ingesting: and(local!found, local!statusText = "Ingesting"),
+  /* an Ingestion Failed draw (Phase 5) has no step and no task: nobody's to act on, whatever process ids it carries */
+  local!ingestionFailed: and(local!found, local!statusText = "Ingestion Failed"),
   local!currentGroup: if(
     local!inProgress,
     rule!SD_getDrawApprovalGroup(role: index(local!current, "role", "")),
     if(local!ingesting, cons!SD_DRAW_DEMO_APPROVERS_GROUP, null)
   ),
   local!viewerIsAssignee: if(
-    a!isNullOrEmpty(local!currentGroup),
+    or(local!ingestionFailed, a!isNullOrEmpty(local!currentGroup)),
     false,
     a!defaultValue(a!isUserMemberOfGroup(username: loggedInUser(), groups: local!currentGroup), false)
   ),
@@ -92,6 +95,7 @@ a!localVariables(
     approvedCount: local!approvedCount,
     inProgress: local!inProgress,
     ingesting: local!ingesting,
+    ingestionFailed: local!ingestionFailed,
     currentRole: if(local!ingesting, "Accountant reconciliation", if(a!isNullOrEmpty(local!current), null, index(local!current, "role", null))),
     currentApprover: if(a!isNullOrEmpty(local!current), null, index(local!current, "approverName", null)),
     currentActivatedAt: if(local!ingesting, local!draw[{d("receivedDate")}], local!activatedAt),
