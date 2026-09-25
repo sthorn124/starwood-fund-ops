@@ -16,11 +16,12 @@
    extracted investment, the field is prefilled with the next available number for that investment and an amber chip
    says so ("Submitted as #<extracted>, already on file — renumbered to next in sequence"); the accountant can override,
    and whatever is confirmed commits. When the extracted number is genuinely next in sequence the chip is green.
-   Corroboration (Phase 5.5, 2026-09-25): beneath the budget lines, every supporting document that came with the package
-   (rule!SD_getSupportingDocuments, re-read every 30 s and on Refresh while any is still being read) is tied out against
-   the lines on this form as edited (rule!SD_corroborateDocuments, no model): pay application against the Hard Costs
-   current draw, invoice against the budget line with the same current draw, lien waiver and backup listed as received,
-   and an amber line when a pay application came without a lien waiver. The chips inform the accountant; nothing here
+   Corroboration (Phase 5.5, 2026-09-25; Phase 5.6 document handling): beneath the budget lines, every supporting document that came with the package
+   (rule!SD_getSupportingDocuments, re-read every 30 s and on Refresh while any is still being classified) is shown with
+   its Doc Center type and tied out against the lines on this form as edited (rule!SD_corroborateDocuments, no model):
+   the pay application — the only document read — against the Hard Costs current draw; invoices "Received · filed as
+   Invoice" with no figure and no tie; lien waivers and backup listed as received; an amber line when a pay application
+   came without a lien waiver. The chips inform the accountant; nothing here
    blocks Confirm. A package with no supporting documents shows one neutral line. */
 a!localVariables(
   local!headerIn: if(a!isNullOrEmpty(ri!headerJson), {}, a!fromJson(ri!headerJson)),
@@ -351,7 +352,7 @@ a!localVariables(
                     text: if(
                       local!supportingCount = 0,
                       "  none with this package",
-                      "  " & local!supportingCount & " with the package · figures read by AI, tied out against the lines above"
+                      "  " & local!supportingCount & " with the package · typed by Doc Center; the pay application is read and tied out against the lines above"
                     ),
                     color: "#6B7280",
                     size: "SMALL"

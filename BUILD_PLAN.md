@@ -252,11 +252,51 @@ The canonical definition is in `PROJECT_INSTRUCTIONS.md` § Data model. Field vo
 - ✅ 2026-09-25 **Corroboration at reconciliation:** the pay application's Current Payment Due is tied to the Hard Costs current draw, and each invoice total to its matching line (matched by amount). The chips read green "Ties" or amber "Does not tie: <doc> vs <template>". Lien waivers are listed, with an amber line when a pay application arrives without one; Backup is listed; no documents gives a neutral note. Nothing blocks confirm.
 - ✅ 2026-09-25 **On the draw:** after confirm, the corroboration result lands on the draw and shows as a backup line on the Summary's Draw Origin card.
 - [ ] **Persona-driven confirm and geometry** (browser): the corroboration section's layout, the upload slots and the Documents tab, and the accountant's own Confirm from the task (sail cannot open a task; confirmed over the Dev MCP this phase). Checklist in `TODO.md`.
-- [ ] **Invoice with no matching line, Backup and "Not read" paths live** (covered by the gauntlet and the break-test only): a fabricated invoice for an amount on no line, and an unrelated PDF, through a live package. Trigger: the next package-generator change.
+- ~~**Invoice with no matching line, Backup and "Not read" paths live**~~ — superseded 2026-09-25 by Phase 5.6: invoices are no longer read or tied and "Not read" is retired; the unrelated-PDF path is verified live there (junk specimen → Backup / Not classified).
 
 **Dependencies:** Phases 3 and 5.
 
 **Demo staging note (documentation only, 2026-09-25):** in the final demo the package arrives through a simulated feed (email-in or a watched drop location), narrated as the EY API/SFTP feed. Manual upload through Receive Capital Call is build-time tooling. Simulating the feed is a staging and polish item for Phase 6 or later. Intake built now must stay compatible with it: a set of documents in, one draw out.
+
+### Phase 5.6 — Doc Center classification for supporting documents, extraction on pay applications only  ← BUILT 2026-09-25
+
+**Ruling (2026-09-25, recorded in `PROJECT_INSTRUCTIONS.md` Business rules): document handling architecture.**
+- Doc Center owns identifying and reading documents. A classification model types every supporting document.
+- Extraction runs only where an extracted figure drives a control: today, the pay application's Current Payment Due, tied against the template.
+- Invoices and lien waivers stop at classification: typed, filed, presence-checked, never read.
+- Generative AI skills are kept for language tasks: the ingestion-failure comparison, and Phase 6's reply interpretation and narrative drafting.
+- Phase 5.5's prompt-based typing was interim.
+
+**Objects:**
+- ✅ 2026-09-25 **Training set:** a committed generator (`scripts/gen_training_set.py`) writes at least 8 pay applications, 8 invoices and 8 lien waivers (varied parties, amounts, references, dates, layouts), plus one unrelated junk PDF kept apart as the unrecognisable specimen. Local only (gitignored).
+- ✅ 2026-09-25 **Doc Center classification model:** Pay Application, Invoice, Lien Waiver (plus Doc Center's "Other" catch-all), created on the instance and trained on the training set: labelled test cases, reconciled, accuracy measured. The pipeline reads its key from a constant. Built over the Dev MCP, no manual step: model 7 / version 8, 24/24 correct.
+- ✅ 2026-09-25 **Pay application extraction:** a Doc Center extraction model (86 / version 143) over the G702-style layout (contractor, application number, Current Payment Due).
+- ✅ 2026-09-25 **`SD Read Supporting Documents` rewired** (now a dispatcher to the per-document worker `SD Classify Supporting Document`; the two 5.5 rules and `SD_DOCUMENT_READING_MODEL` deleted, 404 confirmed):
+  - Classify every PDF. Low confidence, "Other" or an error → Backup, "Not classified".
+  - Extract only a Pay Application.
+  - Gate every model output deterministically.
+  - Retire `SD_supportingDocumentPrompt` and `SD_parseSupportingDocReading`.
+- ✅ 2026-09-25 **Corroboration and display** (`SD_corroborateDocuments` v5, form v6, Summary v9 with **Package received**, intake page v9):
+  - The pay application tie-out is unchanged.
+  - The invoice row reads "Received · filed as Invoice", with no figure and no tie; the invoice line-match is removed.
+  - The Documents tab shows each document's treatment (classified only, or classified and read) with per-document time and cost.
+  - The Draw Origin summary wording follows.
+- ✅ 2026-09-25 **Verification** as `sd.accountant` via sail: clean, mismatch, junk, template-only and v2 failure. Classification time and cost measured against 5.5's combined call.
+  - Clean: draw 92 = #77, TIES.
+  - Mismatch: draw 93 = #78, ATTENTION.
+  - Junk: draw 94 = #79, TIES, "1 not classified", with no warning beyond its own row.
+  - Template only: draw 95 = #80, NONE.
+  - v2: draw 96, Ingestion Failed, documents classified.
+  - Draw 66 untouched.
+  - Per document: ~50 s to classify, 3 AI actions; plus ~67 s and 3 AI actions to read a pay application. 5.5 took 5–8 s and 2–3 AI actions. See `BUILD_LOG.md`.
+- [ ] **Browser pass on the 5.6 display.**
+  - The three amber tags over the documented 40-character tag limit: "Does not tie: $X vs $Y", "No lien waiver received with the pay application", and the renumbered chip.
+  - The Documents tab's notes column.
+  - Rule on shorter chip wording if they truncate.
+  - *Owner: Scott. Trigger: the first rehearsal of the package beat.*
+- [ ] **Narrate or absorb the package latency.** The reconciliation task arrives at ~80 s; a pay application settles at ~2 min. *Owner: the presenter. Trigger: the first rehearsal of the package beat.*
+
+**Dependencies:** Phase 5.5.
 
 ### Phase 6 — Email approval, Asset Manager edit, narrative, polish
 

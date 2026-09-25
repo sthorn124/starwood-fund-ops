@@ -96,7 +96,7 @@ a!localVariables(
               a!richTextItem(text: "SUPPORTING DOCUMENTS · OPTIONAL", color: "#6B7280", size: "SMALL", style: "STRONG"),
               char(10),
               a!richTextItem(
-                text: "The rest of the draw package as received: GC pay application, vendor invoices, lien waivers, other backup. Each PDF is classified and its key figure read by AI, then tied out against the template at reconciliation. A package without them is received exactly the same way.",
+                text: "The rest of the draw package as received: GC pay application, vendor invoices, lien waivers, other backup. Doc Center classifies each PDF; only the pay application is read, and its Current Payment Due is tied out against the template at reconciliation. Invoices and lien waivers are filed. A package without them is received exactly the same way.",
                 color: "#374151"
               )
             },
@@ -206,7 +206,7 @@ a!localVariables(
                 text: if(
                   local!supportingCount = 0,
                   "No supporting documents came with this package.",
-                  local!supportingCount & if(local!supportingCount = 1, " supporting document is", " supporting documents are") & " being classified and read; the figures are tied out against the template on the reconciliation task."
+                  local!supportingCount & if(local!supportingCount = 1, " supporting document is", " supporting documents are") & " being classified by Doc Center; a pay application is read and tied out against the template on the reconciliation task."
                 ),
                 color: "#374151"
               ),

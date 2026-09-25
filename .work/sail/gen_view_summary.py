@@ -619,18 +619,21 @@ a!localVariables(
                 text: a!match(
                   value: a!defaultValue(index(local!d, "corroborationState", null), "NONE"),
                   equals: "TIES", then: "Package ties",
+                  equals: "RECEIVED", then: "Package received",
                   equals: "ATTENTION", then: "Needs attention",
                   default: "None received"
                 ),
                 backgroundColor: a!match(
                   value: a!defaultValue(index(local!d, "corroborationState", null), "NONE"),
                   equals: "TIES", then: "#E6F4EC",
+                  equals: "RECEIVED", then: "#E6F4EC",
                   equals: "ATTENTION", then: "#FDF3E0",
                   default: "#EEF1F5"
                 ),
                 textColor: a!match(
                   value: a!defaultValue(index(local!d, "corroborationState", null), "NONE"),
                   equals: "TIES", then: "#1E7E46",
+                  equals: "RECEIVED", then: "#1E7E46",
                   equals: "ATTENTION", then: "#92600A",
                   default: "#64748B"
                 )

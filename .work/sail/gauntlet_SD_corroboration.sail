@@ -1,33 +1,44 @@
-/* Regression gauntlet for SD_parseSupportingDocReading and SD_corroborateDocuments (Phase 5.5, 2026-09-25).
-   Paste into a throwaway zz rule and testRule it. Lines are the clean template's categories and current draws.
-   Expected (parse): P1 Pay Application 2490296.23 Read; P2 Invoice 59582 (commas and $ tolerated); P3 Lien Waiver,
-   amount ignored; P4 unknown type → Backup, Not read; P5 failed call → Backup, Not read; P6 letters in AMOUNT → null +
-   failure; P7 three decimals → null; P8 fenced answer still read; P9 lower-case keys still read.
-   Expected (corroborate): C1 TIES/TIES/RECEIVED, state TIES; C2 mismatch + no waiver → ATTENTION, waiverMissing;
-   C3 invoice with no matching line → ATTENTION "no matching budget line"; C4 none → NONE; C5 pending → PENDING,
-   ATTENTION; C6 backup only → TIES; C7 pay application figure unread → ATTENTION "Figure could not be read". */
+/* Phase 5.6 gauntlet for SD_corroborateDocuments (the 5.5 parse specimens P1-P9 retired with SD_parseSupportingDocReading).
+   Each specimen states its expected state, summary and chips; the run returns "PASS <id>" or "FAIL <id>: <got>".
+   Re-run after any change to the corroboration rule.
+   C1 clean package; C2 mismatch, no waiver; C3 clean + unclassified junk (no warning); C4 none; C5 still classifying;
+   C6 invoice only (filed, nothing to tie); C7 pay application figure unread; C8 legacy backup row (5.5 / seed). */
 a!localVariables(
-  local!cats: {"Hard Costs", "A&E - Architectural", "Overhead, CM & Admin Fees", "A&E - Soils & Environmental", "A&E - Design/Misc Consults", "FF&E", "A&E - Engineering", "Operating Deficits", "All Project Contingency", "Land", "Acquisition Costs", "Taxes", "Permits & Muni Fees", "Insurance", "Financing", "Start-up/Marketing"},
-  local!draws: {2490296.23, 59582, 54524, 14504, 4837, 1288, 730, -21509, 0, 0, 0, 0, 0, 0, 0, 0},
-  local!doc: a!map(rowId: 1, document: null, name: "x.pdf", type: "Pay Application", status: "Read", amount: 2490296.23, party: "Stonebridge Construction Group", reference: "14", notes: ""),
-  local!inv: a!map(rowId: 2, document: null, name: "i.pdf", type: "Invoice", status: "Read", amount: 59582, party: "Alder & Finch Architects, LLP", reference: "AF-2026-1087", notes: ""),
-  local!lw: a!map(rowId: 3, document: null, name: "w.pdf", type: "Lien Waiver", status: "Read", amount: null, party: "Stonebridge Construction Group", reference: "", notes: ""),
-  a!map(
-    P1: rule!SD_parseSupportingDocReading(response: "TYPE|PAY_APPLICATION" & char(10) & "PARTY|Stonebridge Construction Group" & char(10) & "REFERENCE|14" & char(10) & "AMOUNT|2490296.23", success: true, errorMessage: null, modelName: "Claude Sonnet 4.6"),
-    P2: rule!SD_parseSupportingDocReading(response: "TYPE|INVOICE" & char(10) & "PARTY|Alder & Finch Architects, LLP" & char(10) & "REFERENCE|AF-2026-1087" & char(10) & "AMOUNT|$59,582.00", success: true, errorMessage: null, modelName: "Claude Sonnet 4.6").amount,
-    P3: rule!SD_parseSupportingDocReading(response: "TYPE|LIEN_WAIVER" & char(10) & "PARTY|Stonebridge Construction Group" & char(10) & "REFERENCE|" & char(10) & "AMOUNT|2490296.23", success: true, errorMessage: null, modelName: "Claude Sonnet 4.6"),
-    P4: rule!SD_parseSupportingDocReading(response: "TYPE|RECEIPT" & char(10) & "AMOUNT|12.00", success: true, errorMessage: null, modelName: "Claude Sonnet 4.6"),
-    P5: rule!SD_parseSupportingDocReading(response: null, success: false, errorMessage: "timeout", modelName: "Claude Sonnet 4.6"),
-    P6: rule!SD_parseSupportingDocReading(response: "TYPE|PAY_APPLICATION" & char(10) & "AMOUNT|2,490,296.23 USD", success: true, errorMessage: null, modelName: "Claude Sonnet 4.6"),
-    P7: rule!SD_parseSupportingDocReading(response: "TYPE|INVOICE" & char(10) & "AMOUNT|59582.004", success: true, errorMessage: null, modelName: "Claude Sonnet 4.6").amount,
-    P8: rule!SD_parseSupportingDocReading(response: "```" & char(10) & "TYPE|INVOICE" & char(10) & "PARTY|Alder & Finch" & char(10) & "REFERENCE|AF-1" & char(10) & "AMOUNT|59582" & char(10) & "```", success: true, errorMessage: null, modelName: "Claude Sonnet 4.6").amount,
-    P9: rule!SD_parseSupportingDocReading(response: "type|invoice" & char(10) & "amount|59582", success: true, errorMessage: null, modelName: "Claude Sonnet 4.6").documentType,
-    C1: a!localVariables(local!r: rule!SD_corroborateDocuments(documents: {local!doc, local!inv, local!lw}, lineCategories: local!cats, lineCurrentDraws: local!draws), a!map(state: local!r.state, summary: local!r.summary, chips: a!forEach(local!r.items, fv!item.chip), templates: a!forEach(local!r.items, fv!item.templateLabel))),
-    C2: a!localVariables(local!r: rule!SD_corroborateDocuments(documents: {a!update(local!doc, "amount", 2527796.23)}, lineCategories: local!cats, lineCurrentDraws: local!draws), a!map(state: local!r.state, waiverMissing: local!r.waiverMissing, summary: local!r.summary, chips: a!forEach(local!r.items, fv!item.chip))),
-    C3: a!localVariables(local!r: rule!SD_corroborateDocuments(documents: {a!update(local!inv, "amount", 12345.67)}, lineCategories: local!cats, lineCurrentDraws: local!draws), a!map(state: local!r.state, summary: local!r.summary, chips: a!forEach(local!r.items, fv!item.chip))),
-    C4: a!localVariables(local!r: rule!SD_corroborateDocuments(documents: null, lineCategories: local!cats, lineCurrentDraws: local!draws), a!map(state: local!r.state, summary: local!r.summary, count: local!r.count)),
-    C5: a!localVariables(local!r: rule!SD_corroborateDocuments(documents: {a!update(local!inv, "status", "Received")}, lineCategories: local!cats, lineCurrentDraws: local!draws), a!map(state: local!r.state, summary: local!r.summary, chips: a!forEach(local!r.items, fv!item.chip))),
-    C6: a!localVariables(local!r: rule!SD_corroborateDocuments(documents: {a!update(local!lw, "type", "Backup")}, lineCategories: local!cats, lineCurrentDraws: local!draws), a!map(state: local!r.state, summary: local!r.summary)),
-    C7: a!localVariables(local!r: rule!SD_corroborateDocuments(documents: {a!update(local!doc, "amount", null), local!lw}, lineCategories: local!cats, lineCurrentDraws: local!draws), a!map(state: local!r.state, summary: local!r.summary, chips: a!forEach(local!r.items, fv!item.chip)))
+  local!cats: {"Hard Costs", "A&E - Architectural"},
+  local!draws: {2490296.23, 59582},
+  local!pay: a!map(rowId: 1, name: "PayApp.pdf", type: "Pay Application", status: "Classified and read", amount: 2490296.23, party: "Stonebridge Construction Group", reference: "14"),
+  local!inv: a!map(rowId: 2, name: "Invoice.pdf", type: "Invoice", status: "Classified only", amount: 59582, party: "", reference: ""),
+  local!lw: a!map(rowId: 3, name: "Waiver.pdf", type: "Lien Waiver", status: "Classified only", amount: null, party: "", reference: ""),
+  local!junk: a!map(rowId: 4, name: "Notice.pdf", type: "Backup", status: "Not classified", amount: null, party: "", reference: ""),
+  local!cases: {
+    a!map(id: "C1", docs: {local!pay, local!inv, local!lw},
+      want: "TIES|3 supporting documents · pay application ties · invoice filed · lien waiver received|Ties;Received · filed as Invoice;Lien waiver received"),
+    a!map(id: "C2", docs: {a!update(local!pay, "amount", 2527796.23)},
+      want: "ATTENTION|1 supporting document · pay application does not tie ($2,527,796.23 vs $2,490,296.23) · no lien waiver with the pay application|Does not tie: $2,527,796.23 vs $2,490,296.23"),
+    a!map(id: "C3", docs: {local!pay, local!inv, local!lw, local!junk},
+      want: "TIES|4 supporting documents · pay application ties · invoice filed · lien waiver received · 1 not classified|Ties;Received · filed as Invoice;Lien waiver received;Received · not classified"),
+    a!map(id: "C4", docs: null, want: "NONE|No supporting documents received|"),
+    a!map(id: "C5", docs: {a!map(rowId: 6, name: "Pending.pdf", type: "Backup", status: "Received", amount: null, party: "", reference: "")},
+      want: "ATTENTION|1 supporting document · 1 still being classified|Being classified"),
+    a!map(id: "C6", docs: {local!inv}, want: "RECEIVED|1 supporting document · invoice filed|Received · filed as Invoice"),
+    a!map(id: "C7", docs: {a!update(local!pay, "amount", null), local!lw},
+      want: "ATTENTION|2 supporting documents · pay application figure not read · lien waiver received|Figure could not be read;Lien waiver received"),
+    a!map(id: "C8", docs: {a!map(rowId: 5, name: "Legacy.pdf", type: "Backup", status: "Attached", amount: null, party: "", reference: "")},
+      want: "RECEIVED|1 supporting document · 1 backup|Received")
+  },
+  a!forEach(
+    items: local!cases,
+    expression: a!localVariables(
+      local!r: rule!SD_corroborateDocuments(documents: fv!item.docs, lineCategories: local!cats, lineCurrentDraws: local!draws),
+      local!chips: if(a!defaultValue(local!r.count, 0) = 0, "", joinarray(a!forEach(items: local!r.items, expression: fv!item.chip), ";")),
+      /* counted with sum() of 1/0: an a!forEach that returns {} for skipped items yields [[]], which is not "empty" */
+      local!invoiceFigures: if(a!defaultValue(local!r.count, 0) = 0, 0, sum(a!forEach(items: local!r.items, expression: if(and(fv!item.type = "Invoice", not(isnull(fv!item.figure))), 1, 0)))),
+      local!got: local!r.state & "|" & local!r.summary & "|" & local!chips,
+      if(
+        and(local!got = fv!item.want, local!invoiceFigures = 0),
+        "PASS " & fv!item.id,
+        "FAIL " & fv!item.id & ": " & local!got & if(local!invoiceFigures = 0, "", " (invoice carries a figure)")
+      )
+    )
   )
 )

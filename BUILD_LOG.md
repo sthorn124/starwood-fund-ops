@@ -2,7 +2,7 @@
 
 What has actually been built in the environment, with object identifiers and the decisions behind them. Append after every build step; never rewrite a closed entry — a correction is a new entry that names what it corrects. Entry shape: date and title; scope line (the identity and group memberships every readback ran under); what changed, by object; decisions and why; verified (how, with counts and scope); not verified (and the browser checklist that covers it); promotion checkpoint. The contract is `CLAUDE.md` §7; the promotion loop is §9.
 
-**Promotion checkpoint: current through 2026-09-25 — Phase 5: ingestion failure path with AI template comparison — level with the log tail.** A session touching promotion refuses to call itself complete if this checkpoint lags the log tail by more than one session.
+**Promotion checkpoint: current through 2026-09-25 — Phase 5.6: Doc Center classification for supporting documents, extraction on pay applications only — level with the log tail.** A session touching promotion refuses to call itself complete if this checkpoint lags the log tail by more than one session.
 
 ## Promotion candidates (staging)
 
@@ -73,6 +73,14 @@ What has actually been built in the environment, with object identifiers and the
 - **STAGED (gate 1, 2026-09-25, Phase 5.5) — an upload that replaces a file field's value discards the temporary file it replaced; sail's upload sends only the new file.** Measured: three PDFs uploaded through sail into one multi-file `a!fileUploadField` (`maxSelections: 10`) left the field holding only the last (plain `saveInto`); with a `saveInto` that appended, the field showed all three, but after `a!submitUploadedFiles` only the last existed — `document()` on the first two: "Document Does Not Exist or has been Deleted" — and `a!startProcess` passed the dead ids on (the process read nothing and ran on). The docs say missing documents are ignored by the submit, so nothing errors. Working form: one file per field (upload slots: a new empty field after each upload), so no upload ever leaves a field's value unless the user clears it. The browser's multi-file behaviour (it reports the whole list) was not measured here. *Trigger:* the next multi-file upload driven through sail, or a browser test of one.
 - **STAGED (gate 1, 2026-09-25, Phase 5.5) — an `a!forEach` whose every item returns `{}` yields `[[]]`, and inside a list that empty element is counted by `count()` but skipped by `len()`, so `where(len(list) > 0)` indexes the wrong items.** Measured in the corroboration gauntlet (C5/C6 lost their trailing summary parts; fixed with per-item lengths `where(a!forEach(items: list, expression: len(tostring(fv!item)) > 0))`, and the gauntlet then passed). Extends the Phase 5 `length()`/`count()` candidate. *Trigger:* the next list assembled from conditionally skipped `a!forEach` items.
 - **STAGED (gate 1, 2026-09-25, Phase 5.5) — sail cannot address repeated link labels:** a grid whose rows share a link label ("New draw" ×4) is refused ("names 4 different destinations and cannot be told apart; nothing on the page distinguishes them"). Working form: make the target unique (here: clear the stale rows) before a persona check. *Trigger:* the next persona navigation into a list with repeated labels.
+- **[TRIGGER FIRED 2026-09-25, Phase 5.6 — reproduced, held at gate 1]** "`tostring()` of a Decimal keeps 7 significant digits" (2026-09-22) fired in the classification gates' own gauntlet: 3 false failures (`tostring(2490296.23)`), fixed with `fixed(x, 2, true)`. Still gate 1: two accidental recurrences, no deliberate re-test. *New trigger:* the next Decimal compared as text.
+- **[TRIGGER FIRED 2026-09-25, Phase 5.6 — reproduced, held at gate 1]** The `[[]]` candidate (Phase 5.5) fired in the corroboration gauntlet: an invoice-figure check built as "the list of offending items is non-empty" read true on every case, because `a!forEach` returned `{}` per item. Working form, extended: count with `sum(a!forEach(…, if(cond, 1, 0)))` rather than testing the emptiness of a filtered `a!forEach`. *New trigger:* the next emptiness test on a filtered `a!forEach`.
+- **[TRIGGER FIRED 2026-09-25, Phase 5.6 — reproduced]** "sail does not follow a task link": the Reconcile Extraction card was again `<display>` (draw 92). Unchanged at gate 1. *New trigger:* the next sail release.
+- **STAGED (gate 1, 2026-09-25, Phase 5.6) — Doc Center's Generative-AI classification returns no confidence.** The instance's confidence is null and the response carries only the classification and a reasoning paragraph, even with the model version's confidence threshold set to 80 (instances 58–81, 85, 89; 30+ runs). A gate that routes "low confidence" therefore never fires live. Working form: gate on the label (an explicit "Other" category plus an exact-match check) and on the instance status; keep the confidence branch for a model that reports one. DocCenter-version-dependent; re-verify per instance. *Trigger:* the next Doc Center classification model on any instance, or a DocCenter update.
+- **STAGED (gate 1, 2026-09-25, Phase 5.6) — a synchronous Doc Center run spends ~40–45 s of orchestration around an ~8 s LLM call.** Measured: classification instance 85 went from created to classified in 8.0 s, while the calling worker measured 53.9 s from its start to the subprocess returning. Across 10 live classifications the worker saw 48.5–54.3 s; the 4 extractions took 64.4–70.2 s. Working form: one asynchronous worker per document (the documents then settle in the time of the slowest), and never a serial loop. *Trigger:* the next Doc Center run inside a latency-sensitive flow.
+- **STAGED (gate 1, 2026-09-25, Phase 5.6) — Doc Center's reconcile process for test instances takes a full instance record as its input, which a Dev MCP process test cannot pass.** Working form used: write the fields a correct, override-free reconciliation sets (status 4, accuracy 1, reconciled by/on) with `updateRecordData`, with explicit ids; the model version's accuracy readback then reports the set (24/24). This bypasses Doc Center's reconcile logic, which is safe only with self-learning off. *Trigger:* the next Doc Center model trained over the Dev MCP.
+- **STAGED (gate 1, 2026-09-25, Phase 5.6) — pure-ASCII PDFs survive `uploadDocument`.** The known corruption (bytes above 0x7F doubled) comes only from the optional binary-marker comment in generated PDFs. Dropping it made 24/24 training files store at their exact local size, and Doc Center read them. Working form: generate test PDFs ASCII-only and verify the stored size. Extends `reference/mcp-capability-boundaries.md`'s upload entry. *Trigger:* the next generated document uploaded over the Dev MCP.
+- **STAGED (gate 1, 2026-09-25, Phase 5.6; method, not platform) — a reading gate is skipped silently when edits are batched.** The docs-search gate was not run before four interface edits made in one batch; the transcript showed it, not memory. Run afterwards, it surfaced a real finding (tag text truncates at 40 characters). Working form: before claiming a gate in a log, check that the call is in the transcript; run the gate before the batch, not per edit. Home: the project `CLAUDE.md` if promoted. *Trigger:* the next batch of interface edits.
 
 ## Entries
 
@@ -903,3 +911,248 @@ Promotion checkpoint: current through 2026-09-25 — Phase 5: ingestion failure 
 **Promotion candidates:** 3 new staged at gate 1 (replaced uploads discarded / sail's single-file upload; the `[[]]` and `len()` misalignment; sail and repeated link labels); 2 triggers fired (AI-skill `customInputs` confirmed on a second skill and extended with the typed document input — proposed for promotion at the next template sync, not promoted here; sail and task links reproduced). None promoted; the supplemental is unchanged and the repo and user-level copies are identical.
 
 Promotion checkpoint: current through 2026-09-25 — Phase 5.5: multi-document corroboration at intake.
+
+## 2026-09-25 — Phase 5.6: Doc Center classification for supporting documents, extraction on pay applications only
+
+**Scope.** Same session as Phases 5 and 5.5, same identities. Dev MCP `appian` as `scott.thorn@appian.com` (full scope: `SD Administrators`, `SD Users`, the three step groups); every readback below ran under it. sail as `sd.accountant` (`~/.sail-sd.accountant`) and `sd.assetmanager` (`~/.sail-sd.assetmanager`). `appian-runtime` and `--from-devmcp` not used. Draw 66 untouched. DocCenter (`81997754-651d-4840-9385-128c04dc7fa5`) is read and its data tables written as a dependency; the out-of-scope client app is not touched.
+
+**Step 0 — ruling recorded.** `PROJECT_INSTRUCTIONS.md` Business rules and `BUILD_PLAN.md` Phase 5.6 now carry the document handling architecture:
+- Doc Center classification types every supporting document.
+- Extraction runs only where a figure drives a control (the pay application's Current Payment Due).
+- Invoices and lien waivers are typed, filed and presence-checked, never read.
+- Generative AI skills are kept for language tasks. Phase 5.5's prompt-based typing was interim.
+
+**Capability reading (before any write).** Doc Center has classification as data, parallel to extraction:
+- `AIA Classification Model` → `AIA Classification Model Version` (role, instructions, llm, confidenceThreshold, useVision, allowMultipleOutputs, status) → `AIA Classification Model Version Category` (name, description, sortOrder).
+- It records results as `AIA Classification Instance` rows (classification, confidence, reasoning, aiActions, statusId, testInstance), and runs through `AIA Classification Run Model Version` (`5c825cfa-…`; parameters document, modelKey or modelVersionId, isDocumentTestCase).
+
+The model type:
+- All six classification models on the instance are type "Generative AI". The create wizard (`AIA_ClassificationModel_Sub_ModelDetails`) offers no type choice. Extraction, by contrast, lists "Trained Model" among its types.
+- `AIA_Classification_GeneratePrompt` builds the classifier's prompt from the version's role, its categories and their descriptions, and its instructions.
+- On this instance, "training" a Doc Center classification model therefore means:
+  - categories and descriptions;
+  - labelled test instances (`isDocumentTestCase`), reconciled so Doc Center measures accuracy;
+  - optional self-learning suggestions from reconciled instances.
+- It does not mean fitting weights. Recorded plainly so nobody reads "trained" as an ML fit.
+
+Four of the six models carry an "Other" catch-all category, Doc Center's idiom for unrecognised documents; this model follows it.
+
+The upload path: `uploadDocument` doubles bytes above 0x7F (`reference/mcp-capability-boundaries.md`). The generated PDFs are ASCII except the optional binary-marker comment on line 2, so ASCII-only PDFs can be placed on the instance over the Dev MCP and checked by size.
+
+**Step 1 — training set (`scripts/gen_training_set.py`, committed; files local, `training/` and `*.pdf` gitignored).**
+- **Contents:**
+  - 8 pay applications (three layouts: banded G702-style, ruled "Contractor's Application for Payment", compact "Payment Application"; retainage 0/5/10 %).
+  - 8 invoices (FF&E, MEP engineering, materials testing, landscape, interiors, security, signage, permits; three layouts).
+  - 8 lien waivers (conditional and unconditional, progress and final, GC and subcontractor claimants; three layouts).
+  - All with distinct parties, projects, amounts, reference numbers and dates. `training/manifest.csv` holds file, label and figure.
+- **Junk specimen:** `THSV_Junk_UtilityNotice.pdf` (a utility service-interruption notice for the hotel), kept at the repo root, outside the training set.
+- **Deterministic:** static lists, no randomness.
+- **ASCII:** `write_pdf(..., ascii_only=True)` drops the binary-marker comment, so every file is pure ASCII (checked: 0 bytes above 0x7F in all 25 files). The four demo PDFs keep their marker; their md5s are unchanged.
+- **Sizes:** 2,582–5,351 bytes; 87,289 bytes for the 24.
+
+**Step 2 — Doc Center models (DocCenter data rows, written with `insertRecordData`, the same way as extraction model 85).**
+- **Classification model 7 `sdDrawSupportingDocuments`** ("SD Draw Supporting Documents", type Generative AI, AI log on, self-learning off):
+  - Version 8: Published, confidenceThreshold 80, text mode, single output, Doc Center's default LLM. The instruction line says "Use Other for any document that is not one of the listed types".
+  - Categories 31 Pay Application, 32 Invoice, 33 Lien Waiver, 34 Other, each with a description.
+- **Extraction model 86 `sdPayApplication`** ("SD Pay Application", Generative AI):
+  - Version 143, section 224.
+  - Fields 3636 `contractorName`, 3637 `applicationNumber`, 3638 `currentPaymentDue` (Text, "exactly as printed").
+  - The instruction says not to calculate or reformat.
+- **First live classification** (LW03, document 55730, test instance 58, via `testProcessModel` on `AIA Classification Run Model Version` as the designer):
+  - Verdict "Lien Waiver", status 3, 3 AI actions.
+  - The AI log: one call, 6.6 s, `claude-haiku-4-5` (Doc Center's default), TEXT mode.
+  - ≈38 s from instance creation to the saved outcome; Doc Center's own orchestration takes the rest.
+  - **No confidence is returned:** the instance's confidence is null and the response carries only classification and reasoning, even with a threshold set.
+- **First live extraction** (demo pay application, document 55693, instance 867):
+  - contractorName "Stonebridge Construction Group", applicationNumber "14", currentPaymentDue "$2,490,296.23".
+  - Status 2, 3 AI actions.
+- **Training upload:**
+  - The 24 files went to a new knowledge folder `SD Draw Classification Training` (`…_574063`, under `SD Artifacts`) with `uploadDocument`. LW03 was uploaded by the session; the other 23 by a background agent under the same Dev MCP identity, with no other instance calls.
+  - Every stored size equals the local size, read back by a throwaway rule: 24/24.
+  - The labels are in the document descriptions ("Label: Invoice").
+  - Document ids: PA01–PA08 55736, 55738, 55741, 55742, 55744, 55745, 55747, 55748; IN01–IN08 55749, 55750, 55752, 55753, 55754, 55755, 55759, 55765; LW01–LW08 55766, 55768, 55730, 55770, 55771, 55772, 55773, 55774.
+- **Training run:**
+  - A throwaway `zz_trainSupportingDocClassifier` dispatched the other 23 as asynchronous test instances (`isDocumentTestCase` true). Process 268476953 dispatched all 23 in 14 s.
+  - Instances 58–81: **24/24 classified correctly** (8/8 pay applications, 8/8 invoices, 8/8 lien waivers), status 3, 2–3 AI actions each.
+  - Reconciled by direct write of the fields a correct, override-free reconciliation sets (statusId 4, accuracy 1, reconciledBy/On, ids 58–81 listed explicitly).
+    - Doc Center's `AIA Classification Reconcile Instance` / `Save Results` take a full instance record as input, which the Dev MCP cannot pass.
+    - With self-learning off, no downstream trigger is skipped.
+  - Readback of version 8 as the designer: correctCount 24, instanceCount 24, accuracyAvg 1.0, bucket "High", totalAiActions 62.
+
+**Step 3 (part) — rules and gates (`.work/sail/gen_classification.py`).**
+- **Rules:**
+  - `SD_getSupportingDocClassification(document)` (`…_574253`)
+  - `SD_gateSupportingDocClassification(classification, minConfidence)` (`…_574259`): status 3/4/6 only; the verdict must be exactly Pay Application, Invoice or Lien Waiver; a reported confidence must reach the minimum; anything else → Backup with a reason.
+  - `SD_getPayApplicationExtraction(document)` (`…_574265`)
+  - `SD_gatePayApplicationExtraction(extraction)` (`…_574271`): status 2/4/6; the printed amount must be digits with at most one point and 2 decimals, and greater than 0.
+  - `SD_supportingDocNotes(...)` (`…_574277`): the treatment line.
+- **Constants:**
+  - `SD_SUPPORTING_DOC_CLASSIFICATION_MODEL_KEY` (`…_574228`) = sdDrawSupportingDocuments
+  - `SD_PAY_APPLICATION_EXTRACTION_MODEL_KEY` (`…_574234`) = sdPayApplication
+  - `SD_CLASSIFICATION_MIN_CONFIDENCE` (`…_574240`) = 80
+- **Gauntlet** `.work/sail/gauntlet_SD_classificationGates.sail`: 20/20 pass (G1–G10, E1–E10).
+  - The first run showed 3 false failures from the gauntlet's own `tostring()` of a Decimal (7 significant digits, the staged trap); it compares with `fixed(…, 2, true)` now.
+
+**Step 3 (rest) — the processes, corroboration and the display.**
+- **`SD Classify Supporting Document`** (`0000f073-d1d7-8000-25be-7f0000014e7a`, new; `gen_classify_worker.py` → `classify_worker_payload.json`):
+  - The per-document worker. Parameters `drawId`, `doc`, `docRowId`; model keys default from the two constants, so rewiring is one constant change.
+  - Nodes: Prepare (`startedAt`) → subprocess **sync** to `AIA Classification Run Model Version` → verdict script (`classifiedAt`, the gated verdict) → XOR "Pay application?"
+    - Yes → subprocess **sync** to `AIA Extraction Run Model Version` → figures script (`extractedAt`, gated figures) → Write **Classified and read**.
+    - No → Write **Classified only** / **Not classified** (type from the verdict, figures null).
+  - Every node runs as DESIGNER. `validateDesignObject` clean.
+- **`SD Read Supporting Documents`** (`0000f073-a7ee-…`) is now the dispatcher:
+  - Nodes 9–11 (the 5.5 AI call, its gate and its write) removed.
+  - Node 6 registers the row "Being classified by Doc Center".
+  - New node 14 starts the worker **asynchronously** per document, so a package's documents are classified in parallel.
+  - PVs trimmed to what the loop uses. `validateDesignObject` clean.
+- **Why a worker per document:** Doc Center's orchestration adds roughly 45 s around each LLM call (measured below). A serial loop would make a four-document package take about four minutes; in parallel it settles in the time of its slowest document.
+- **`SD_corroborateDocuments` v5** (`…_573561`; `gen_corroboration.py`):
+  - The pay application tie is unchanged.
+  - Invoice → "Received · filed as Invoice" (grey, no figure, no tie). The invoice line-match is removed.
+  - Lien Waiver → "Lien waiver received".
+  - Backup / Not classified → "Received · not classified" (grey, no warning).
+  - A row still Received → "Being classified" (grey); the state reads ATTENTION until it settles.
+  - Summary parts: "invoice filed", "lien waiver received", "N not classified", "N still being classified". New state **RECEIVED** (documents present, none needing a tie).
+  - Gauntlet `gauntlet_SD_corroboration.sail` rewritten: C1–C8, 8/8 pass. The 5.5 parse specimens retired with the parser.
+  - Two defects found by the gauntlet and fixed before deploy:
+    - the rule counted pending rows by type; it now counts settled rows only, and C5 uses a real pending row;
+    - the gauntlet's own invoice-figure check hit the `[[]]` trap; it now uses `sum()` of 1/0.
+- **Display.** **Gate missed:** the §5 docs-search gate was *not* run before these four edits (checked against the session transcript). Two of them are colour changes (new status-tag mappings and the Package received chip), so the gate applied. It was run afterwards, before verification closed:
+  - `a!tagItem` `backgroundColor` / `textColor` accept any valid hex. `a!richTextItem` `color` accepts any valid hex. The deployed values are within the documented vocabulary, and every tag rendered with its hex in the persona reads below.
+  - The same page states that **a tag displays at most 40 characters and truncates longer text, showing it in full on hover**. This finding predates 5.6 but surfaced now. Three amber tags on the reconciliation form exceed 40 characters:
+    - "Does not tie: $2,527,796.23 vs $2,490,296.23" (44, Phase 5.5);
+    - "No lien waiver received with the pay application" (48, Phase 5.5);
+    - "Submitted as #67, already on file — renumbered to next in sequence" (66, Phase 3).
+  - Truncation is geometry, so sail cannot see it. It goes to the browser checklist with a proposed fix; no change was made this phase. Both figures of a mismatch also sit in the grid's Document figure and Template figure columns, so the content is on the form either way.
+  - The edits:
+    - `SD_cmp_statusTag` **v4**: Classified and read / Classified only green; Not classified amber.
+    - `SD_form_reconcileExtraction` **v6**: the subheading reads "typed by Doc Center; the pay application is read and tied out against the lines above".
+    - `SD_page_receiveCapitalCall` **v9**: the confirmation copy says Doc Center classifies each PDF and only the pay application is read.
+    - `SD_view_drawSummary` **v9** (`gen_view_summary.py`): the green **Package received** chip for state RECEIVED.
+    - The Documents tab needed no change: it already shows each row's status tag and notes line.
+- **Retirement:**
+  - `getObjectDependents` showed only the application for each of `SD_supportingDocumentPrompt` (`…_573543`), `SD_parseSupportingDocReading` (`…_573549`) and the constant `SD_DOCUMENT_READING_MODEL` (`…_573531`).
+  - All three were deleted; each now returns 404.
+  - Their `.sail` files were removed from the repo.
+
+**Step 5 — live verification.** Packages were driven through sail as `sd.accountant` (`~/.sail-sd.accountant`): intake page, Draws page, Summary, Documents tab. Rows, tasks and draw state were read back as the designer. Each reconciliation form was rendered as the designer with the task's real inputs:
+- the extraction instance was found by document id;
+- its header and lines were confirmed identical to instance 863 by a throwaway rule (Doc Center's cache on the same workbook).
+
+Each task was completed with `completeTask` as the designer with the form's own serialisation. The draw number is the one the collision rule prefilled.
+- **Clean package — draw 92, confirmed as #77.**
+  - Submitted 19:08:22 local (template 55855; PDFs 55856–55858). Confirmation: "3 supporting documents are being classified by Doc Center; a pay application is read and tied out against the template on the reconciliation task."
+  - Worker rows:
+    - Pay Application — **Classified and read**: $2,490,296.23 · Stonebridge Construction Group · Application No. 14; classified 52.2 s / 3 AI actions, read 70.2 s / 3.
+    - Invoice — **Classified only**, 48.5 s / 3, no figures.
+    - Lien Waiver — **Classified only**, 49.1 s / 3.
+  - Reconciliation task 536889071 was issued 81 s after Receive, before the pay application had finished reading. The form covers that case with "Being classified" and Refresh, as the junk run showed live below.
+  - As `sd.accountant` while Ingesting:
+    - the Summary strip read "Doc Center extraction is ready for your reconciliation";
+    - the Documents tab listed 4 rows: statuses Received / Classified and read / Classified only ×2, tags green #E6F4EC/#1E7E46, each with its notes line.
+  - Form, settled: "3 with the package · typed by Doc Center; the pay application is read and tied out against the lines above".
+    - Pay Application: $2,490,296.23 "Current payment due" vs "Hard Costs · current draw", green **Ties**.
+    - Invoice: grey **Received · filed as Invoice** (#EEF1F5/#64748B), no figure.
+    - Lien Waiver: green **Lien waiver received**.
+    - Draw number #77 prefilled, amber renumbered chip.
+  - Readback: `corroborationState` **TIES**, summary "3 supporting documents · pay application ties · invoice filed · lien waiver received", In Progress at step 1.
+  - As `sd.accountant`: Draw Origin green **Package ties** with that line.
+- **Mismatch package — draw 93, confirmed as #78.**
+  - Submitted 19:13:45 (template 55876 + the mismatch pay application 55877, no waiver).
+  - Worker row: Classified and read, $2,527,796.23, classified 53.9 s / 4 AI actions, read 64.4 s / 3.
+  - Doc Center's own classification instance (85) ran from 23:13:56.3 to 23:14:04.3, about 8 s. Its reasoning names the document "a G702-style contractor's application and certificate for payment". Task 536889333 was issued 82 s after Receive.
+  - Form:
+    - amber **Does not tie: $2,527,796.23 vs $2,490,296.23** (#FDF3E0/#92600A), with both figures also in the Document figure and Template figure columns;
+    - the amber **No lien waiver received with the pay application**.
+  - Readback: **ATTENTION**, "1 supporting document · pay application does not tie ($2,527,796.23 vs $2,490,296.23) · no lien waiver with the pay application".
+  - As `sd.accountant`: amber **Needs attention** with that line.
+- **Package with the junk PDF — draw 94, confirmed as #79.**
+  - Submitted 19:17:42: template 55888, the three clean PDFs 55889–55891, and `THSV_Junk_UtilityNotice.pdf` 55892.
+  - Junk row: Backup / **Not classified**. Notes: "Not classified by Doc Center (classified as Other; sdDrawSupportingDocuments) · 50.0 s · 3 AI actions · filed as Backup". Doc Center's reasoning calls it "a customer notice … regarding a scheduled service interruption" and quotes "It is not a bill".
+  - The other rows: pay application 51.6 s + 67.3 s ($2,490,296.23); invoice 53.2 s; waiver 51.6 s.
+  - **Live pending state:** a form render during classification showed:
+    - the pay application as grey **Being classified**, with the Refresh link;
+    - invoice filed, waiver received;
+    - the junk as grey **Received · not classified**.
+  - Settled render: green **Ties**, filed, received, grey not-classified; no amber and no Refresh. Task 268450368 was issued 77 s after Receive.
+  - Readback: **TIES**, "4 supporting documents · pay application ties · invoice filed · lien waiver received · 1 not classified", In Progress at step 1 with its step task. Nothing downstream broke.
+  - As `sd.accountant`: green **Package ties** with that line. Documents tab: 5 rows, the junk amber **Not classified** with its notes (the only warning, on its own row), and amount verification "current draw lines sum to $2,604,252.23".
+- **Template only — draw 95, confirmed as #80.**
+  - Submitted 19:21:34. Confirmation: "No supporting documents came with this package."
+  - Only the template row was written. Task 536891450 was issued 84 s after Receive.
+  - Form: "none with this package" and the neutral "No supporting documents came with this package; the template is reconciled on its own." No grid, no amber.
+  - Readback: **NONE**, "No supporting documents received".
+  - As `sd.accountant`: grey **None received**.
+- **v2 failure regression — draw 96.**
+  - Submitted 19:24:37: `THSV_Draw67_Budget_Template_v2.xlsx` 55915, plus the clean pay application 55916 and the lien waiver 55917.
+  - The supporting documents were classified independently:
+    - Pay Application: Classified and read, $2,490,296.23; 50.0 s + 68.8 s.
+    - Lien Waiver: Classified only, 54.3 s.
+  - The template still took the failure branch: **Ingestion Failed** with the same two reasons as Phase 5 (missing columns "Current Draw" and "Total PTD inc. This Draw (%)"; missing lines "Insurance" and "Start-up/Marketing").
+  - Template row 6649: Ingestion Failed, "Comparison: AI (Claude Sonnet 4.6); AI call 0::00:00:05.298, 4 AI actions; alert email sent…". The alert was sent, so one more alert is in the inbox.
+  - No reconciliation task: the designer's task total moved only by the completed task and draw 95's new step task. Corroboration is not written on a failed draw, as designed.
+  - As `sd.accountant`: the Draws page has four "Not loaded · Template could not be loaded … resubmit via Receive Capital Call" rows (83, 89, 91, 96).
+- **Draw 66 untouched** (designer): In Progress at step 3, `activeStepProcessId` 536909994, `openTaskId` 536876873, `updatedAt` 2026-09-22 15:34:33.750. As `sd.assetmanager` via sail: "AWAITING MY ACTION 1 · Draw #66 · Asset Manager step · today", #66 first with YOUR ACTION.
+- **Throwaways:**
+  - `zz_probeTraining` (`…_574076`): deleted, 404.
+  - `zz_trainSupportingDocClassifier` (`0000f073-d214-…`): deleted; the read returns "Does not exist: Process Model" (HTTP 500 rather than 404).
+  - `zz_probeAia` (`…_574097`): deleted, 404. Every throwaway created this phase (`getObjectDependents` showed only the application for each) is gone.
+
+**Time and cost per document: 5.6 against 5.5's combined call.** All figures are worker-measured and written in the notes line: seconds from the worker's start to the Doc Center subprocess returning, and AI actions from Doc Center's instance.
+
+| | 5.5 combined call (one AI skill call: type + read) | 5.6 classification (Doc Center) | 5.6 pay application extraction (Doc Center) |
+|---|---|---|---|
+| Seconds per document | 5.3–7.9 AI-call time (n = 10 live: draws 86, 87, 89, 90, 91) | 48.5–54.3 (n = 10 live: draws 92, 93, 94, 96) | 64.4–70.2 (n = 4 live) |
+| AI actions per document | 2–3 (pay application 3, invoice 2, waiver 2) | 3 (one run 4) | 3 |
+| Model | Claude Sonnet 4.6, chosen in the constant | Doc Center's default for Generative-AI classification (Haiku 4.5 on this instance) | Doc Center's extraction default |
+| Clean package, 3 PDFs | 7 AI actions; read one after another, ~21 s of AI time, ~25 s wall | 3 × 3 = 9 AI actions for classification, + 3 for extraction = 12; in parallel, settled ~123 s after the rows were registered | |
+
+- **Where the time goes.** Doc Center's LLM call is short: instance 85 went from created to classified in 8 s. The rest of each ~50 s is Doc Center's own orchestration around it (the run process, the AI log, the synchronous subprocess returning). Extraction adds another ~65 s on the pay application.
+- **Cost.** 5.6 spends about 1.7× the AI actions of 5.5 on the same package (12 against 7). Invoices and waivers still cost one classification each, 3 actions, where 5.5 spent 2 to type and read them. The added cost buys typing by a governed, measured Doc Center model (24/24 on the training set) instead of a prompt.
+- **Latency.** Documents run in parallel. A package settles about 2 minutes after Receive, against about 25 s in 5.5. The reconciliation task arrives at ~80 s, so the first ~40 s of a pay application's corroboration shows "Being classified" with Refresh.
+
+**Close-out readback** (designer). Each deployed expression was read with `getInterface` / `getExpressionRule` and diffed against the repo's `.sail` copy: identical for all ten, trailing whitespace aside.
+- `SD_cmp_statusTag` v4
+- `SD_form_reconcileExtraction` v6
+- `SD_page_receiveCapitalCall` v9
+- `SD_view_drawSummary` v9
+- `SD_corroborateDocuments` v5
+- the five 5.6 rules, v1 each
+
+The three 5.6 constants read back "sdDrawSupportingDocuments", "sdPayApplication" and 80. The process models were validated clean when built; this session has no process-instance read.
+
+**Decisions and why.**
+- **Built over the Dev MCP; no manual Doc Center step.** Doc Center's classification models are data rows (model → version → categories). The Dev MCP writes them the same way as extraction model 85. "Training" on this instance means:
+  - labelled test instances;
+  - reconciliation, which records accuracy.
+
+  So the brief's fallback path (Scott clicks it together, the pipeline waits on a constant) was not needed. The constants exist anyway, so rewiring to another model is one change.
+- **What "trained" means here, stated plainly.** The only classification type on this instance is Doc Center's **Generative AI** type. Its prompt is built from the category names and descriptions and the version's instructions. Test instances measure accuracy (24/24); they do not fit weights. An ML-trained classification type does not exist on this instance.
+- **An "Other" category**, following Doc Center's own idiom. It gives the model a way to say "none of these", which the gate turns into Backup / Not classified. Without it the model has to pick one of the three.
+- **A worker per document, started asynchronously.** Each Doc Center call carries ~40–45 s of orchestration, so parallel is the only way a package settles in about 2 minutes. The template path still never waits on documents.
+- **Extraction only on a Pay Application**, per the ruling. Invoice and waiver rows carry no figures. `extractedAmount`, `extractedParty` and `extractedReference` stay null for them, and the invoice line-match is gone, not hidden.
+- **The corroboration state for a package with only filed documents is RECEIVED** (green "Package received"), not TIES: nothing was tied, and nothing needs attention.
+- **The tag-length finding (40 characters) is reported, not fixed.** It predates 5.6. The fix is a wording change to three chips, which should be ruled with the browser check in hand rather than guessed. Both mismatch figures are also in the grid columns.
+
+**Not verified (and why).**
+- **The accountant's own Confirm.** sail cannot open a task (reproduced again: "Reconcile Extraction" is listed as `<display>`). Every Confirm ran over the Dev MCP as the designer, so the template rows read "confirmed by Scott Thorn". The form content was read from designer renders with each task's real inputs.
+- **Geometry.** Chip truncation at 40 characters (documented; see the finding above), the corroboration grid, the Documents tab's notes column width, and the intake copy. These are browser-only (`TODO.md`).
+- **The low-confidence branch live.** Doc Center returns no confidence on this instance, so "low confidence → Backup" is proven only by the gauntlet (G5, G6). Live, only "Other" reached Backup.
+- **A classification error or extraction error live** (instance status 9 / 5). Covered by the gates' gauntlet only (G4, G10, E5). No live specimen forces Doc Center to error.
+- **Cost in currency or tokens.** Doc Center reports AI actions, not tokens. The comparison above is in AI actions and seconds.
+- **The persona's document download** (S9): browser only.
+
+**Promotion candidates.**
+- **4 new, staged at gate 1:**
+  - Doc Center Generative-AI classification returns no confidence;
+  - Doc Center orchestration latency around a synchronous run;
+  - reconciling Doc Center test instances over the Dev MCP by direct write;
+  - pure-ASCII PDFs survive `uploadDocument`.
+- **1 method candidate:** a reading gate skipped in a batch of edits.
+- **3 triggers fired:**
+  - `tostring()` of a Decimal, in the gates gauntlet;
+  - the `[[]]` trap, in the corroboration gauntlet;
+  - sail and task links, reproduced.
+- **None promoted.** The supplemental is unchanged; the repo and user-level copies are identical (diffed at close-out).
+
+Promotion checkpoint: current through 2026-09-25 — Phase 5.6: Doc Center classification for supporting documents, extraction on pay applications only.

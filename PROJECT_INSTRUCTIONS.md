@@ -62,6 +62,7 @@ Field vocabulary follows the new approval email sample exactly.
 - Phase 3: Doc Center ingestion success path: template in, extraction, accountant reconciliation, budget tables populated, data on the UI.
 - Phase 4: new approval email layout rendered as HTML email from live draw data, matched to the spec PDF.
 - Phase 5: ingestion failure path: plain-English alert email, AI diff against the last successful template.
+- Phase 5.5 (2026-09-25): supporting documents in the package, corroborated at reconciliation. Phase 5.6 (2026-09-25): supporting documents classified by a Doc Center classification model; extraction on pay applications only.
 - Phase 6: CEO email approval with AI reply interpretation; asset manager budget edit at approval step; AI-drafted contingency narrative with accountant review (stretch); treasury notification content; polish.
 
 ## Vocabulary canon
@@ -84,6 +85,12 @@ Field vocabulary follows the new approval email sample exactly.
 - General Comments is not extracted by Doc Center; the field stays editable on the reconciliation form for the accountant to type into. Re-add it to extraction model 85 only if a template with a filled General Comments cell appears. Ruled 2026-09-22.
 - Draw numbers are business data extracted from the template and are never replaced silently; a collision is resolved at reconciliation. When the extracted number already exists for the extracted investment, the reconciliation form prefills the next available number for that investment and shows an amber chip "Submitted as #<extracted>, already on file — renumbered to next in sequence"; the accountant can override, and the confirmed value commits. When the extracted number is genuinely next in sequence the chip is green "Next in sequence". Ruled 2026-09-22.
 - An ingested draw's approval chain starts at step 1 (Accountant), copied from the investment's most recent prior draw that has one. The demo accelerator bridges from wherever the chain sits to the CEO step. The narrative's "orders 1–2 pre-completed" applies to the seeded draw 66. Ruled 2026-09-22; revisit only if rehearsal shows drag.
+- **Document handling architecture. Ruled 2026-09-25 (Phase 5.6; corrects Phase 5.5).** Doc Center owns identifying and reading documents.
+  - **Classification:** a Doc Center classification model types every supporting document.
+  - **Extraction:** runs only where an extracted figure drives a control. Today that is the pay application's Current Payment Due, tied against the template.
+  - **Invoices and lien waivers** stop at classification: they are typed, filed and presence-checked, and never read.
+  - **Generative AI skills** are kept for language tasks: the ingestion-failure comparison, and Phase 6's reply interpretation and narrative drafting.
+  - **Superseded:** Phase 5.5's prompt-based typing (one Generative AI skill call per PDF) was interim.
 - Over budget requires a reason; contingency utilization requires the explanation narrative (AI-drafted, accountant-approved).
 - Asset manager may modify budget lines only at their own approval step; edits are attributed and visible downstream.
 - Step emails go to the step group's members as wired (`To:` the step's group). scott.thorn@appian.com receives every step email and plays the CEO at the demo's email beat; no persona addresses, no recipient overrides. Ruled 2026-09-25.

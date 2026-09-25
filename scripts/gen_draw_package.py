@@ -161,8 +161,10 @@ class Page:
         return y
 
 
-def write_pdf(path, page, title):
-    content = "\n".join(page.ops).encode("latin-1")
+def write_pdf(path, page, title, ascii_only=False):
+    """ascii_only drops the optional binary-marker comment, so the file is pure ASCII and survives the Dev MCP's
+    uploadDocument, which doubles every byte above 0x7F (reference/mcp-capability-boundaries.md)."""
+    content = "\n".join(page.ops).encode("ascii" if ascii_only else "latin-1")
     objs = [
         b"<< /Type /Catalog /Pages 2 0 R >>",
         b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
@@ -170,9 +172,9 @@ def write_pdf(path, page, title):
         b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
         b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>",
         b"<< /Length " + str(len(content)).encode() + b" >>\nstream\n" + content + b"\nendstream",
-        b"<< /Title (" + title.encode("latin-1") + b") /Producer (starwood-fund-ops gen_draw_package.py) >>",
+        b"<< /Title (" + title.encode("ascii" if ascii_only else "latin-1") + b") /Producer (starwood-fund-ops gen_draw_package.py) >>",
     ]
-    out = bytearray(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n")
+    out = bytearray(b"%PDF-1.4\n" if ascii_only else b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n")
     offsets = []
     for i, body in enumerate(objs, start=1):
         offsets.append(len(out))

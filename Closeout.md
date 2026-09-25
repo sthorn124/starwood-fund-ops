@@ -1,204 +1,202 @@
-# Closeout — 2026-09-25 — Phase 5.5: multi-document corroboration at intake
+# Closeout — 2026-09-25 — Phase 5.6: Doc Center classification for supporting documents, extraction on pay applications only
 
 ## Scope and identity
 
-- **Design work:** the Dev MCP `appian` as `scott.thorn@appian.com`. This account is full scope: a member of `SD Administrators`, `SD Users` and the three step groups. Every `testRule`, `testInterface`, `listRecordData`, `completeTask` and `testProcessModel` call below ran as this account.
-- **Persona reads:** sail as `sd.accountant` (`~/.sail-sd.accountant`) and `sd.assetmanager` (`~/.sail-sd.assetmanager`). Both sessions were live. The default `~/.sail` holds no session.
+- **Designer:** the Dev MCP `appian`, as `scott.thorn@appian.com`. Full scope: `SD Administrators`, `SD Users` and the three draw-approval step groups. Every design change, `testRule`, `testInterface`, `listRecordData`, `listMyTasks` and `completeTask` ran under it.
+- **Personas through sail:**
+  - `sd.accountant` (`~/.sail-sd.accountant`, member of `SD Draw Demo Approvers`) drove the intake page and read the Draws page, the Summary and the Documents tab.
+  - `sd.assetmanager` (`~/.sail-sd.assetmanager`) read the Draws page.
 - **Not used:** `appian-runtime` and `--from-devmcp`.
-- **Draw 66:** untouched. Elena's task 536876873 and step process 536909994 are still open.
-- **Preflight:** earlier this session. Dev MCP 26.6.95 (26.6.100 is on the App Market, flagged), sail 26.6.95, skill copies identical.
+- **Draw 66 was not touched.** Elena's task 536876873 and step process 536909994 are still open.
+- **DocCenter** (`81997754-…`) was read, and its data tables were written, as a dependency. The out-of-scope client app was not read.
+- **The Doc Center path needed no manual step.** The Dev MCP could create and train the classification model, so there is no click-list for Scott. Wiring in a different model later is a one-constant change: `SD_SUPPORTING_DOC_CLASSIFICATION_MODEL_KEY` / `SD_PAY_APPLICATION_EXTRACTION_MODEL_KEY`.
 
-**Framing, recorded in `BUILD_PLAN.md` from the client meeting.** Corroboration catches bad submissions before the approval chain starts, and it evidences the package on the draw record. Its value is verification: fewer error loops, fewer approver interruptions, lien exposure surfaced, audit evidence. It is deliberately not extraction-labour savings.
+## The ruling (item 0)
 
-## 0. Bookkeeping
+Recorded in `PROJECT_INSTRUCTIONS.md` (Business rules), `BUILD_PLAN.md` (Phase 5.6) and `CLAUDE.md` (business rules):
 
-- **TODO:** the Phase 5 browser checks moved to Done. You verified the alert in Gmail and the failed-draw card in the UI as the persona.
-- **BUILD_PLAN, documentation only:**
-  - The final demo's intake arrives through a simulated feed (email-in or a watched drop location), narrated as the EY API/SFTP feed.
-  - Receive Capital Call is build-time tooling.
-  - Feed-arrival simulation is a Phase 6 staging item. Intake stays "a set of documents in, one draw out".
+- Doc Center owns identifying and reading documents.
+- A classification model types every supporting document.
+- Extraction runs only where an extracted figure drives a control: the pay application's Current Payment Due, tied against the template's Hard Costs line.
+- Invoices and lien waivers stop at classification: typed, filed and presence-checked, never read.
+- Generative AI skills are kept for language tasks: the ingestion-failure comparison now, and Phase 6's reply interpretation and narrative drafting.
+- Phase 5.5's prompt-based typing was interim.
 
-## 1. The demo package (`scripts/gen_draw_package.py`, committed)
+## What was built
 
-The generator reads `THSV_Draw67_Budget_Template.xlsx` itself, so every tie is exact. It writes four one-page PDFs in pure Python, because this machine has no PDF library.
+### Training set (item 1)
 
-**Keep these four files.** They sit at the repo root and are gitignored:
+`scripts/gen_training_set.py` (committed) writes the training PDFs. The files are local only; `training/` and `*.pdf` are gitignored.
 
-| File | Bytes | md5 | What it carries |
+| Type | Count | Variation |
+|---|---|---|
+| Pay applications | 8 | G702-style, 8 contractors, application numbers, periods and amounts; layouts A/B/C |
+| Invoices | 8 | 8 vendors (FF&E, MEP engineering, materials testing, landscape architecture, interiors, security, signage, permits), invoice numbers, dates and totals; layouts A/B/C |
+| Lien waivers | 8 | conditional and unconditional, progress and final, 8 claimants; layouts A/B/C |
+| **Training total** | **24** | 87,289 bytes, plus `training/manifest.csv` |
+| Junk specimen (not in the training set) | 1 | `THSV_Junk_UtilityNotice.pdf` at the repo root, 2,800 bytes: a utility's scheduled-outage notice to the hotel |
+
+- Every file is pure ASCII (`write_pdf(..., ascii_only=True)`). The Dev MCP's `uploadDocument` corrupts bytes above 0x7F; pure-ASCII files avoided it, and 24/24 stored sizes equal the local sizes.
+- The four demo PDFs are unchanged (same md5).
+
+### Doc Center models (item 2), created on the instance over the Dev MCP
+
+- **Classification model 7** "SD Draw Supporting Documents", key `sdDrawSupportingDocuments`:
+  - Version 8, Published.
+  - Categories: 31 Pay Application, 32 Invoice, 33 Lien Waiver, and 34 Other (Doc Center's own catch-all; Other → Backup, "Not classified").
+  - Confidence threshold 80, no vision, single output. Instructions: decide by the document's title, parties and purpose.
+- **Training:**
+  - The 24 PDFs were uploaded to a new folder `SD Draw Classification Training`, labels in the descriptions.
+  - They were run as labelled test instances 58–81: **24/24 correct** (8/8 per type).
+  - All 24 were reconciled. Version 8 reads back correctCount 24 / instanceCount 24, accuracy 1.0 "High", 62 AI actions.
+- **What "trained" means here.** The only classification type on this instance is Doc Center's **Generative AI** type. The prompt is built from the category names, the descriptions and the version's instructions. The labelled test cases measure accuracy; they do not fit weights. There is no ML-trained classification type on this instance.
+- **Reconciliation was done by direct write.** Doc Center's own reconcile process takes a full instance record that the Dev MCP cannot pass. So the fields a correct, override-free reconciliation sets were written by explicit id (58–81). Self-learning is off on model 7, so no downstream step was skipped.
+- **Extraction model 86** "SD Pay Application", key `sdPayApplication`:
+  - Version 143, section 224.
+  - Fields: 3636 contractorName, 3637 applicationNumber, 3638 currentPaymentDue (Generative AI). Instruction: "extract only values printed".
+
+### Pipeline (item 3)
+
+- **`SD Classify Supporting Document`** (new, `0000f073-d1d7-…`) is the per-document worker. Every node runs as the designer. For each document:
+  1. Doc Center classifies it (synchronous subprocess).
+  2. `SD_gateSupportingDocClassification` gates the verdict.
+  3. What happens next depends on the verdict:
+     - **Pay Application:** Doc Center extraction, then `SD_gatePayApplicationExtraction`, then the row is written **Classified and read** with party, application number and amount.
+     - **Invoice or Lien Waiver:** **Classified only**, no figures.
+     - **Other, an error, an unknown label, or a reported confidence below 80:** Backup, **Not classified**.
+  - Every row gets a notes line with its treatment, seconds and AI actions (`SD_supportingDocNotes`).
+- **`SD Read Supporting Documents`** is now the dispatcher. It registers each PDF ("Being classified by Doc Center") and starts one worker per document **asynchronously**, so the documents run in parallel. The 5.5 AI node, its gate and its write are removed.
+- **Rules:** `SD_getSupportingDocClassification`, `SD_gateSupportingDocClassification`, `SD_getPayApplicationExtraction`, `SD_gatePayApplicationExtraction`, `SD_supportingDocNotes`.
+  - Gauntlet `gauntlet_SD_classificationGates.sail`: 20/20 pass (G1–G10 classification, E1–E10 extraction).
+- **Constants:** the two model keys and `SD_CLASSIFICATION_MIN_CONFIDENCE` = 80.
+- **Retired:** `SD_supportingDocumentPrompt`, `SD_parseSupportingDocReading` and the constant `SD_DOCUMENT_READING_MODEL`. Nothing else used them (`getObjectDependents`). All three are deleted; each read returns 404.
+
+### Corroboration and display (item 4)
+
+- **`SD_corroborateDocuments` v5:**
+  - Pay application tie: unchanged.
+  - Invoice: "Received · filed as Invoice" (grey), no figure, no tie. The line-match logic is removed.
+  - Lien waiver: "Lien waiver received". The waiver rule is unchanged.
+  - Not classified: "Received · not classified" (grey, no warning).
+  - Still pending: "Being classified".
+  - New state **RECEIVED**, for documents with nothing to tie.
+  - Gauntlet C1–C8: 8/8 pass.
+- **Display:**
+  - `SD_cmp_statusTag` v4: Classified and read / Classified only green; Not classified amber.
+  - `SD_form_reconcileExtraction` v6: "typed by Doc Center; the pay application is read and tied out against the lines above".
+  - `SD_page_receiveCapitalCall` v9: the confirmation copy.
+  - `SD_view_drawSummary` v9: the green **Package received** chip.
+  - The Documents tab shows each row's treatment and time/cost through the status tag and notes line; it needed no change.
+- **Close-out readback:** all ten deployed expressions are identical to the repo's `.sail` files.
+
+## Verification (item 5)
+
+Draw 66 was not touched in any of these runs. Each package was submitted through sail as `sd.accountant`. Rows and state were read back as the designer.
+
+Each form was rendered as the designer with the task's real inputs. The extraction was checked identical to instance 863 by a throwaway rule. Each task was then completed with `completeTask` as the designer, using the form's own serialisation.
+
+| Package | Draw | What the terminal showed |
+|---|---|---|
+| **Clean** (template + pay app + invoice + waiver) | 92 → **#77** | **Rows:** Pay Application Classified and read, $2,490,296.23, Stonebridge, Application No. 14. Invoice and Lien Waiver Classified only, no figures.<br>**Form:** green **Ties**; grey **Received · filed as Invoice**; green **Lien waiver received**.<br>**Stored:** TIES, "3 supporting documents · pay application ties · invoice filed · lien waiver received".<br>**As `sd.accountant`:** green **Package ties**. The Documents tab shows the four rows with notes. While the draw was still Ingesting, the strip read "Doc Center extraction is ready for your reconciliation". |
+| **Mismatch** (template + mismatch pay app) | 93 → **#78** | **Rows:** Classified and read, $2,527,796.23.<br>**Form:** amber **Does not tie: $2,527,796.23 vs $2,490,296.23** (both figures also in the grid columns); amber **No lien waiver received with the pay application**.<br>**Stored:** ATTENTION, with both figures and the no-waiver part.<br>**As `sd.accountant`:** amber **Needs attention**. |
+| **With the junk PDF** (clean package + utility notice) | 94 → **#79** | **Junk row:** Backup / **Not classified**, "classified as Other … filed as Backup". Doc Center's reasoning: a service-interruption notice, "not a bill".<br>**Live pending render:** pay app grey **Being classified** with Refresh; junk grey **Received · not classified**.<br>**Settled form:** Ties / filed / received / not classified; no amber.<br>**Stored:** TIES, "4 supporting documents · … · 1 not classified".<br>**As `sd.accountant`:** green **Package ties**. The Documents tab shows 5 rows, the junk amber Not classified on its own row. Amount verification is intact; the draw moved on to step 1. |
+| **Template only** | 95 → **#80** | **Confirmation:** "No supporting documents came with this package."<br>**Rows:** the template row only.<br>**Form:** the neutral line, no grid.<br>**Stored:** NONE.<br>**As `sd.accountant`:** grey **None received**. |
+| **v2 failure** (v2 template + pay app + waiver) | 96 | **Supporting documents:** classified. Pay app Classified and read, $2,490,296.23; waiver Classified only.<br>**Template:** still **Ingestion Failed**, with the same two reasons as Phase 5. AI comparison 5.3 s, 4 AI actions; alert email sent.<br>No reconciliation task was issued.<br>**As `sd.accountant`:** a fourth "Not loaded" row. |
+
+- **Draw 66, read as the designer:** step 3, step process 536909994, task 536876873, updated 2026-09-22 15:34:33.
+- **Draw 66, read as `sd.assetmanager` via sail:** "Awaiting My Action 1 · Draw #66 · Asset Manager step".
+- **Throwaways, all deleted:**
+  - `zz_probeTraining`: 404.
+  - `zz_probeAia`: 404.
+  - `zz_trainSupportingDocClassifier`: "Does not exist: Process Model".
+
+### Time and cost per document: 5.6 against 5.5's combined call
+
+All figures are measured by the worker and printed in each row's notes line.
+
+| | 5.5 combined AI call (type + read) | 5.6 Doc Center classification | 5.6 pay-application extraction |
 |---|---|---|---|
-| `THSV_Draw67_PayApp_G702.pdf` | 7,637 | efc383e6… | G702-style application from **Stonebridge Construction Group** (GC) to THSV Holdings LLC c/o Vail Peak Management LLC. Application No. 14, period 10/01–10/31/2026. **Current Payment Due $2,490,296.23**, which is the template's Hard Costs current draw. |
-| `THSV_Draw67_PayApp_G702_mismatch.pdf` | 7,637 | 4bcaa3da… | Identical except **Current Payment Due $2,527,796.23** (+$37,500.00). |
-| `THSV_Draw67_Invoice_AlderFinch.pdf` | 3,865 | 7637859c… | Invoice AF-2026-1087 from Alder & Finch Architects, LLP, dated 10/31/2026. Total **$59,582.00**, which is the **A&E - Architectural** current draw; the generator names that line. |
-| `THSV_Draw67_LienWaiver_Conditional.pdf` | 4,285 | 6415b9f9… | Conditional waiver and release on progress payment from Stonebridge, through 10/31/2026. It is there to be present; no figure is read from it. |
+| Seconds per document | 5.3–7.9 (AI call, n = 10) | **48.5–54.3** (n = 10) | **64.4–70.2** (n = 4) |
+| AI actions per document | 2–3 | **3** (one run 4) | **3** |
+| Model | Claude Sonnet 4.6 (constant) | Doc Center's default (Haiku 4.5 on this instance) | Doc Center's default |
+| Clean 3-PDF package | 7 AI actions, ~25 s wall (one after another) | 9 classification + 3 extraction = **12 AI actions**, **~2 min** wall (in parallel) | |
 
-Regenerate the files with `python3 scripts/gen_draw_package.py`.
+- **Where the time goes.** Doc Center's own LLM call is short: instance 85 went from created to classified in 8 s. Most of the ~50 s is Doc Center's orchestration around a synchronous run.
+- **What the added cost buys.**
+  - 5.6 costs about 1.7× the AI actions of 5.5 and is several times slower per package.
+  - In return, documents are typed by a governed Doc Center model with measured accuracy (24/24), not by a prompt.
+  - Invoices and waivers are never read.
+  - The only figure extracted is the one a control uses.
+- **Timing against the task.** The reconciliation task arrives at ~80 s, before a pay application has settled (~2 min). The form shows "Being classified" with Refresh until then. This is a demo-script fact in `TODO.md`.
 
-**One interpretation:** "Hard Costs current draw subtotal" is taken as the **Hard Costs line** ($2,490,296.23), the GC's contract line. The Hard group roll-up ($2,491,584.23) adds FF&E, which a GC pay application does not carry.
+## Findings
 
-## 2. Intake accepts a package
+- **The docs-search gate was missed.** The §5 docs-search gate was not run before this phase's four interface edits. The transcript shows this; memory did not.
+  - Run afterwards, the gate confirms the hex colours are valid.
+  - It also surfaced a real issue: **a tag shows at most 40 characters and truncates the rest, with the full text on hover.** Three amber tags exceed that:
+    - "Does not tie: $X vs $Y" (44, Phase 5.5);
+    - "No lien waiver received with the pay application" (48, Phase 5.5);
+    - "Submitted as #67, already on file — renumbered to next in sequence" (66, Phase 3).
+  - Truncation is browser-only, so nothing was changed. Shorter wording is proposed in the browser checklist.
+- **Doc Center classification returns no confidence** on this instance (null on 30+ runs, with threshold 80). The low-confidence branch of the gate is covered by the gauntlet only. Live, only "Other", an error or an unknown label reach Backup.
+- **Latency:** see the timing section above.
 
-**Receive Capital Call** (`SD_page_receiveCapitalCall` v8) takes:
-- the template: one xlsx, required;
-- supporting documents: **upload slots**, one PDF each. A new empty slot opens after each upload, up to 10.
+## Not verified
 
-One Receive commits every upload and passes `supportingDocuments` to the pipeline. The confirmation reads "N supporting documents are being classified and read…" or "No supporting documents came with this package."
+- **The accountant's own Confirm.** sail cannot open a task. Every Confirm ran as the designer, so the new template rows read "confirmed by Scott Thorn".
+- **Geometry:** tag truncation, the corroboration grid in the left pane, the notes column, and the intake copy.
+- **Live low-confidence, classification-error and extraction-error paths:** gauntlet only.
+- **Cost in tokens or currency.** Doc Center reports AI actions only.
+- **Persona document download** (S9).
 
-**Why slots, not one multi-file field (measured, the session's main finding).** The first live run used a single multi-file field.
-- After three uploads through sail, only the last PDF existed; the first two were "Document Does Not Exist".
-- An upload that replaces a field's value discards the temporary file it replaced, and sail's upload sends only the new file.
-- The pipeline was handed two dead documents. It still ran the template path to a reconciliation task on time, because reading is asynchronous and never blocks. The reading child wrote nothing.
-- One file per field keeps every upload in its own field. That run's draw 85 was deleted.
+## Browser checklist (Scott; details in `TODO.md` → Browser checks)
 
-**Pipeline `SD Receive Capital Call`** (48 PVs; nodes 42–45 added, validator clean):
-- Node 42 sends any supporting documents to the new **`SD Read Supporting Documents`** child, **asynchronously**.
-- The template path (extraction, validation, failure branch) is unchanged. A package with no documents takes node 42's default path, exactly as before.
-- The child registers each PDF as an `SD Draw Document` row (Received).
-- It makes **one AI call per PDF** (DocCenter's Doc Input skill 267, Claude Sonnet 4.6). The call classifies the document as Pay Application, Invoice, Lien Waiver or Backup and reads party, reference and one figure.
-- It gates the answer with a deterministic parser. Unknown or failed → Backup, "Not read".
-- It then rewrites the row: type, status Read, amount, party, reference, and a notes line with the AI time and actions.
+1. **Intake.** As `sd.accountant` on Receive Capital Call, attach the template plus the pay app, invoice, waiver and junk PDFs, one per slot. Click Receive and expect "4 supporting documents are being classified by Doc Center; …".
+2. **Reconciliation form.** After ~2 min, open Reconcile Extraction and expect:
+   - pay app green **Ties**;
+   - invoice grey **Received · filed as Invoice** with "—" figures;
+   - waiver green;
+   - junk grey **Received · not classified**.
 
-**AI time and actions, measured on the live runs:**
-
-| Document | Time | AI actions |
-|---|---|---|
-| Pay application | 7.9 s | 3 |
-| Mismatch pay application | 6.8 s | 3 |
-| Pay application (failure run) | 6.4 s | 3 |
-| Invoice | 6.1 s | 2 |
-| Lien waiver | 6.7 s | 2 |
-| Lien waiver (failure run) | 5.3 s | 2 |
-
-A three-document package was fully read before the reconciliation task arrived, about 80 s after submit.
-
-**Documents tab:** it lists every row with its type, a status chip (Read is green, Not read is amber) and the AI notes line.
-
-## 3. Corroboration at reconciliation
-
-The reconciliation form (`SD_form_reconcileExtraction` v4) gains **SUPPORTING DOCUMENTS · CORROBORATION** under the budget grid. It is a read-only grid with the columns Document (party · reference beneath), Type, Document figure, Template figure and Tie-out. It is computed by rules over the lines **as the accountant edits them**; no model is involved.
-
-**Tie-out rules:**
-- **Pay Application:** Current Payment Due against the Hard Costs current draw.
-- **Invoice:** the total against the budget line with exactly that current draw. If no line matches: "Does not tie: $X · no matching budget line".
-- **Lien Waiver:** green "Lien waiver received".
-- **Backup:** grey "Received".
-
-**Chips and lines:**
-- Green **Ties**, or amber **Does not tie: <doc figure> vs <template figure>**.
-- A pay application without a lien waiver adds the amber line **No lien waiver received with the pay application**.
-- No documents at all → the neutral line "No supporting documents came with this package; the template is reconciled on its own."
-- While a document is still being read, a Refresh link shows, and the section re-reads every 30 s.
-- **Nothing blocks Confirm.**
-
-**After Confirm**, pipeline nodes 44/45 recompute over the committed lines and write two fields on the draw:
-- `corroborationSummary`, for example "3 supporting documents · pay application ties · invoice ties · lien waiver received";
-- `corroborationState`: TIES, ATTENTION or NONE.
-
-The **Summary's Draw Origin card** ends with a **SUPPORTING DOCUMENTS** line: a Package ties / Needs attention / None received chip and the summary. It shows only on draws that carry a summary, so draw 66 and the other seeded draws look exactly as before.
-
-## 4. Live verification (sail as `sd.accountant`; readbacks as the designer)
-
-| Run | Draw | What was verified |
-|---|---|---|
-| **Clean package** (template + pay application + invoice + lien waiver) | 86 → **#73** | Form: two green **Ties** (Pay App $2,490,296.23 vs Hard Costs · current draw $2,490,296.23; Invoice $59,582.00 vs A&E - Architectural · current draw $59,582.00) and green **Lien waiver received**. Confirmed. Draw: TIES, "3 supporting documents · pay application ties · invoice ties · lien waiver received". **As `sd.accountant`:** Draw Origin chip green **Package ties** with that line; Documents tab lists 4 rows with types (Budget Template / Pay Application / Invoice / Lien Waiver). |
-| **Mismatch** (template + mismatch pay application, no waiver) | 87 → **#74** | Form: amber **Does not tie: $2,527,796.23 vs $2,490,296.23** and the amber no-waiver line; Confirm enabled. Confirmed. Draw: ATTENTION. **As `sd.accountant`:** chip amber **Needs attention**, "1 supporting document · pay application does not tie ($2,527,796.23 vs $2,490,296.23) · no lien waiver with the pay application". |
-| **Template only** (regression) | 88 → **#75** | Page: "No supporting documents came with this package." Form: the neutral line; no grid, no amber; everything else as before (Ties ✓, collision renumbering). Confirmed. Draw: NONE, "No supporting documents received". **As `sd.accountant`:** grey **None received**. |
-| **Failure regression** (v2 template + pay application + lien waiver) | 89 | Both PDFs read, and the template still took the **Ingestion Failed** branch: the same reasons and comparison as Phase 5; no reconciliation task; the alert sent (row 6628 written after the send node). One more alert is in the inbox. |
-| **Draw 66** | 66 | Untouched (designer readback). `sd.assetmanager` still sees "Awaiting My Action 1 · Draw #66 · Asset Manager step". |
-
-**How the tasks were confirmed.** sail cannot open a task link, a known limit, reproduced here. Each reconciliation form was therefore:
-- rendered with `testInterface` as the designer, using the task's real inputs;
-- completed with `completeTask` as the designer, sending exactly what the form's Confirm button serialises (reproduced by a throwaway rule).
-
-The template rows therefore read "confirmed by Scott Thorn".
-
-**Cleanup.**
-- **Stale Ingesting shells.** Four rows all read "New draw", and sail refused the ambiguous link. Draws **81, 84, 85** were deleted by explicit id, children first, and their absence was confirmed.
-- **Throwaway rules.** `zz_probeCorroboration` and `zz_probeReports` were deleted; both return 404.
-
-## Objects changed
-
-- **New process:** `SD Read Supporting Documents` (`0000f073-a7ee-8000-25b1-7f0000014e7a`).
-- **New rules:**
-  - `SD_supportingDocumentPrompt` (`…_573543`);
-  - `SD_parseSupportingDocReading` (`…_573549`);
-  - `SD_getSupportingDocuments` (`…_573555`);
-  - `SD_corroborateDocuments` (`…_573561`, v2);
-  - `SD_getDrawCorroboration` (`…_573567`).
-- **New constants:** `SD_DOCUMENT_READING_MODEL` (`…_573531`), `SD_PAY_APP_TIE_CATEGORY` (`…_573537`).
-- **New fields:**
-  - `SD Draw Document`: `extractedAmount`, `extractedParty`, `extractedReference`;
-  - `SD Draw`: `corroborationSummary`, `corroborationState`.
-- **Changed:**
-  - `SD Receive Capital Call`: 48 PVs, nodes 42–45, 8 → 42, 22 → 44;
-  - `SD_page_receiveCapitalCall` v8;
-  - `SD_form_reconcileExtraction` v4;
-  - `SD_getDrawDetail` v8;
-  - `SD_view_drawSummary` v8;
-  - `SD_cmp_statusTag` v3.
-- **Data:**
-  - new draws 86–89 and their rows;
-  - draws 81, 84, 85 and rows 6615, 6618, 6620 deleted.
-
-## Not verified, and the browser checklist
-
-- **The accountant's own Confirm from the task:** sail cannot open task links. The Dev MCP designer completed it instead.
-- **Geometry,** all browser-only:
-  - the upload slots;
-  - the corroboration grid and its chips (fit, wrapping);
-  - the Draw Origin line;
-  - the Documents tab.
-- **PDF download as the persona.**
-- **Live paths not yet exercised:** "no matching budget line", a Backup document and a "Not read" reading. They are covered only by the gauntlet (C3/C6/C7) and the child's break-test.
-
-The full checklist is in `TODO.md` → Browser checks owed → "Phase 5.5 package intake, corroboration section and Documents tab, as the persona". In short:
-1. As `sd.accountant`, attach the template and the three PDFs, one per slot. Clear and re-attach a slot. Try a non-PDF. Receive.
-2. Reconcile Extraction. Expect two green Ties and "Lien waiver received". Edit Hard Costs to see the pay-app chip turn amber, restore it, then Confirm.
-3. Expect Draw Origin to show "Package ties", and the Documents tab to list 4 typed rows that download.
-4. Run the mismatch package. Expect amber "Does not tie: $2,527,796.23 vs $2,490,296.23", the amber no-waiver line, and "Needs attention".
+   Then edit Hard Costs to force the amber "Does not tie" and **check whether the 44-character chip truncates**. Check the no-waiver tag (48) with the mismatch package and the renumber chip (66) the same way. If they truncate, rule on shorter wording. Proposed: "Does not tie · off by $37,500.00", "No lien waiver received", "Renumbered from #67 (on file)".
+3. **Summary:** green **Package ties**, with "… · 1 not classified".
+4. **Documents tab:** five rows. Green Classified and read / Classified only, amber Not classified, each with its notes line. The notes column should wrap, not clip. Each PDF downloads.
 
 ## Rulings needed
 
-None blocking. Two notes for you:
-- **Demo clutter:** `sd.accountant` now has 9 draws awaiting action. The package beat's reset is in `TODO.md` (Before demo).
-- **Stranded process instances** (draw 85's pipeline 39011 and its child; the deleted shells' pipelines for 81 and 84) are listed in `TODO.md`. Cancel them in Process Monitoring, and do not resume them.
+- **Chip wording** if the browser check shows truncation (above).
+- **Draws 90 (#76) and 91 are yours:** 18:15/18:31 local, confirmed by Priya Raman. Keep them or clear them at the next reset; the session will not delete them without your word.
 
 ## Promotion candidates
 
-**3 found, staged at gate 1:**
-- A replaced upload discards its temporary file, and sail's upload sends only the new file.
-- An `a!forEach` whose items are all skipped yields `[[]]`, which `count()` counts and `len()` skips.
-- sail cannot address repeated link labels.
-
-**2 triggers fired:**
-- The AI-skill `customInputs` form was confirmed on a second skill and extended: a document input must be sent typed `DOCUMENT`. It is proposed for promotion at the next template sync and was not promoted here.
-- "sail does not follow a task link" was reproduced.
-
-**Promoted:** none. The supplemental is unchanged, and the repo and user-level copies are identical.
+- **4 new, staged at gate 1:**
+  - Doc Center Generative-AI classification returns no confidence;
+  - ~40–45 s of Doc Center orchestration around a synchronous run;
+  - reconciling Doc Center test instances by direct write;
+  - pure-ASCII PDFs survive `uploadDocument`.
+- **1 method candidate:** a reading gate skipped silently in a batch of edits.
+- **3 triggers fired and re-staged:**
+  - `tostring()` of a Decimal;
+  - the `[[]]` trap, with its working form extended to `sum()` of 1/0;
+  - sail not following task links.
+- **None promoted.** The supplemental is unchanged; the repo and user-level copies are identical.
+- The checkpoint is current through this entry.
 
 ## TODO changes
 
-- **Updated (Before demo):** the ingestion reset state. #73–#75 added; 81/84/85 removed; failed draws 83 and 89; package-beat reset steps.
-- **Extended:** the stranded-instances cancellation list (39011 and its child, plus the pipelines for 81 and 84).
-- **Added (Browser checks owed):** the Phase 5.5 package, corroboration and Documents checklist.
-- **Added (Deferred):** live "no matching line", Backup and Not read paths; the Doc Input skill and model are instance-specific.
-- **Struck through:** "Backup documents on an ingested draw", now built.
-- **Done:** Phase 5.5.
+- **Added:**
+  - Before demo: "Ingestion demo reset — Phase 5.6 additions" (draws 92–96; 90/91 are Scott's; Awaiting My Action 14) and "Package latency" (~50 s / ~67 s / ~2 min against a task at ~80 s).
+  - Deferred: "Doc Center models per instance", "Doc Center classification reports no confidence" and "5.5-era draws keep 5.5 statuses and summaries".
+- **Reworded:** the Browser check "Package intake, corroboration section and Documents tab" now has 5.6 wording and the 40-character tag checks.
+- **Struck, with pointers:**
+  - "Live paths of corroboration not yet exercised" (superseded by 5.6);
+  - "The reading prompt and model per instance" (retired).
+- **Done:** Phase 5.6 built and verified live.
 
 ## BUILD_PLAN.md changes
 
-- Phase 5.5 is marked ✅ 2026-09-25, and all four objects are ✅.
-- Two open follow-ups were added: the persona-driven confirm and geometry (browser), and the untested live paths.
-- Phase 6 carries the feed-arrival simulation item.
-
-## Repo changes
-
-- **Added:**
-  - `scripts/gen_draw_package.py`;
-  - `.work/sail/gen_corroboration.py`, `gen_read_supporting.py`, `gen_receive_corroboration.py` and their payload JSONs;
-  - `gauntlet_SD_corroboration.sail` and the five rule `.sail` files.
-- **Updated:**
-  - the page, form, summary, detail and status-tag sources and generators;
-  - `refs.py`;
-  - `CLAUDE.md`: objects, business rule, repeatability, files;
-  - `BUILD_LOG.md`, `BUILD_PLAN.md`, `TODO.md`.
-- **Not committed:** the PDFs (gitignored).
+- Phase 5.6 is marked **BUILT 2026-09-25**, with all six object items ✅.
+- Added:
+  - a browser pass on the 5.6 display (40-character tags, notes column; owner Scott);
+  - "Narrate or absorb the package latency" (owner the presenter).
+- The Phase 5.5 follow-up "Invoice with no matching line, Backup and 'Not read' paths live" is struck as superseded.

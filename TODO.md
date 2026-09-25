@@ -16,6 +16,27 @@ Open items by class. Sessions add discovered items unprompted as they surface, a
 - **Demo start (2026-09-22).** After the reset, start `SD Draw Approval Process` on draw 66 and wait ~10 s: the Draws page shows "Awaiting My Action 1" and YOUR ACTION on #66 for `sd.assetmanager` only while that task is live. The task currently live is **536876873** (step process **536909994**, restarted 15:34 UTC after the earlier step process 536909940 was found cancelled — its task 536874206 read Aborted with no assignees). **Do not cancel `SD Draw Approval Step` instances or the `SD Draw Approval Process` run that owns draw 66's live task** when sweeping Process Monitoring; the reset CSV plus a fresh start is the only way to cycle it.
   - *Owner:* the presenter or the session.
   - *Trigger:* before every rehearsal and the demo.
+- **Ingestion demo reset — Phase 5.6 additions (read 2026-09-25; extends the Phase 5.5 state below).**
+  - **Reconciled 5.6 draws, each In Progress at step 1 with an Accountant task open:**
+    - **92 = #77:** clean package; TIES; documents 6637–6640.
+    - **93 = #78:** mismatch; ATTENTION; 6641–6642.
+    - **94 = #79:** clean plus junk; TIES, "1 not classified"; 6643–6647.
+    - **95 = #80:** template only; NONE; 6648.
+  - **Also on file, not the session's:**
+    - **90 = #76:** a clean package confirmed by **Priya Raman** at 18:15 local — Scott's persona run, so its template row reads "confirmed by Priya Raman".
+    - **91:** Ingestion Failed; v2 plus the mismatch pay application.
+    - Neither is deleted without Scott's word.
+  - **New failure specimen:** **96** (v2 plus a pay application and a lien waiver, both classified; rows 6649–6651). With 83, 89 and 91 the Draws page now shows four "Not loaded" rows; keep one.
+  - **`sd.accountant`'s Awaiting My Action reads 14:** every verification draw sits at step 1.
+  - **Before a rehearsal of the package beat:** clear the verification draws with `--cleanup-ingested`, children first. Read the children by `drawId`: lines 16, approvals 9, QIU from the prior set, and the document rows above.
+  - *Owner:* the presenter or the session.
+  - *Trigger:* before every rehearsal that shows ingestion.
+- **Package latency (demo-script fact, measured 2026-09-25, Phase 5.6).**
+  - Each supporting document takes **~50 s** to be classified by Doc Center, and a pay application **~67 s** more to be read. The documents run in parallel, so a package settles **~2 min** after Receive.
+  - The reconciliation task arrives at **~80 s**. Opened at once, it shows the pay application as grey "Being classified" with a Refresh link; the form re-reads every 30 s.
+  - Wait ~40 s before opening the task, or narrate the pending state ("Doc Center is still reading the pay application").
+  - *Owner:* the presenter.
+  - *Trigger:* the first rehearsal of the package beat.
 - **Ingestion demo reset — state as read 2026-09-25 after Phase 5.5 (supersedes the draw list in the next item).**
   - **Reconciled draws (In Progress):** `SD Draw` rows **74–80** are #67 (74), #67 (75), #71 (76), #68 (77), #69 (78), #70 (79) and #72 (80); steps 1–2, several with open approval tasks. Phase 5.5 added **86 = #73** (the clean package: pay application, invoice, lien waiver; corroboration TIES; documents 6621–6624), **87 = #74** (the mismatch package; ATTENTION; documents 6625–6626) and **88 = #75** (template only; NONE; document 6627), each at step 1 with an Accountant task open — so `sd.accountant`'s Awaiting My Action reads 9.
   - **Ingesting shells:** none. **81, 84 and 85 were deleted 2026-09-25** (rows only, children first, absence confirmed) so the Draws page had one "New draw" for sail to open; their pipeline instances still hold open reconciliation tasks (see "Cancel the stranded build-time process instances").
@@ -48,11 +69,37 @@ Open items by class. Sessions add discovered items unprompted as they surface, a
   6. Repeat at a laptop width (~1280 px) and a phone width: the panes stay side by side on desktop; the header columns stack on a phone.
   - *Trigger:* before the first rehearsal.
 - **The rebuilt intake page in a browser.** Owner: Scott. As `sd.accountant` open `/suite/sites/subscription-agreement-analyst/page/receive-capital-call`: navy header "Receive Capital Call"; the upload card with Receive disabled until a file is attached; attach the xlsx, click **Receive**: expect the card to be replaced by "Capital call received · Doc Center extraction is running on THSV_Draw67_Budget_Template.xlsx · The draw appears in the Draws list immediately…", a navy **Go to Draws** card-button and an outline **Receive Another** button. Click Go to Draws: the Draws page opens in the same tab with a new "New draw · Ingesting" row. Back on the page, Receive Another returns the empty upload form. *Trigger:* before the first rehearsal.
-- **Phase 5.5 package intake, corroboration section and Documents tab, as the persona.** Owner: Scott.
-  1. As `sd.accountant` open `/suite/sites/subscription-agreement-analyst/page/receive-capital-call`. Expect "SUPPORTING DOCUMENTS · OPTIONAL" under the template drop zone with one compact slot "Supporting document 1" ("PDF. Another slot opens after each upload (up to 10)."). Attach the template, then `THSV_Draw67_PayApp_G702.pdf`, `THSV_Draw67_Invoice_AlderFinch.pdf`, `THSV_Draw67_LienWaiver_Conditional.pdf` one per slot: a new empty slot appears after each. Clear slot 2 with its remove control and re-attach the invoice: nothing else moves. Attach a non-PDF to a slot: the red "Supporting documents must be PDF files" message. Click **Receive**: "3 supporting documents are being classified and read…".
-  2. After ~80 s open the new draw → **Reconcile Extraction**. Below the budget grid and its pinned total: "SUPPORTING DOCUMENTS · CORROBORATION  3 with the package · figures read by AI, tied out against the lines above", a five-column grid (Document with party · reference beneath, Type, Document figure, Template figure, Tie-out) with rows Pay Application $2,490,296.23 / Hard Costs · current draw $2,490,296.23 / green **Ties**; Invoice $59,582.00 / A&E - Architectural · current draw $59,582.00 / green **Ties**; Lien Waiver — / — / green **Lien waiver received**. Check the grid fits the left pane without horizontal scroll and the chips do not wrap mid-word. Edit Hard Costs' Current Draw to 2490296.00: the pay application chip turns amber "Does not tie: $2,490,296.23 vs $2,490,296.00"; restore it. Click **Confirm & Assemble Draw**.
-  3. The draw's Summary → Draw Origin ends with "SUPPORTING DOCUMENTS", a green **Package ties** chip and "3 supporting documents · pay application ties · invoice ties · lien waiver received". Documents tab: four rows, types Budget Template / Pay Application / Invoice / Lien Waiver, the three PDFs green **Read** with the AI notes line; each PDF name downloads the file.
-  4. Repeat with the template plus `THSV_Draw67_PayApp_G702_mismatch.pdf` only: amber "Does not tie: $2,527,796.23 vs $2,490,296.23" and the amber "No lien waiver received with the pay application" beneath the grid; Confirm still enabled; Summary chip amber **Needs attention**.
+- **Package intake, corroboration section and Documents tab, as the persona (Phase 5.5, reworded for Phase 5.6).** Owner: Scott.
+  1. **Intake.**
+     - As `sd.accountant` open `/suite/sites/subscription-agreement-analyst/page/receive-capital-call`.
+     - Expect "SUPPORTING DOCUMENTS · OPTIONAL" under the template drop zone, with one compact slot "Supporting document 1" ("PDF. Another slot opens after each upload (up to 10).").
+     - Attach the template, then `THSV_Draw67_PayApp_G702.pdf`, `THSV_Draw67_Invoice_AlderFinch.pdf`, `THSV_Draw67_LienWaiver_Conditional.pdf` and `THSV_Junk_UtilityNotice.pdf`, one per slot. A new empty slot appears after each.
+     - Attach a non-PDF to a slot: expect the red "Supporting documents must be PDF files".
+     - Click **Receive**: expect "4 supporting documents are being classified by Doc Center; a pay application is read and tied out against the template on the reconciliation task."
+  2. **Reconciliation form.** After ~2 min, open the new draw → **Reconcile Extraction** (see "Package latency" above).
+     - Heading: "SUPPORTING DOCUMENTS · CORROBORATION  4 with the package · typed by Doc Center; the pay application is read and tied out against the lines above".
+     - The grid rows:
+       - Pay Application: $2,490,296.23 / Hard Costs · current draw $2,490,296.23 / green **Ties**.
+       - Invoice: — / — / grey **Received · filed as Invoice**.
+       - Lien Waiver: green **Lien waiver received**.
+       - Utility notice (Backup): grey **Received · not classified**.
+     - **Tag length.** The docs say a tag shows at most 40 characters and truncates the rest (full text on hover). Edit Hard Costs' Current Draw to 2490296.00 and check whether the amber "Does not tie: $2,490,296.23 vs $2,490,296.00" chip (44 characters) truncates; restore it.
+     - With the mismatch package, check the amber "No lien waiver received with the pay application" (48) the same way. Check the Draw Number's "Submitted as #67, already on file — renumbered to next in sequence" (66) too.
+     - If they truncate, rule on shorter wording. Proposed: "Does not tie · off by $37,500.00", "No lien waiver received", "Renumbered from #67 (on file)". The figures stay in the grid's Document figure and Template figure columns.
+     - Check the grid fits the left pane without horizontal scroll. Click **Confirm & Assemble Draw**.
+  3. **Summary.** Draw Origin ends with "SUPPORTING DOCUMENTS", a green **Package ties** chip, and "4 supporting documents · pay application ties · invoice filed · lien waiver received · 1 not classified".
+  4. **Documents tab.** Five rows:
+     - the template "Extracted & Confirmed";
+     - the pay application green **Classified and read**;
+     - the invoice and waiver green **Classified only**;
+     - the notice amber **Not classified**.
+     - Each has its notes line ("Classified by Doc Center as … · N s · 3 AI actions · filed, not read"). Check that the notes column wraps rather than clips.
+     - Each PDF name downloads the file.
+  5. **Mismatch.** Repeat with the template plus `THSV_Draw67_PayApp_G702_mismatch.pdf` only. Expect:
+     - amber "Does not tie: $2,527,796.23 vs $2,490,296.23";
+     - the amber no-waiver tag;
+     - Confirm still enabled;
+     - Summary chip amber **Needs attention**.
   - *Trigger:* before the first rehearsal that shows the package beat.
 - **Document download as a persona** (S9): on #67's Documents tab as `sd.accountant`, click `THSV_Draw67_Budget_Template.xlsx`; expect the 7,650-byte workbook. Owner: Scott. *Trigger:* with the check above.
 - **Geometry of the two Phase 3 forms** (start form drop zone; the rebuilt reconciliation form's pane split — the left pane's nine-column DENSE grid must not wrap its numbers at desktop width, and the right pane's viewer should fill the pane height). Owner: Scott. *Trigger:* with the check above.
@@ -70,8 +117,11 @@ Open items by class. Sessions add discovered items unprompted as they surface, a
 - **Dev MCP 26.6.100 is available on the App Market** (the site runs 26.6.95). The site admin updates the plugin first; then run `maintenance/dev-mcp-update.md`. *Owner:* Scott. *Trigger:* before the next build session, or when the operator chooses.
 - **Second ingestion run with an edited value** (brief item 5, "if time"): folded into the browser check above, step 5. *Trigger:* that check.
 - ~~**Backup documents on an ingested draw** (contractor / A&E invoices) — the pipeline attaches only the template.~~ Built 2026-09-25 as Phase 5.5 (supporting documents in the package, read and corroborated). `CLAUDE.md` business rules.
-- **Live paths of corroboration not yet exercised end to end:** an invoice whose total matches no line ("Does not tie: $X · no matching budget line"), a Backup document, and a "Not read" reading (an unreadable or non-PDF file). Covered by the gauntlet (C3, C6, C7) and the child's break-test only. *Owner:* the build session. *Trigger:* the next change to `scripts/gen_draw_package.py` or to the reading prompt.
-- **The reading prompt and model per instance:** DocCenter's Doc Input skill (id 267) and `SD_DOCUMENT_READING_MODEL` are instance-specific. *Owner:* the build session. *Trigger:* any move of the app to another instance.
+- ~~**Live paths of corroboration not yet exercised end to end:** an invoice whose total matches no line, a Backup document, and a "Not read" reading.~~ Superseded 2026-09-25 by Phase 5.6: invoices are no longer read or tied, "Not read" is retired, and the unrelated-PDF path (Backup / Not classified) ran live on draw 94. `CLAUDE.md` business rules, document handling architecture.
+- ~~**The reading prompt and model per instance:** DocCenter's Doc Input skill (id 267) and `SD_DOCUMENT_READING_MODEL`.~~ Retired 2026-09-25 (Phase 5.6; the constant is deleted). Replaced by the next item.
+- **Doc Center models per instance (Phase 5.6).** Classification model 7 (`sdDrawSupportingDocuments`, version 8, categories 31–34) and extraction model 86 (`sdPayApplication`, version 143, fields 3636–3638) are DocCenter data rows on this instance, not design objects, so they do not travel with the application. On another instance: re-insert them (the row shapes are in `BUILD_LOG.md`, Phase 5.6 Step 2), re-run the training set as labelled test instances, and point `SD_SUPPORTING_DOC_CLASSIFICATION_MODEL_KEY` / `SD_PAY_APPLICATION_EXTRACTION_MODEL_KEY` at the new keys. *Owner:* the build session. *Trigger:* any move of the app to another instance.
+- **Doc Center classification reports no confidence (measured 2026-09-25).** The instance's confidence is null on every run, even with the version's threshold at 80, so the "low confidence → Backup" branch of `SD_gateSupportingDocClassification` is dormant: only "Other", an error or an unknown label reach Backup live (the gauntlet covers the confidence branch, G5/G6). *Owner:* the build session. *Trigger:* a DocCenter update that returns a confidence, or a ruling to use Doc Center's self-learning (off on model 7).
+- **5.5-era draws keep 5.5 statuses and summaries.** Draws 86–91 carry supporting-document rows with status Read / Not read and stored summaries that say "invoice ties"; the rules still handle them (Read rows are treated by type), but the wording is 5.5's. Clear them at the next ingestion reset rather than rewrite them. *Owner:* the presenter or the session. *Trigger:* the next ingestion demo reset.
 - **Doc Center `generalComments` field** removed from model 85 — re-add only when a template carries a filled General Comments cell (ruled 2026-09-22; `PROJECT_INSTRUCTIONS.md` Business rules). *Trigger:* that template.
 - **`SD Draw Approvers` holds Viewer on DocCenter's `AIA Reconcile Connected System`** (granted 2026-09-22 for the reconciliation form's inline xlsx viewer; the `updateObjectSecurity` readback also flipped `inheritSecurity` to `true` with no inherited groups). *Status 2026-09-22:* Scott has messaged DocCenter's owners; no objection has been raised, so this is a note, not an open check. If a reply objects, revert with `updateObjectSecurity` to the original role map (administrator `14a675fc-…`, viewer `AIA All Users` only) and route the accountant to the download link. *Owner:* Scott. *Trigger:* an objection from the DocCenter owners.
 - **`SD_getDrawListRows` sort for Ingesting rows:** an ingesting shell sorts first only for its assignees, otherwise last with "New draw". Decide whether Ingesting should always sort first. *Trigger:* the first rehearsal.
@@ -116,6 +166,13 @@ Open items by class. Sessions add discovered items unprompted as they surface, a
 *(Each item names its trigger.)*
 
 ## Done
+
+- ✅ 2026-09-25 — **Phase 5.6 built and verified live.** Supporting documents are now typed by a Doc Center classification model. Only the pay application is read, by extraction.
+  - **Models and training:** classification model 7 / version 8, trained on 24 labelled specimens, 24/24 correct; extraction model 86 / version 143.
+  - **Rewiring:** the worker `SD Classify Supporting Document`; the 5.5 prompt and parser deleted.
+  - **Live runs:** clean draw 92 (#77, TIES), mismatch 93 (#78, ATTENTION), junk 94 (#79, TIES with "1 not classified"), template-only 95 (#80, NONE), and v2 regression 96 (Ingestion Failed).
+  - Persona reads as `sd.accountant` and `sd.assetmanager`. Draw 66 untouched.
+  - Browser checklist owed (Browser checks).
 
 - ✅ 2026-09-25 — **Phase 5.5 built and verified live:** package intake (upload slots), AI reading of supporting documents, corroboration at reconciliation and on the draw. Clean package draw 86 (#73, TIES), mismatch draw 87 (#74, ATTENTION), template-only draw 88 (#75, NONE), failure regression draw 89 (Ingestion Failed); persona reads as `sd.accountant`; draw 66 untouched. Browser checklist owed (Browser checks).
 
