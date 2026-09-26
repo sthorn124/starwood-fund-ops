@@ -1,141 +1,150 @@
-# Closeout — 2026-09-25 — Fix session: tie-out chips with wrapping off-by detail, all tags under 40 characters
+# Closeout — 2026-09-26 — Phase 6a: CEO email approval with AI reply interpretation
 
 ## Scope and identity
-
-- **Designer:** the Dev MCP `appian`, as `scott.thorn@appian.com`. Full scope: `SD Administrators`, `SD Users` and the three draw-approval step groups. Every render, rule test, readback and delete ran under it.
-- **Persona:** sail as `sd.accountant` (`~/.sail-sd.accountant`), for the smoke check.
+- **Build work:** Dev MCP `appian` as `scott.thorn@appian.com`. Full scope: `SD Administrators`, `SD Users`, and all three step groups. That makes this account the recipient of every step email and a member of the exception queue's group.
+- **Handler:** runs its unattended nodes as DESIGNER. The receiver hands off as DESIGNER.
+- **Persona readback:** sail as `sd.accountant` (`~/.sail-sd.accountant`).
 - **Not used:** `appian-runtime` and `--from-devmcp`.
-- **Draw 66 was not touched.**
-- **No data was written.** This session changed chip wording and layout only.
+- **Draw 66 untouched:** re-read at the end, In Progress at step 3, step process 536909994, `updatedAt` 2026-09-22 15:34:33.
+- **Scott's part, in Designer:** he set the receiver's Receive Message (Email) trigger, Public Events and the trigger mappings. The Dev MCP cannot set any of these.
 
-## Why
+## What was built
+**Capability first (brief item 1).**
+- Inbound email to a process works on `ny.appiancloud.com`, proven by loop test: email sent from the instance started `SD Receive Approval Reply`, which handed sender, subject and body to the handler.
+- Nothing was faked.
+- The receiver's address is `processmodeluuid0000f074-9ac4-8000-25d1-7f0000014e7a@ny.appiancloud.com`.
 
-Scott's browser pass on the Phase 5.6 checklist passed intake, the corroboration states, junk classification, the Documents tab and downloads. It confirmed one finding: chip text truncates at 40 characters. That is the tag's documented display limit, flagged in the 5.6 close-out.
+**Receiver → handler.**
+- `SD Receive Approval Reply` is two nodes: the email start, and an asynchronous hand-off.
+- `SD Handle Approval Reply` has 24 nodes and runs these steps:
+  1. **Read** the `[SD-DRAW-<id>-S<step>]` token (stable across Re:/RE:/Fwd:) and the reply's own words. Quoted history is cut; it would otherwise say "Approve Reject".
+  2. **Check, in order:**
+     - the draw and step exist;
+     - the sender is authorized (the constant role→address mapping; every role is scott.thorn@appian.com);
+     - the **dollar guardrail** (`SD_EMAIL_APPROVAL_MAX` $5,000,000);
+     - the step is awaiting a decision.
 
-## The gate, run before any edit
+     A failed check changes nothing and is logged on the draw. Only the guardrail answers the sender, with a refusal on the thread.
+  3. **One Generative AI call** reads the reply (skill 148, Claude Sonnet 4.6, about 3.3 s and 1 AI action).
+  4. **A deterministic gate** (`SD_gateReplyInterpretation`) accepts exactly two lines, a known decision, and a verbatim comment. Anything else is an unclassified AMBIGUOUS.
+  5. **APPROVE or REJECT** goes through `SD Apply Draw Approval Decision` with source EMAIL. The actor is the sender, and the comment is the reply plus the reading. The transition supersedes the open task. Final approval notifies treasury.
+  6. **A first unclear reply** gets a clarification on the thread.
+  7. **A second unclear reply, or an unclassifiable one,** becomes the **Review email reply** task for `SD Draw Demo Approvers` (`SD_form_emailException`). No email is sent and nothing changes.
 
-- **Frontend-design guidance:** read.
-- **Vendor pack:** `components/grid-field-instructions.md` says a grid cell takes one component: never a `sideBySideLayout`.
-- **Docs-search:**
-  - 26.6: `a!gridColumn` takes a single component.
-  - The **26.9 release notes** add side-by-side layouts in read-only grid cells ("place a status tag next to a due date").
-  - `MINIMIZE` suits fixed-width items; `preventWrapping` must not be used with it.
-  - A tag displays at most 40 characters.
-- **The instance decided:** a throwaway grid with a tag and a rich-text line side by side in one cell was accepted by the object validator and rendered by `testInterface` (`error: null`, `preventWrapping=false`). So the "off by" detail sits **beside** the chip in the same cell, as the brief wanted. The probe was deleted (404).
+**Thread continuity.**
+- Every outbound message is sent from the receiver address with the display name "Starwood Draw Approvals" and Reply-To the receiver. This covers the step email, the clarification and the refusal.
+- Responses carry "Re: <step subject>".
+- Every inbound and outbound message, and the exception review, is a `SD Draw Email Message` row. The Approvals tab shows them in a new **Email Exchange** card: When / Message (direction, source, step, text) / Reading (the AI reading and the notes line) / Outcome tag.
+- The step process now records each step email on the draw (new node 13).
 
-## Every changed tag, old → new
+**Other changes.**
+- `SD_buildApprovalEmail` v3:
+  - the subject ends with the token;
+  - the reply instruction invites a reply "in your own words";
+  - the red warning is gone;
+  - a draw over the limit gets an amber "email approval is not available" line.
+- `scripts/seed_draw66.py --cleanup-ingested` takes `msgs=`.
+- `PROJECT_INSTRUCTIONS.md` carries the new rules: dollar guardrail, thread continuity, and reply matching and checks. Phase 6 is split into 6a and 6b.
 
-| Where | Old | New |
+## Objects (read back at close-out)
+| Object | Id | State |
 |---|---|---|
-| Reconciliation verdict strip (lines vs draw amount) | "Does not tie · lines $X vs draw $Y" (red; 56 characters with this draw's figures) | **Does not tie** (amber), with amber wrapping text beneath: "lines $<sum> vs draw $<amount> · off by $<difference>". Green "Ties ✓ $X" is unchanged. |
-| Corroboration Tie-out cell (pay application) | "Does not tie: $2,527,796.23 vs $2,490,296.23" (44) | **Does not tie** (amber), with amber wrapping "off by $37,500.00" beside it. Green "Ties" is unchanged. |
-| Corroboration Tie-out cell (no tie target) | "No Hard Costs line to tie to" (length set by a constant) | **No line to tie to**, with detail "no Hard Costs line in the template" |
-| Lien waiver line | "No lien waiver received with the pay application" (48) | **No lien waiver received** |
-| Draw Number, collision | "Submitted as #67, already on file — renumbered to next in sequence" (66) | **Renumbered from #67 (on file)** |
-| Draw Number, override onto a used number | "#78 is already on file for this investment" (42) | **#78 already on file** |
-| Draw Number, gap | "Out of sequence: last draw is #N" / "… none on file" (up to 42) | **Out of sequence (last #N)** / **Out of sequence (none on file)** |
-| Investment match | "Matches Tamarack Hotel & Spa Vail on file" (41, set by the name) | **Matches investment on file** (amber "No matching investment" is unchanged) |
+| Process `SD Receive Approval Reply` | `0000f074-9ac4-8000-25d1-7f0000014e7a` | 2 nodes; trigger and Public Events set in Designer; the description still names old, unused PVs (TODO) |
+| Process `SD Handle Approval Reply` | `0000f074-9a9b-8000-25ce-7f0000014e7a` | v1, 34 PVs, 24 nodes, validator clean; the gateway is node 6 because a node's type cannot change on update |
+| Process `SD Draw Approval Step` | `0000f06e-a547-8000-24cc-7f0000014e7a` | node 8 sender and Reply-To, new node 13, 2 new PVs; validator clean |
+| Record type `SD Draw Email Message` | `3686a81f-86e2-498e-a4d1-ce40236c824a` | widths **measured** through a real Write Records node: 255 / 1,000 / 1,000 / 4,000 / 1,000 / 1,000 |
+| Rules `SD_parseReplyToken`, `SD_extractReplyText` (v2), `SD_buildReplyInterpretationRequest`, `SD_gateReplyInterpretation`, `SD_getDrawEmailMessages`, `SD_getReplyContext`, `SD_buildReplyResponseEmail`, `SD_newEmailMessage` | `…_575565`, `…_575571`, `…_575577`, `…_575583`, `…_575589`, `…_575595`, `…_575601`, `…_575627` | identical to the repo `.sail` files |
+| Rule `SD_buildApprovalEmail` | `…_571551` | v3, identical to the repo |
+| Interface `SD_form_emailException` | `…_575621` | v2, `error: null` |
+| Interface `SD_view_drawApprovals` | `…_570853` | v3 (Email Exchange), `error: null` |
+| Constants `SD_EMAIL_APPROVAL_MAX`, `SD_EMAIL_REPLY_ADDRESS`, `SD_EMAIL_SENDER_NAME`, `SD_EMAIL_REPLY_ROLES`, `SD_EMAIL_REPLY_ADDRESSES`, `SD_EMAIL_INTERPRETATION_MODEL` | `…_575529` … `…_575559` | `SD_EMAIL_REPLY_ADDRESSES` is v3: all nine scott.thorn@appian.com, restored after the test mapping |
 
-- **Swept and left as they were (fixed text, ≤ 40):**
-  - status tags (fixed vocabulary, longest "Extracted & Confirmed", 21);
-  - the Summary's "No budget lines", "Ties ✓", "Does not tie", "Package ties", "Package received", "Needs attention", "None received";
-  - "Being classified", "Figure could not be read", "Received · filed as Invoice", "Lien waiver received", "Received · not classified", "Received", "Next in sequence".
-- **Figures:** figures now appear only in wrapping text or grid columns, never in a chip. The stored corroboration summary (rich text on the Summary) is unchanged.
+## Verified (end to end by loop-test email, draw 66 untouched)
+Loop mail from the instance always arrives from `admin@ny.appiancloud.com`, so the verification ran in two stages:
+- **Production mapping:** the unauthorized-sender case, which is genuine under this mapping.
+- **Temporary mapping:** CEO and CAO → that address, read back, then restored and read back.
 
-## What changed, by object
+| Case | Draw | Result |
+|---|---|---|
+| Unauthorized sender | 92 (#77) | row UNAUTHORIZED, "Nothing changed."; draw still awaiting the CEO |
+| Approve ("Looks good, approved. Please release the funds on the 16th.") | 92 | **Approved**; treasury notified 14:01:35 UTC; the CEO row's comment carries the reply and "read as APPROVE (comment: Please release the funds on the 16th.)" |
+| Reject ("Reject. Hold this one until the lender signs off…", subject "RE:") | 93 (#78) | **Rejected at step 9**; no treasury |
+| Unclear ("Let me think about this one over the weekend.") | 94 (#79) | AMBIGUOUS; clarification sent on the thread; nothing changed |
+| Unclear again ("Can we talk about the contingency on Monday first?") | 94 | EXCEPTION; task **22161** "Review email reply" open for `SD Draw Demo Approvers`; no email; CEO task 22116 still live |
+| Guardrail ("Approved.") | Gateway 12 | refused ($8,940,000 > $5,000,000); refusal sent on the thread; the CAO step is unchanged |
 
-- **`SD_corroborateDocuments` v6** (generator `gen_corroboration.py`):
-  - chips carry no figures;
-  - each item has a new `detail` ("off by $X");
-  - the logic is unchanged.
-- **Gauntlet `gauntlet_SD_corroboration.sail` (C1–C10), 10/10 pass:**
-  - every case checks the detail line and fails any chip over 40 characters;
-  - C9 covers "No line to tie to", and C10 pins the pre-existing no-Hard-Costs-line behaviour (below).
-- **`SD_form_reconcileExtraction` v7:**
-  - the new verdict chip and its wrapping line;
-  - the Tie-out cell is a side-by-side of the chip (`MINIMIZE`) and its detail;
-  - the four chip wordings above;
-  - an unused local removed.
-- **Docs:**
-  - `PROJECT_INSTRUCTIONS.md`: collision-chip wording, noted as shortened.
-  - `CLAUDE.md`: a new rule, "Chips never carry figures or names"; updated wording and versions; Scott's draws 97/98.
-  - `TODO.md`, `BUILD_PLAN.md`, `BUILD_LOG.md`.
+- **Approvals tab as `sd.accountant` via sail,** read from the stored YAML:
+  - **#77:** step email / Sent · reply / **Sender not authorized** · reply / **Approved by email**. The CEO row reads "10/05/2026 email · admin@ny.appiancloud.com".
+  - **#78:** Sent · **Rejected by email**.
+  - **#79:** Sent · **Unclear · clarification sent** · clarification / Sent · **Sent to exception queue**.
+  - **#12:** **Over the email limit** · refusal / Sent.
+- **Gauntlet** `gauntlet_SD_emailReply.sail`: 29/29 (token, extraction, gate).
+- **Renders:** Approvals view and exception form, both `diagnostics.error: null`.
+- **Cleanup, confirmed by absence:**
+  - throwaway rules `zz_gauntletEmailReply` and `zz_measureEmailMessageWidths`: 404;
+  - throwaway processes `zz_loopTestSendReply` and `zz_measureEmailMessageWidths`: no `zz` process model is listed;
+  - message rows 1–6 (capability tests) and 18 (the width probe) deleted by explicit id.
 
-## Verified
+## Not verified, and the browser checklist
+- **A reply from a real mailbox.** Three things are unproven:
+  - that the external sender keeps its address;
+  - that Reply-To routes the reply to the receiver;
+  - that the clarification threads in Gmail.
+- **The exception form's Mark Reviewed** and handler node 62, which logs the review.
+- **Geometry** of the Email Exchange card and the exception form.
+- **UNMATCHED, NOT_AWAITING and an unclassifiable answer:** these paths are proven by rule tests and the gauntlet only.
 
-`testInterface` as the designer, through a throwaway wrapper that builds the payload the way the pipeline does (`SD_getExtractionForReconcile(instanceId)`). A checker listed every rendered tag with its length.
-
-| State | Payload | Longest tag | Figures |
-|---|---|---|---|
-| Clean | draw 92 (#77) | 29 | — |
-| Mismatch, no waiver | draw 93 (#78) | 29 | "off by $37,500.00" beside **Does not tie**; **No lien waiver received** (23) |
-| Junk package | draw 94 (#79) | 29 | "Received · not classified" (25) |
-| Collision | every live payload | 29 ("Renumbered from #67 (on file)") | — |
-| Non-tie | draw 92, Hard Costs set to 2,490,296.00 | 29 | verdict: "lines $2,604,252.00 vs draw $2,604,252.23 · off by $0.23"; grid: "off by $0.23" |
-| Next in sequence | draw 92, number 83 | 16 | — |
-| Out of sequence | draw 92, number 90 | 26 ("Out of sequence (last #82)") | — |
-| Override onto a used number | probe copy with the prefill forced to 77 | 19 ("#77 already on file") | — |
-
-- **No tag over 40 in any render.** The same checker on the pre-fix render found 66, 41, 44 and 48.
-- **Close-out readback:** form v7 and rule v6 read back identical to the repo.
-- **Throwaways deleted, each 404:** `zz_probeGridCell`, `zz_gauntletChips`, `zz_probeReconcileStates`, `zz_probeFormOnFile`.
-- **Persona smoke check, as `sd.accountant` via sail:**
-  - the Draws page loads (27 rows, Awaiting My Action 16);
-  - #78's Summary renders ("current draw lines sum to $2,604,252.23", the SUPPORTING DOCUMENTS line, **Needs attention**);
-  - the Documents tab statuses render;
-  - the longest tag on those pages is 21 characters.
-
-## Not verified
-
-- **The reconciliation form as the persona.** It opens only from its task, and sail does not follow task links (reproduced in Phases 5.5 and 5.6). No draw is Ingesting now, so there is no task. The form's content is covered by the designer renders above.
-- **Geometry, which is browser-only:**
-  - whether "off by …" wraps cleanly beside the chip in the grid cell;
-  - how the verdict's right-aligned line wraps;
-  - that no tag shows an ellipsis.
-- **"Out of sequence (none on file)"** was not rendered: it needs an investment with no draws on file. It is fixed text, 30 characters.
-
-## Browser checklist (Scott; `TODO.md` → "Chip layout after the 40-character fix")
-
-1. **Package.** As `sd.accountant`, receive the template plus the mismatch pay application. After ~2 min open **Reconcile Extraction**.
-2. **Tie-out cell.** Expect the amber **Does not tie** with amber "off by $37,500.00" beside it in one cell. Check that:
-   - the text wraps rather than clips;
-   - the chip is not squeezed;
-   - the grid still fits the left pane.
-3. **Other chips.** Expect **No lien waiver received**, **Renumbered from #67 (on file)** and **Matches investment on file**, each shown in full.
-4. **Verdict strip.** Set Hard Costs' Current Draw to 2490296.00 and expect:
-   - the verdict strip shows the amber **Does not tie**, with "lines $2,604,252.00 vs draw $2,604,252.23 · off by $0.23" beneath it;
-   - the pay application row reads "off by $37,500.23".
-
-   Restore the value and Confirm.
-5. **Laptop width (~1280 px):** no tag shows an ellipsis.
+**Checklist, for Scott** (TODO → "Live email reply from a real mailbox"):
+1. In your inbox, open the #79 CEO email ("… Step 9 of 9 (CEO) [SD-DRAW-94-S9]"). Click Reply. The To line must be `processmodeluuid0000f074-9ac4-8000-25d1-7f0000014e7a@ny.appiancloud.com`.
+2. Reply in your own words, for example "Looks good, approved."
+3. After 1–3 min, as `sd.accountant`, open #79 › Approvals:
+   - the CEO row reads Approved, "email · scott.thorn@appian.com";
+   - the Email Exchange has a new **Approved by email** row;
+   - the draw is Approved.
+4. Optional: have the session accelerate draw 95 to the CEO step. Reply unclearly and expect the clarification in the same Gmail thread.
+5. Eyeball the Email Exchange on #77, #78, #79 and #12: wrapping, no tag ellipsis, no horizontal scroll at ~1280 px.
+6. As `sd.accountant`, open task 22161:
+   - navy header "Email reply needs a person", with the draw and step legible;
+   - type a note and click **Mark Reviewed**;
+   - #79 gains an "Exception reviewed by sd.accountant" row with outcome **Reviewed**.
 
 ## Rulings needed
+- **The step email's reply copy** now departs from the client sample: it invites a conversational reply, drops the red warning, and adds an amber over-limit line. Accept it, or restore the sample's wording and narrate the rule? (TODO, Client validation.)
+- **Carried from the chip fix:**
+  - the pay-application tie against $0.00 when there is no Hard Costs line;
+  - the amber-versus-red colour for "Does not tie".
 
-1. **A missing Hard Costs line.** Behaviour since Phase 5.5, pinned by gauntlet C10: a template with lines but no Hard Costs line ties the pay application against $0.00 ("Does not tie · off by $2,490,296.23"). "No line to tie to" appears only when there are no lines at all. Should a missing Hard Costs line read "No line to tie to"? I didn't change it, because the brief allowed no behaviour changes.
-2. **One colour for a non-tie.** The verdict chip is now amber, per the brief. The pinned total's "off by" and the Summary's "Does not tie" are still red; they weren't chips in scope.
-3. **Scott's draws 97 (#81) and 98 (#82)** from the browser pass. Keep them or clear them at the next reset. The next ingested draw prefills #83.
+## Findings
+- **Instance-sent mail is re-stamped** from `admin@ny.appiancloud.com` whatever From is configured. The loop tests worked around this with a temporary mapping, restored by readback.
+- **An email decision after an accelerated chain is dated a day after the previous step**, not on the email's date (the monotonic rule): #77's CEO row reads 10/05 while its reply reads 09/26. This is recorded as a known data artifact.
+- **The exception form was created before its layout gate ran** (transcript order). The gate was run after the fact; the navy header with default text colours matches the reconciliation form, so nothing changed. The Approvals edit was gated first.
+- **Draws 92–94 were Phase 5.6 specimens.** Their corroboration states are unchanged; their approval states now carry the Phase 6a outcomes.
 
 ## Promotion candidates
+Promotion candidates: 7 found; 0 promoted; 7 listed (staged at gate 1 in `BUILD_LOG.md`):
+- the email trigger and Public Events cannot be set over the Dev MCP;
+- Receive Message mappings target parameters only;
+- instance-sent mail arrives from `admin@<site>`;
+- a bare `=pv!x` in a Send E-Mail text input fails the save;
+- `stripHtml()` deletes newlines;
+- a node's type cannot change on update;
+- an email body arrives as HTML.
 
-- **2 found, staged at gate 1:**
-  - a side-by-side layout in a read-only grid cell is accepted and renders here, contradicting the pack's grid-column restriction (trigger: the browser check of the Tie-out cell);
-  - `joinarray` drops empty strings.
-- **1 trigger fired:** the Phase 5.6 method candidate on skipped reading gates. The working form was applied (the gate ran first and changed the design); it is held at gate 1.
-- **None promoted.** The supplemental is unchanged; the repo and user-level copies are identical.
+The method candidate "gate skipped when batching" fired and was reproduced in both directions; it stays held at gate 1. Checkpoint: current through this entry.
 
 ## TODO changes
+**Added:**
+- **Before demo:** "Email approval beat" (how it runs, the specimens, and clearing draw 66's message rows before a rehearsal).
+- **Browser checks owed:** "Live email reply from a real mailbox, and the Email Exchange in the browser".
+- **Client validation:** the step email's reply copy.
+- **Deferred:**
+  - the receiver's stale description (fix in Designer);
+  - email paths proven by rule tests only;
+  - Phase 6a dependencies to re-verify per instance.
 
-- **Closed (to Done):**
-  - the Phase 5.6 package browser check and the persona download check (S9), both verified by Scott;
-  - the chip fix.
-- **Added:**
-  - Browser check: "Chip layout after the 40-character fix".
-  - Deferred: "A pay application ties against $0.00 when the template has lines but no Hard Costs line" and "Tie-out colours now differ by place".
-- **Updated:**
-  - the reset state (Scott's draws 97/98; Awaiting My Action 16);
-  - the chip wording in the full-width form check.
+**Moved to Done:** Phase 6a.
 
-## BUILD_PLAN.md changes
-
-- ✅ Phase 5.6 browser pass (Scott) and ✅ the chip fix.
-- Added: the chip-layout browser check and the two rulings.
+## BUILD_PLAN changes
+- **Phase 6a:** all seven object items marked ✅ 2026-09-26. The header now reads built and verified, with Scott's live reply owed.
+- **Added to 6a:** "Live reply from a real mail client" and "Ruling on the step email's reply copy".
+- **Phase 6b:** unchanged.

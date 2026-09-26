@@ -16,6 +16,17 @@ Open items by class. Sessions add discovered items unprompted as they surface, a
 - **Demo start (2026-09-22).** After the reset, start `SD Draw Approval Process` on draw 66 and wait ~10 s: the Draws page shows "Awaiting My Action 1" and YOUR ACTION on #66 for `sd.assetmanager` only while that task is live. The task currently live is **536876873** (step process **536909994**, restarted 15:34 UTC after the earlier step process 536909940 was found cancelled — its task 536874206 read Aborted with no assignees). **Do not cancel `SD Draw Approval Step` instances or the `SD Draw Approval Process` run that owns draw 66's live task** when sweeping Process Monitoring; the reset CSV plus a fresh start is the only way to cycle it.
   - *Owner:* the presenter or the session.
   - *Trigger:* before every rehearsal and the demo.
+- **Email approval beat (Phase 6a, 2026-09-26).**
+  - **How it runs:** the accelerator (or a live approval) brings a draw to step 9. The step process emails `SD Draw CEO` (scott.thorn@appian.com) from "Starwood Draw Approvals", with Reply-To the receiver and the subject ending `[SD-DRAW-<id>-S9]`. Scott replies from that mailbox in his own words, and the draw moves 1–3 min later. Only replies from the authorized address act; every role maps to scott.thorn@appian.com today.
+  - **Specimens now on file:**
+    - **92 (#77):** Approved by email, treasury notified.
+    - **93 (#78):** Rejected by email.
+    - **94 (#79):** at the CEO step with its CEO task **22116** live, one clarification sent, and a **Review email reply** task **22161** open for `SD Draw Demo Approvers`.
+    - **12 (Gateway #12):** the guardrail refusal.
+  - **Before rehearsing the beat on draw 66:** delete draw 66's earlier `SD Draw Email Message` rows by explicit id (`deleteRecordData`; read them with `SD_getDrawEmailMessages`). A leftover INBOUND AMBIGUOUS row makes the next unclear reply skip the clarification and go straight to the exception queue.
+  - **Before a rehearsal that clears ingested draws:** pass their message rows as `msgs=` to `--cleanup-ingested`.
+  - *Owner:* the presenter or the session.
+  - *Trigger:* before every rehearsal of the email beat.
 - **Ingestion demo reset — Phase 5.6 additions (read 2026-09-25; extends the Phase 5.5 state below).**
   - **Reconciled 5.6 draws, each In Progress at step 1 with an Accountant task open:**
     - **92 = #77:** clean package; TIES; documents 6637–6640.
@@ -90,12 +101,42 @@ Open items by class. Sessions add discovered items unprompted as they surface, a
   6. At a laptop width (~1280 px): no tag shows an ellipsis anywhere on the form.
   - *Trigger:* before the first rehearsal that shows the package beat.
 - ~~**Document download as a persona** (S9)~~ — Done 2026-09-25 by Scott: downloads from the Documents tab were verified as `sd.accountant` in the Phase 5.6 browser pass.
+- **Live email reply from a real mailbox, and the Email Exchange in the browser (Phase 6a).** Owner: Scott. A loop test cannot be an authorized sender: instance-sent mail always arrives from `admin@ny.appiancloud.com`. The real sender path and the Reply-To routing are therefore proven only by this check.
+  1. **In your scott.thorn@appian.com inbox,** open "Draw Funding Approval: Draw #79 · Tamarack Hotel & Spa Vail · $2,604,252.23 · Step 9 of 9 (CEO) [SD-DRAW-94-S9]" (sent 2026-09-26 ~9:59 AM EDT). Note the sender line: display name "Starwood Draw Approvals"; the address is whatever Appian Cloud stamps.
+  2. **Click Reply.** The To line must be `processmodeluuid0000f074-9ac4-8000-25d1-7f0000014e7a@ny.appiancloud.com` (the Reply-To). If it is `admin@…` or anything else, stop and record it: Reply-To is not honoured and the flow needs another route.
+  3. **Write a clear approval** in your own words, e.g. "Looks good, approved. Please fund on the 16th.", and send.
+  4. **After 1–3 min, as `sd.accountant`,** open Draws › #79 › Approvals:
+     - **Approval Detail:** the CEO row is **Approved**, "email · scott.thorn@appian.com", and its comment quotes your reply and "read as APPROVE".
+     - **Email Exchange:** a new last row "Reply from scott.thorn@appian.com · Inbound · source email · step 9", Outcome **Approved by email**.
+     - The draw's status is **Approved**.
+     - The session can confirm `treasuryNotifiedAt` is set (the Phase 1 treasury placeholder; what it sends is Phase 6b).
+  5. **Optional, to see the thread:** ask the session to accelerate draw 95 (#80) to the CEO step first. Reply "let me think about it". Expect a clarification from "Starwood Draw Approvals" **in the same Gmail thread** within ~2 min, and nothing changed on #80. Then reply "Approved".
+  6. **Geometry,** as `sd.accountant`, on #77, #78, #79 and #12 › Approvals › Email Exchange:
+     - When is two lines;
+     - the Message text wraps in the wide column, with nothing cut;
+     - the Reading column's small text wraps;
+     - no Outcome tag shows an ellipsis (the longest is "Unclear · clarification sent", 28);
+     - no horizontal scroll at ~1280 px.
+  7. **Exception task:**
+     - As `sd.accountant`, open **Review email reply** (task 22161) from the task list.
+     - Expect the navy header "Email reply needs a person", with "Draw #79 · Tamarack Hotel & Spa Vail · Step 9 · CEO" legible on the navy; WHY IT IS HERE "A second reply on this step that is not a clear approval or rejection."; THE REPLY "Can we talk about the contingency on Monday first?".
+     - Type a note and click **Mark Reviewed**.
+     - #79's Email Exchange gains "Exception reviewed by sd.accountant · Internal · source exception_queue", Outcome **Reviewed**, with your note. The draw is unchanged.
+     - This is the first live run of handler node 62.
+  - *Trigger:* before the first rehearsal of the email beat.
 - **Geometry of the two Phase 3 forms** (start form drop zone; the rebuilt reconciliation form's pane split — the left pane's nine-column DENSE grid must not wrap its numbers at desktop width, and the right pane's viewer should fill the pane height). Owner: Scott. *Trigger:* with the check above.
 
 ## Client validation questions
 
 - ~~**Funding History on an ingested draw:** the view lists the last three *approved* draws (65/64/63 for #67); the Phase 3 brief expected 66/65/64.~~ Ruled 2026-09-22: prior approved draws only; 65/64/63 is correct. `PROJECT_INSTRUCTIONS.md` Business rules.
 - ~~**General Comments is not extracted from the template.** Does any real template carry General Comments, and should it be re-added with a filled specimen?~~ Ruled 2026-09-22: stays unextracted and editable at reconciliation; re-add only if a filled specimen appears. `PROJECT_INSTRUCTIONS.md` Business rules.
+
+- **The step email's reply copy now departs from the client sample (Phase 6a).** The sample's footer says Reply "Approve" or "Reject", with a red warning. The Phase 6a email instead:
+  - invites a reply "in your own words";
+  - drops the red warning;
+  - shows an amber "email approval is not available" line on a draw over $5,000,000.
+
+  Does the client accept this wording, or want the sample's back with the conversational rule narrated? *Owner:* Scott with the client. *Trigger:* the next client review of the email.
 
 ## Deferred
 
@@ -168,8 +209,28 @@ Open items by class. Sessions add discovered items unprompted as they surface, a
 
 *(Each item names its trigger.)*
 
+- **`SD Receive Approval Reply`'s description names the old PVs** (`fromAddress` / `subject` / `body`). The trigger maps into `emailFrom` / `emailSubject` / `emailBody`. The old PVs are unused. Fix the text, and optionally delete the three unused PVs, **in Designer**, where the email trigger is safe. *Owner:* Scott. *Trigger:* the next time the receiver is opened in Designer.
+- **Email paths proven by rule tests only (Phase 6a):**
+  - a reply with no token (UNMATCHED);
+  - a reply for a step not awaiting a decision (NOT_AWAITING: `SD_getReplyContext` returned it for draw 94 mid-acceleration);
+  - an answer the gate could not classify. That route shares nodes 60–62 with the second-ambiguous route, which ran live; the gate's failure modes are gauntlet G7–G12.
+
+  Re-running loop tests needs a throwaway sender again (`zz_loopTestSendReply` was deleted; its shape is in `BUILD_LOG.md` Phase 6a). *Owner:* the build session. *Trigger:* the next change to the handler or the reply rules.
+- **Dependencies to re-verify on another instance (Phase 6a):**
+  - the receiver's address and its Designer-set trigger (neither travels by MCP);
+  - `SD_EMAIL_REPLY_ADDRESS`;
+  - DocCenter's Text Input skill 148;
+  - `SD_EMAIL_INTERPRETATION_MODEL`.
+
+  *Owner:* the build session. *Trigger:* any move of the app to another instance.
+
 ## Done
 
+- ✅ 2026-09-26 **Phase 6a: CEO approval by email reply.**
+  - **Built:** the receiver and handler, the reply rules and their gauntlet (29/29), the exception form, the dollar guardrail, thread continuity, and the Approvals tab's Email Exchange.
+  - **Verified end to end by loop-test email, draw 66 untouched:** unauthorized sender, approve (with treasury), reject, unclear once (clarification), unclear twice (exception task), and the guardrail.
+  - **Read back:** as the designer, and on the Approvals tab as `sd.accountant` via sail.
+  - Scott's live reply is owed (Browser checks owed).
 - ✅ 2026-09-25 — **Chip fix: every tag under 40 characters, with figures in wrapping text.**
   - Changed (old → new, all in the reconciliation form or its corroboration rule):
     - the verdict "Does not tie · lines $X vs draw $Y" → amber **Does not tie** plus a wrapping line;

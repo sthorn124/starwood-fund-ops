@@ -2,7 +2,7 @@
 
 What has actually been built in the environment, with object identifiers and the decisions behind them. Append after every build step; never rewrite a closed entry — a correction is a new entry that names what it corrects. Entry shape: date and title; scope line (the identity and group memberships every readback ran under); what changed, by object; decisions and why; verified (how, with counts and scope); not verified (and the browser checklist that covers it); promotion checkpoint. The contract is `CLAUDE.md` §7; the promotion loop is §9.
 
-**Promotion checkpoint: current through 2026-09-25 — Fix session: tie-out chips with wrapping off-by detail, all tags under 40 characters — level with the log tail.** A session touching promotion refuses to call itself complete if this checkpoint lags the log tail by more than one session.
+**Promotion checkpoint: current through 2026-09-26 — Phase 6a: CEO email approval with AI reply interpretation — level with the log tail.** A session touching promotion refuses to call itself complete if this checkpoint lags the log tail by more than one session.
 
 ## Promotion candidates (staging)
 
@@ -83,6 +83,15 @@ What has actually been built in the environment, with object identifiers and the
 - **[TRIGGER FIRED 2026-09-25, chip fix — working form applied; held at gate 1, see the fix-session entry]** **STAGED (gate 1, 2026-09-25, Phase 5.6; method, not platform) — a reading gate is skipped silently when edits are batched.** The docs-search gate was not run before four interface edits made in one batch; the transcript showed it, not memory. Run afterwards, it surfaced a real finding (tag text truncates at 40 characters). Working form: before claiming a gate in a log, check that the call is in the transcript; run the gate before the batch, not per edit. Home: the project `CLAUDE.md` if promoted. *Trigger:* the next batch of interface edits.
 - **STAGED (gate 1, 2026-09-25, chip fix) — a side-by-side layout inside a read-only grid cell passes the object validator and renders on this instance**, though the 26.6 docs and the vendor pack (`components/grid-field-instructions.md`: "NOT ALLOWED IN GRID COLUMNS") say a cell takes a single component. The 26.9 release notes document it. Measured: `createInterface` accepted it and `testInterface` rendered it with `error: null`. Working form: a tag (`MINIMIZE`) beside a wrapping rich-text detail in one cell. Platform-version-dependent; re-verify per instance. *Trigger:* the browser check of the Tie-out cell.
 - **STAGED (gate 1, 2026-09-25, chip fix) — `joinarray` drops empty strings** (`joinarray({"","",""}, ";")` returned "", not ";;"). Working form: map empties to a visible marker before joining when positions matter. *Trigger:* the next `joinarray` over items that can be empty.
+
+- **STAGED (gate 1, 2026-09-26, Phase 6a) — a process model's email trigger and Public Events cannot be set over the Dev MCP.** The `core.0` and `event.receiveMessage` node schemas expose no inputs, and `getProcessModel` / `updateProcessModel` carry no trigger or Public Events field. Working form: a human sets both in Designer; keep that model minimal (a hand-off node only) so it never needs MCP edits. One observation: `updateProcessModelNode` on another node preserved the Designer-set trigger. *Trigger:* the next MCP edit to an email-started model — re-check the trigger after it.
+- **STAGED (gate 1, 2026-09-26, Phase 6a) — Receive Message mappings target process parameters only.** In Designer, PVs created over MCP as non-parameters were not offered; "New…" creates parameters. Working form: create the mapping targets with `isParameter: true` before the Designer step. Property syntax (Scott): `msg!properties.FromEmail`, `msg!properties.Subject`, `msg!body`. *Trigger:* the next Receive Message trigger configured.
+- **STAGED (gate 1, 2026-09-26, Phase 6a) — mail the instance sends to itself arrives from `admin@<site>` whatever From says** (custom sender, process model and process designer, measured on `ny.appiancloud.com`; re-verify per instance). Consequence: a loop test is never an authorized sender. Working form: temporarily map the roles under test to that address, restore by readback. *Trigger:* Scott's live reply (does an external sender keep its address, and what does the recipient see as From?).
+- **STAGED (gate 1, 2026-09-26, Phase 6a) — a Send E-Mail text input written as a bare `=pv!x` failed the model save** with "begin 0, end -1, length 8"; `=tostring(pv!x)` saved. *Trigger:* the next Send E-Mail node configured over MCP.
+- **STAGED (gate 1, 2026-09-26, Phase 6a) — `stripHtml()` deletes plain newlines**, collapsing a multi-line reply to one line (gauntlet X1–X3 failed, then passed with the working form: split on line breaks first, strip each line). *Trigger:* the next `stripHtml()` over multi-line text.
+- **STAGED (gate 1, 2026-09-26, Phase 6a) — `updateProcessModel` refuses to change the type of a node at an existing id** ("node type cannot be changed on update"). Working form: give the new node a new id. *Trigger:* the next full node replacement on an existing model.
+- **STAGED (gate 1, 2026-09-26, Phase 6a) — an HTML email's `msg!body` arrives as HTML** (loop test; an external client's reply is unmeasured). Working form: detect HTML and cut quote containers before stripping. *Trigger:* Scott's live reply.
+- **[TRIGGER FIRED 2026-09-26, Phase 6a — reproduced both ways; held at gate 1]** "a reading gate is skipped silently when edits are batched": the new exception form was created before its layout gate ran (found by transcript order; gated after the fact, no change needed); the Approvals view edit was gated first. Method, not platform; CLAUDE.md §5 already requires the gate for creations. *New trigger:* the next new interface.
 
 ## Entries
 
@@ -1269,3 +1278,154 @@ Promotion checkpoint: current through 2026-09-25 — Phase 5.6: Doc Center class
 - **None promoted.**
 
 Promotion checkpoint: current through 2026-09-25 — Fix session: tie-out chips with wrapping off-by detail, all tags under 40 characters.
+
+## 2026-09-26 — Phase 6a: CEO email approval with AI reply interpretation
+
+**Scope.**
+- **Dev MCP:** `appian` as `scott.thorn@appian.com`, full scope: `SD Administrators`, `SD Users`, and the three step groups, so also a recipient of every step email. Every design write, `testRule`, `testInterface`, `testProcessModel` and record readback ran under it.
+- **Handler identity:** the receiver hands off as DESIGNER, so the handler's initiator is the designer, and every unattended handler node runs as DESIGNER.
+- **sail:** as `sd.accountant` (`~/.sail-sd.accountant`) for the Approvals-tab readback. The sessions found were `alex.analyst`, `sam.supervisor`, `sd.accountant`, `sd.assetmanager` and `test.presenter`; `~/.sail-designer` holds no session and the default `~/.sail` is empty.
+- **Not used:** `appian-runtime` and `--from-devmcp`.
+- **Draw 66** was not touched: re-read at the end, In Progress at step 3, step process 536909994, `updatedAt` 2026-09-22 15:34:33.
+- **Designer work by Scott** (the Dev MCP cannot set these): the receiver's Receive Message (Email) trigger, Public Events, and the trigger's message mappings.
+
+**Capability check (brief item 1; before any build).**
+- **Docs:** a process model receives email at `processmodeluuid<uuid>@<site>` once its Start Event has a Receive Message trigger of type Email and Public Events is on.
+- **The Dev MCP cannot set either** (measured):
+  - the `core.0` and `event.receiveMessage` schemas expose no inputs;
+  - `getProcessModel` / `updateProcessModel` carry no trigger or Public Events field.
+- **Scott configured `SD Receive Approval Reply` in Designer.**
+  - The trigger's mappings could target only process **parameters**. The PVs the session had created over MCP were not parameters, so they were not offered. Scott created `emailFrom`, `emailSubject` and `emailBody` with "New…".
+  - He corrected the property syntax to `msg!properties.FromEmail`, `msg!properties.Subject` and `msg!body`.
+  - The session then repointed node 3 with `updateProcessModelNode`. The trigger and Public Events survived that MCP update (one observation).
+- **Loop tests** (a throwaway `zz_loopTestSendReply` sending from the instance to the receiver): five emails, then message rows 2–6.
+  - Rows 2–3 had empty fields until node 3 was repointed.
+  - Rows 4–6 had sender, subject and body.
+  - Every row arrived from `admin@ny.appiancloud.com`, whatever From was configured (custom sender, process model, process designer).
+  - An HTML body arrives as HTML.
+  - Latency: 40 s to 2.5 min.
+- **Receipt proven; nothing faked.**
+
+**What changed, by object.**
+- **Process `SD Receive Approval Reply`** (`0000f074-9ac4-…`), built earlier this session: two nodes, the email Start Event and node 3, which hands off (asynchronous subprocess, as DESIGNER) to the handler with `fromAddress` / `subject` / `body` = `pv!emailFrom` / `pv!emailSubject` / `pv!emailBody`. Its description still names the old, unused PVs; that fix is for Designer (TODO).
+- **Process `SD Handle Approval Reply`** (`0000f074-9a9b-…`): stage 0 (4 nodes) → **v1, 34 PVs and 24 nodes**, from `gen_reply_handler.py`.
+  - **Gateway is node 6:** the first `updateProcessModel` was refused with "Node 4: node type cannot be changed on update", because stage 0's node 4 was Write Records.
+  - Node map: see `CLAUDE.md`.
+  - `validateDesignObject`: no errors. Node 40's subprocess inputs read back in the same form as the accelerator's working node.
+- **Process `SD Draw Approval Step`** (`0000f06e-a547-…`):
+  - PVs `writeError` and `writeErrorText` added, with the existing list and defaults re-sent and read back.
+  - End "Notified" moved to x 1100.
+  - **New node 13** "Record step email on the draw" (Write Records, DESIGNER, OUTBOUND STEP_EMAIL row).
+  - **Node 8** now sends from Custom Sender `SD_EMAIL_REPLY_ADDRESS`, display name `SD_EMAIL_SENDER_NAME`, Reply-To the receiver, and connects to 13.
+  - `validateDesignObject`: no errors.
+  - Running instances keep their own version: draw 66's step process 536909994 is on the old one.
+- **Record type `SD Draw Email Message`** (`3686a81f-…`).
+- **Rules** (`gen_email_reply.py`):
+  - `SD_parseReplyToken` v1;
+  - `SD_extractReplyText` v2 (HTML detected, quote containers cut, per-line strip);
+  - `SD_buildReplyInterpretationRequest` v1;
+  - `SD_gateReplyInterpretation` v1;
+  - `SD_getReplyContext` v1;
+  - `SD_buildReplyResponseEmail` v1;
+  - `SD_getDrawEmailMessages` v1;
+  - `SD_newEmailMessage` v1: the row constructor. It was added so the 24-node payload shrank from ~33 KB to ~20 KB and every write node shares one cut-to-column rule.
+- **`SD_buildApprovalEmail` v3:** the token in the subject, a conversational reply instruction, the red warning removed, and an amber over-limit line. The copy departs from the client sample; a ruling is owed.
+- **Interface `SD_form_emailException`:** v1 created; v2 removes a repeated step from the subtitle ("step 9 (Step 9 · CEO)" → "Step 9 · CEO").
+- **Interface `SD_view_drawApprovals` v3:** the Email Exchange card, from `gen_view_tabs.py`. The generator reproduced the committed v2 byte-identical before the edit.
+- **Constants** `SD_EMAIL_*` (six). `SD_EMAIL_REPLY_ADDRESSES` went v1 (all scott.thorn@appian.com) → v2 (the temporary loop mapping, below) → v3 (all scott.thorn@appian.com again), each read back.
+- **`scripts/seed_draw66.py`:** `--cleanup-ingested` takes `msgs=` (SD Draw Email Message, deleted first). The dry run printed the expected blocks, and the seed checks still exit 0.
+- **`PROJECT_INSTRUCTIONS.md`:**
+  - Phase 6 split into 6a / 6b;
+  - the reply-matching rules;
+  - the **dollar guardrail** and **thread continuity** business rules (brief item 0);
+  - the inbound-email open question marked resolved.
+
+**Gates run.**
+- **Docs-search:**
+  - inbound email and Receive Message mappings;
+  - the Send E-Mail From options;
+  - `a!gridColumn` width vocabulary and AUTO behaviour (stated: AUTO takes what fixed columns leave, and there is no `WIDE_PLUS`);
+  - `a!headerTemplateFull` and `a!formLayout.contentsWidth`.
+- **Pack:** `components/grid-field-instructions.md` (width strategy, tags in cells) and `layouts/form-layout-instructions.md` (`MEDIUM` for a single-column form).
+- **Frontend-design guidance:** read before the Approvals-view edit.
+- **Gate order:**
+  - **The exception form was created before its layout gate ran** (transcript order). The gate was run after the fact; the navy header with default text colours matches the reconciliation form Scott has seen in the browser, so nothing changed.
+  - **The Approvals view was gated before its edit.**
+
+**Verified.** All loop tests went from the instance to the receiver. All readbacks ran as the designer unless noted.
+
+**Unauthorized sender (production mapping), draw 92, S9:**
+- Row 9: outcome UNAUTHORIZED, body "Approved." (the Gmail-style quote was cut), note "…not the authorized reply address for the CEO step. Nothing changed."
+- Draw 92 re-read: still step 9, awaiting.
+
+**Temporary mapping.** CAO (6) and CEO (9) → `admin@ny.appiancloud.com`, read back, then:
+- `SD_getReplyContext(12, 6, admin@…)` = GUARDRAIL ($8,940,000 > $5,000,000, approvalId 1206);
+- `(92, 9, admin@…)` = OK.
+
+**Accelerator** on draws 92, 93, 94 in parallel:
+- `testProcessModel` hit its 60 s timeout each time while the processes completed.
+- All three reached step 9 by 13:59:47 UTC.
+- Node 13 wrote the STEP_EMAIL rows 7, 8, 10, each with the token in the subject, to "SD Draw CEO", ~44 KB of HTML.
+
+**Loop replies.** Each AI call took 3.0–3.4 s and 1 AI action on `appian/anthropic.claude-sonnet-4-6`.
+
+| Reply | Draw | Rows | Result read back |
+|---|---|---|---|
+| "Looks good, approved. Please release the funds on the 16th." (quote history contains "Approve Reject") | 92 (#77) | 16 | APPROVE, comment "Please release the funds on the 16th."; transition APPROVED. Draw **Approved**, `treasuryNotifiedAt` 14:01:35, `activeStepProcessId` cleared. CEO row 6717 Approved, decision date 10/05 (the monotonic rule after the accelerated chain) |
+| "Reject. Hold this one until the lender signs off on the revised budget." (subject "RE:") | 93 (#78) | 15 | REJECT, comment kept; transition "REJECTED at step 9". Draw **Rejected**, no treasury |
+| "Let me think about this one over the weekend." | 94 (#79) | 13, 14 | AMBIGUOUS; clarification sent on the thread ("Re: <step subject>") to the sender; nothing changed |
+| "Can we talk about the contingency on Monday first?" (second) | 94 | 17 | Read AMBIGUOUS; `priorAmbiguous` 1, so EXCEPTION. Task **22161** "Review email reply" issued (in the designer's list as a member of `SD Draw Demo Approvers`). No email sent. CEO task 22116 still live |
+| "Approved." | 12 (Gateway) | 11, 12 | GUARDRAIL; refusal sent on the thread; CAO row 1206 still In Progress, no decision or comment |
+
+**Mapping restored** to all nine → scott.thorn@appian.com (v3, read back) after the last reply was handled.
+
+**Approvals tab as `sd.accountant` via sail.** These were read from sail's stored YAML, not the listing.
+- **#77:** CEO row "Decision On 10/05/2026 email · admin@ny.appiancloud.com". Comment: "Email reply from admin@…: "Looks good, approved…" · read as APPROVE (comment: Please release the funds on the 16th.)". Email Exchange 3 rows: step email / Sent; reply / **Sender not authorized**; reply / **Approved by email**.
+- **#78:** 2 rows, the second **Rejected by email**. The CEO comment carries the reply and the reading.
+- **#79:** 4 rows: Sent, **Unclear · clarification sent**, the clarification / Sent, **Sent to exception queue**.
+- **#12:** 2 rows, **Over the email limit** and the refusal / Sent.
+
+**Renders.**
+- `testInterface` of `SD_view_drawApprovals` on draw 92 before any message: `error: null`, empty state "No approval emails on this draw yet".
+- `SD_form_emailException` on draw 92: `error: null`.
+
+**Column widths measured** through a real Write Records node: a throwaway `zz_measureEmailMessageWidths` process wrote one row through `SD_newEmailMessage` at every maximum. A throwaway rule read the stored `len()`s: fromAddress 255, toAddress 1,000, subject 1,000, body 4,000, interpretation 1,000, notes 1,000.
+
+**Gauntlet** `gauntlet_SD_emailReply.sail`: 29/29 (T1–T8, X1–X8, G1–G13), re-run before its throwaway runner was deleted.
+
+**Close-out readback.** All 11 Phase 6a rules and interfaces read back identical to the repo `.sail` files (trailing whitespace aside).
+
+**Cleanup, verified by absence:**
+- `zz_gauntletEmailReply` (`…_575607`) and `zz_measureEmailMessageWidths` (rule `…_575650`): 404.
+- `zz_loopTestSendReply` (`0000f074-9b08-…`) and `zz_measureEmailMessageWidths` (process `0000f074-a56b-…`): the application lists no `zz` process model.
+- Message rows 1–6 (capability tests, no draw) and 18 (the width probe) deleted by explicit id; the table now holds rows 7–17 only.
+
+**Not verified (and why).**
+- **A reply from a real mail client:**
+  - that an external sender keeps its own address;
+  - that Reply-To routes a mail client's reply to the receiver;
+  - that the clarification threads in Gmail.
+
+  Loop tests cannot show any of these. Checklist: `TODO.md` → "Live email reply from a real mailbox".
+- **Handler node 62** (the review log) and the exception form's **Mark Reviewed**: task forms are not reachable through sail, and completing the task over MCP would bypass the button's save. It is in the same checklist.
+- **UNMATCHED, NOT_AWAITING and an unclassifiable answer:** proven by rule tests and the gauntlet, not live (TODO Deferred).
+- **Geometry** of the Email Exchange card and the exception form: browser only (same checklist).
+- **What the sender line looks like in Gmail:** the loop proves only that the instance's own receiver sees `admin@…`.
+
+**Findings.**
+- **Instance-sent mail is re-stamped from `admin@ny.appiancloud.com`.** A loop test therefore can never exercise the authorized path. The working form used here: temporarily map the roles under test to that address, run the tests, and restore by readback.
+- **An email decision after an accelerated chain is dated a day after the previous step** (the monotonic rule), not on the email's date. Recorded as a known data artifact in `CLAUDE.md`.
+- **Draws 92–94 were Phase 5.6 specimens.** Their corroboration states are unchanged; their approval states now carry the Phase 6a outcomes.
+
+**Promotion candidates.** All staged at gate 1:
+- `SD Receive Approval Reply`'s email trigger and Public Events cannot be set over the Dev MCP.
+- Receive Message mappings target parameters only.
+- Instance-sent mail arrives from `admin@<site>`.
+- A bare `=pv!x` in a Send E-Mail text input fails the save.
+- `stripHtml()` deletes newlines.
+- A node's type cannot change on update.
+- An email body arrives as HTML.
+- **Method trigger fired:** the gate was skipped for the new exception form and run first for the Approvals view.
+- **None promoted.**
+
+Promotion checkpoint: current through 2026-09-26 — Phase 6a: CEO email approval with AI reply interpretation.

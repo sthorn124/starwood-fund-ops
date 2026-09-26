@@ -11,8 +11,9 @@ Usage:
   python3 scripts/seed_draw66.py            # reconciliation checks (exit 0 = pass)
   python3 scripts/seed_draw66.py --csv      # insert CSVs, dependency order
   python3 scripts/seed_draw66.py --reset-csv# update CSVs returning draw 66 (and its 9 rows) to the seeded state
-  python3 scripts/seed_draw66.py --cleanup-ingested draw=74 lines=6617-6632 approvals=6610-6618 qiu=6611-6620 docs=6608
-                                            # delete CSVs (children first) for one ingested draw (Phase 3). Every id is
+  python3 scripts/seed_draw66.py --cleanup-ingested draw=74 lines=6617-6632 approvals=6610-6618 qiu=6611-6620 docs=6608 msgs=7,9
+                                            # delete CSVs (children first) for one ingested draw (Phase 3; msgs= the
+                                            # draw's SD Draw Email Message rows since Phase 6a). Every id is
                                             # explicit (CLAUDE.md §12); ids inside the seeded sets are refused, so the
                                             # seeded draws (11, 12, 63-66) and their rows can never be swept.
 """
@@ -176,8 +177,10 @@ SEEDED = {
     "approvals": {d*100+o for d in (63, 64, 65, 11, 12, 66) for o in range(1, 10)},
     "qiu": set(range(6601, 6611)),
     "docs": {6601, 6602, 6603},
+    "msgs": set(),  # Phase 6a: no seeded email messages; every SD Draw Email Message row comes from a live flow
 }
-CHILD_TYPES = [("lines", "SD Draw Budget Line"), ("approvals", "SD Draw Approval"), ("qiu", "SD QIU Metric"), ("docs", "SD Draw Document")]
+CHILD_TYPES = [("msgs", "SD Draw Email Message"), ("lines", "SD Draw Budget Line"), ("approvals", "SD Draw Approval"),
+               ("qiu", "SD QIU Metric"), ("docs", "SD Draw Document")]
 
 def parse_ids(spec):
     """'6617-6632,6640' -> [6617..6632, 6640]; '' -> []"""
@@ -191,7 +194,7 @@ def parse_ids(spec):
 
 def cleanup_ingested_csv(args):
     """Delete CSVs for an ingested draw and its children, children first. Refuses any seeded id."""
-    spec = {k: "" for k in ("draw", "lines", "approvals", "qiu", "docs")}
+    spec = {k: "" for k in ("draw", "lines", "approvals", "qiu", "docs", "msgs")}
     for a in args:
         if "=" in a:
             k, v = a.split("=", 1)

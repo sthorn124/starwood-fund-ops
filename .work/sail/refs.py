@@ -6,6 +6,7 @@ APPR = ("02c207d5-c725-4d11-bf40-b33573e87ffa", "SD Draw Approval")
 QIU = ("a0920e4c-0c76-4494-a61a-6e38d5db390a", "SD QIU Metric")
 DOC = ("f3e0033f-2047-4c68-8f6f-cf32166091e9", "SD Draw Document")
 FUND = ("978232cc-9d8d-42fb-9073-ca776be3dcfb", "SA Fund")
+MSG = ("3686a81f-86e2-498e-a4d1-ce40236c824a", "SD Draw Email Message")
 
 F = {
   DRAW: dict(id="443829ca-5971-4d31-8fac-ab7a317e509b", drawNumber="9aa1030b-f76b-49aa-bef6-99eb90327804",
@@ -50,6 +51,14 @@ F = {
     extractedAmount="bdb3e5b5-4258-4f86-b966-c93ecc1bdc74", extractedParty="2d16e3e7-0168-4871-8914-27372cd42cae",
     extractedReference="3f4fdc48-d009-425e-a793-b5a4e83f2a76"),
   FUND: dict(fundName="fb775e5a-1ed9-4ce9-85ca-bb1b43767475"),
+  MSG: dict(id="7d692543-d14a-44a7-b2eb-2aba819cea1f", drawId="163bd929-1a5c-4862-a6b4-e64a7af2e463",
+    approvalId="2bc241c2-0f50-4ca7-aad2-5f2065c28e3e", stepOrder="eec43b21-b977-4527-9343-f4a9f0b2b915",
+    direction="7bc67c6f-53fd-4bd1-99a1-0748c73ae443", kind="e12b21b7-9fcd-4f26-9371-74db2e074a1c",
+    fromAddress="ec1d6acb-41e9-49b5-a4df-eb40ec25a181", toAddress="add14594-0467-46b4-ac85-ad853f0dd3e0",
+    subject="8a51f991-924b-415f-b810-3f5452f7ea83", body="a73467a6-901c-42cd-87c2-e6f52a81dcd1",
+    messageAt="13756bd6-152a-4c93-aba0-84269d1d5ade", outcome="ae349a0e-1ad6-4f39-ab7f-f531937147d1",
+    interpretation="0aef50c3-deb5-4704-ac28-a9a3a35ae650", source="4c41085b-ca45-480a-bb74-ebc8e9b58299",
+    notes="26ebc1a1-f628-4e0f-8e50-67a18fdd3fa4"),
 }
 REL = dict(investment="58a1018a-d85c-42b9-94ed-b51a9f0ef3d2", fund="1b588a74-afbc-4756-aacf-69483491d566",
            budgetLines="c52fed02-7e7f-4be0-93a3-c35ee33b10eb", approvals="c0c98a7d-4967-47dd-b576-6eaffcddaf0c",

@@ -63,7 +63,9 @@ Field vocabulary follows the new approval email sample exactly.
 - Phase 4: new approval email layout rendered as HTML email from live draw data, matched to the spec PDF.
 - Phase 5: ingestion failure path: plain-English alert email, AI diff against the last successful template.
 - Phase 5.5 (2026-09-25): supporting documents in the package, corroborated at reconciliation. Phase 5.6 (2026-09-25): supporting documents classified by a Doc Center classification model; extraction on pay applications only.
-- Phase 6: CEO email approval with AI reply interpretation; asset manager budget edit at approval step; AI-drafted contingency narrative with accountant review (stretch); treasury notification content; polish.
+- Phase 6 was split on 2026-09-26:
+  - Phase 6a: CEO email approval with AI reply interpretation (receiver, interpretation, dollar guardrail, thread continuity, exchange on the Approvals tab).
+  - Phase 6b: asset manager budget edit at approval step; AI-drafted contingency narrative with accountant review (stretch); treasury notification content; polish.
 
 ## Vocabulary canon
 - Flow name: draw approval. Never "capital call" in object names; "capital call request" acceptable in narrative text only.
@@ -78,6 +80,27 @@ Field vocabulary follows the new approval email sample exactly.
 ## Business rules
 - Approvals are strictly sequential by order; Approve advances, Reject terminates the draw, final approval sets the draw Approved and triggers the treasury notification.
 - Email approval accepts conversational replies; AI classifies intent as Approve, Reject, or Ambiguous. Ambiguous generates a clarification reply, never a state change.
+  - **How a reply is matched (Phase 6a, 2026-09-26).** Every step email's subject ends with the token `[SD-DRAW-<drawId>-S<step>]`. A reply is matched by that token, which survives Re:/Fwd:.
+  - **Checks, in order, before any AI call:**
+    1. Draw and step found.
+    2. Sender authorized for the step's role, through the constant role→address mapping (for the demo every role maps to scott.thorn@appian.com).
+    3. Dollar guardrail (below).
+    4. The step is the one awaiting a decision.
+  - **When a check fails,** nothing changes and the reply is logged on the draw. This covers an unauthorized sender and a step not awaiting a decision; the log is visible in the Approvals tab.
+  - **Reading the reply.** One Generative AI skill call reads the reply's own words (quoted history cut first) as APPROVE, REJECT or AMBIGUOUS, with the reply's own comment. A deterministic gate turns any malformed answer into an unclassified AMBIGUOUS.
+  - **APPROVE or REJECT** goes through the one decision transition with source EMAIL. The approval row's comments carry the reply text and the reading, and final approval triggers treasury as usual.
+  - **Exceptions.** An unclassifiable reply, or a second unclear reply on the same step, goes to an exception-queue task for SD Draw Demo Approvers. It sends no email and changes nothing.
+- **Dollar guardrail (Phase 6a, ruled 2026-09-26).** A draw above `SD_EMAIL_APPROVAL_MAX` ($5,000,000) cannot be decided by email at any step.
+  - A reply on such a draw changes nothing.
+  - The sender is told on the thread to decide in the system, and the attempt is logged on the draw.
+  - THSV draws ($2.6M) are approvable by email; Gateway #12 ($8.94M) is refused.
+- **Thread continuity (Phase 6a, ruled 2026-09-26).** Every outbound message in the approval flow is sent as one thread:
+  - **Messages covered:** the step email, the clarification and the guardrail refusal.
+  - **Sender:** each carries the same display name, "Starwood Draw Approvals".
+  - **Reply-To:** set to the receiver address, so a mail client's reply lands at the receiver.
+  - **Subject:** "Re: <the step email's subject>", so the token stays in it.
+  - **Record on the draw:** every inbound and outbound message is mirrored onto the draw (SD Draw Email Message) and rendered in the Approvals tab's Email Exchange, with sender, time, direction, text, the AI reading and source EMAIL.
+  - **Measured:** Appian Cloud delivers instance mail from `admin@ny.appiancloud.com` whatever From is configured, so Reply-To is what carries a reply to the receiver.
 - Ingestion failure alerts the accountant and asset managers; the alert includes a plain-English failure reason and the AI diff versus the last successfully ingested template.
 - Doc Center extraction below confidence threshold routes to accountant reconciliation before data commits. *Ruled 2026-09-22: on this instance the spreadsheet path reports no per-field confidence, so every ingested draw routes to reconciliation; the form says so rather than inventing a score.*
 - Reconciliation is a process task assigned to the accountant group, not a related action on the draw. Persona-scoped verification of its submit is therefore a browser check by design (sail cannot open tasks). Ruled 2026-09-22.
@@ -101,7 +124,10 @@ Field vocabulary follows the new approval email sample exactly.
 
 ## Open questions
 - Audience: Starwood direct vs reusable FS asset (sets how literal the Starwood branding stays).
-- Outbound email delivery and inbound email receipt on the NY instance: verify capability in Phase 4/6 (renumbered from 3/5 by the 2026-09-21 restructure), not assumed.
+- ~~Outbound email delivery and inbound email receipt on the NY instance: verify capability in Phase 4/6 (renumbered from 3/5 by the 2026-09-21 restructure), not assumed.~~
+  - Outbound delivery was resolved in Phase 4 (2026-09-22).
+  - Inbound receipt was resolved in Phase 6a (2026-09-26): an email sent from the instance to the receiver process model's address started it (loop-tested).
+  - A reply from a real mail client is the remaining browser check.
 - ~~Doc Center handling of the Excel template format: confirm in Phase 3 (renumbered from 2); fallback is extraction from a PDF rendition of the template.~~ Resolved 2026-09-22: Doc Center xlsx extraction is proven on this instance (the intake build and Phase 3 both extract the workbook directly); the PDF-rendition fallback is struck.
 - Resolved 2026-09-21: draw views join the existing intake site (`SASite`, "Subscription Agreement Analyst", stub `subscription-agreement-analyst`) in a new page group. There is no dedicated site.
 - Deferred 2026-09-21: persona accounts. Phase 1 verifies as the designer.

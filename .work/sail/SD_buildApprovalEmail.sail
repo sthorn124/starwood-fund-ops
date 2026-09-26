@@ -248,7 +248,10 @@ a!localVariables(
     },
     expression: "<tr><td style=""" & local!label & """>" & fv!item.l & "</td><td style=""" & local!value & """>" & if(a!defaultValue(fv!item.v, "") = "", "—", rule!SD_htmlEscape(text: fv!item.v)) & "</td></tr>"
   )),
-  local!subject: "Draw Funding Approval: Draw #" & a!defaultValue(local!drawNumber, ri!drawId) & " · " & local!investment & " · " & local!amountText & " · Step " & ri!stepOrder & " of " & local!totalSteps & " (" & local!stepRole & ")",
+  /* Phase 6a: the reference token [SD-DRAW-<drawId>-S<step>] ends the subject, so a reply's "Re: …" names its draw and
+     step; the email approval limit decides which reply instruction the email carries */
+  local!subject: "Draw Funding Approval: Draw #" & a!defaultValue(local!drawNumber, ri!drawId) & " · " & local!investment & " · " & local!amountText & " · Step " & ri!stepOrder & " of " & local!totalSteps & " (" & local!stepRole & ") [SD-DRAW-" & ri!drawId & "-S" & ri!stepOrder & "]",
+  local!emailDecidable: todecimal(a!defaultValue(local!amount, 0)) <= todecimal(cons!SD_EMAIL_APPROVAL_MAX),
   local!html: concat(
     "<div style=""margin:0;padding:0;background:#F5F6F8;"">",
     "<table role=""presentation"" width=""100%"" cellpadding=""0"" cellspacing=""0"" border=""0"" style=""background:#F5F6F8;""><tr><td align=""center"" style=""padding:12px;"">",
@@ -257,7 +260,7 @@ a!localVariables(
     "<tr><td style=""background:#16294D;color:#FFFFFF;padding:14px 18px 6px 18px;font-size:16px;font-weight:bold;font-family:Arial,Helvetica,sans-serif;"">DRAW FUNDING APPROVAL &nbsp;|&nbsp; " & rule!SD_htmlEscape(text: local!investment) & "</td></tr>",
     "<tr><td style=""background:#16294D;color:#C7D2E5;padding:0 18px 12px 18px;font-size:11px;font-family:Arial,Helvetica,sans-serif;"">Draw #" & a!defaultValue(local!drawNumber, "—") & " &nbsp;&middot;&nbsp; Fund: " & rule!SD_htmlEscape(text: local!fund) & " &nbsp;&middot;&nbsp; Draw Type: " & rule!SD_htmlEscape(text: local!drawType) & " &nbsp;&middot;&nbsp; Funding Date: " & local!fundingText & " &nbsp;&middot;&nbsp; Amount: " & local!amountText & " &nbsp;&middot;&nbsp; " & rule!SD_htmlEscape(text: if(local!budgetStatus = "", "—", local!budgetStatus)) & "</td></tr>",
     /* Greeting and reply instruction */
-    "<tr><td style=""padding:14px 18px 10px 18px;font-size:13px;line-height:18px;font-family:Arial,Helvetica,sans-serif;"">Hello " & rule!SD_htmlEscape(text: if(local!approverName = "", "approver", local!approverName)) & ",<br>This draw is ready for your approval (step " & ri!stepOrder & " of " & local!totalSteps & ", " & rule!SD_htmlEscape(text: local!stepRole) & "). Please reply either &quot;Approve&quot; or &quot;Reject&quot; to this email.<br><span style=""color:#B42318;font-style:italic;font-weight:bold;"">***Please note anything other than Approve or Reject will result in the system&#39;s failure to recognize your response.***</span></td></tr>",
+    "<tr><td style=""padding:14px 18px 10px 18px;font-size:13px;line-height:18px;font-family:Arial,Helvetica,sans-serif;"">Hello " & rule!SD_htmlEscape(text: if(local!approverName = "", "approver", local!approverName)) & ",<br>This draw is ready for your approval (step " & ri!stepOrder & " of " & local!totalSteps & ", " & rule!SD_htmlEscape(text: local!stepRole) & "). " & if(local!emailDecidable, "Reply to this email with your decision in your own words &mdash; for example &quot;Approved&quot;, or &quot;Rejected, hold until the lender signs off&quot;. Your reply is read and recorded on the draw; if it is not a clear approval or rejection, you will be asked to confirm and nothing changes until you do.", "<span style=""color:#92600A;font-weight:bold;"">Email approval is not available for this draw: its amount is above the " & rule!SD_fmtMoney(value: cons!SD_EMAIL_APPROVAL_MAX, showCents: false) & " limit for decisions by email. Please record your decision in the system.</span>") & "</td></tr>",
     /* Draw Funding Detail */
     "<tr><td style=""padding:0 12px;"">" & local!tableOpen & "<tr><td colspan=""2"" style=""" & local!band & """>DRAW FUNDING DETAIL</td></tr>" & local!detailRows & "</table></td></tr>",
     "<tr><td style=""height:12px;font-size:1px;line-height:12px;"">&nbsp;</td></tr>",
@@ -277,7 +280,7 @@ a!localVariables(
     "<tr><td style=""padding:0 12px;"">" & local!tableOpen & "<tr><td colspan=""6"" style=""" & local!band & """>APPROVAL STATUS</td></tr><tr>" & rule!SD_emailCells(texts: {"Order", "Role", "Approver", "Status", "Decision Date", "Comments"}, aligns: {"center", "left", "left", "left", "left", "left"}, style: local!th, tag: "th") & "</tr>" & local!apprRows & "</table></td></tr>",
     "<tr><td style=""height:12px;font-size:1px;line-height:12px;"">&nbsp;</td></tr>",
     /* Footer */
-    "<tr><td style=""background:#16294D;color:#FFFFFF;padding:10px 18px;font-size:12px;font-style:italic;font-family:Arial,Helvetica,sans-serif;"">Reply &quot;Approve&quot; or &quot;Reject&quot; to this email.</td></tr>",
+    "<tr><td style=""background:#16294D;color:#FFFFFF;padding:10px 18px;font-size:12px;font-style:italic;font-family:Arial,Helvetica,sans-serif;"">" & if(local!emailDecidable, "Reply to this email with your decision. Replies are read and recorded on the draw.", "Decide this draw in the system; email replies cannot approve it.") & "</td></tr>",
     "</table></td></tr></table></div>"
   ),
   a!map(subject: local!subject, html: local!html, bytes: len(local!html))

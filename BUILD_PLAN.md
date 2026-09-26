@@ -304,31 +304,51 @@ The canonical definition is in `PROJECT_INSTRUCTIONS.md` § Data model. Field vo
 
 **Dependencies:** Phase 5.5.
 
-### Phase 6 — Email approval, Asset Manager edit, narrative, polish
+### Phase 6a — CEO approval by email reply  ✅ built and verified 2026-09-26 (Scott's live Gmail reply owed; see TODO)
+
+The demo's finale beat: the CEO replies conversationally to the approval email and AI interprets the reply, within the guardrails from the client's questions (2026-09-25). Split from Phase 6 on 2026-09-26.
 
 **Objects:**
-- [ ] **Inbound email capability check** on the NY instance, tried here with the result logged. If absent, stop and report; no workaround is improvised.
-- [ ] **Reply interpretation:** the AI classifies each reply as Approve, Reject or Ambiguous.
-  - Approve and Reject call `SD Apply Draw Approval Decision`.
-  - Ambiguous sends a clarification reply and never changes state.
-- [ ] **Asset Manager budget edit** at their approval step only.
-  - Edits are attributed by record events, composed at write time.
-  - Edits are visible downstream in the view and the email.
-- [ ] **Stretch: AI-drafted contingency narrative** with Fund Accountant review; the approved text lands in the draw's contingency explanation field.
-- [ ] **Email thread continuity** (client question, 2026-09-25): replies stay in one thread, and the exchange is mirrored onto the draw record.
-- [ ] **Low-confidence interpretation → super-user exception queue** (client question, 2026-09-25): a reply the AI cannot classify with confidence goes to a super-user queue, never to a state change.
-- [ ] **Dollar-threshold guardrail** (client question, 2026-09-25): draws above a threshold cannot be approved by email and require the UI.
-- [ ] **Feed-arrival simulation** (staging/polish): the package arrives by email-in or a watched drop location, narrated as the EY API/SFTP feed, and starts the same intake (a set of documents in, one draw out). Receive Capital Call remains build-time tooling.
-- [ ] **Treasury notification content** finalised.
-- [ ] **Polish and demo readiness:** a reset action with an explicit id list, a verify-ready check, and a rehearsal on the live path.
+- ✅ 2026-09-26 **Inbound email capability check** on the NY instance, timeboxed, before any build: an email address on a receiver process model, proven by a loop test (a Send E-Mail node on the instance addressed to the receiver; the receiver instance fires with sender, subject and body populated). If inbound email cannot be enabled, stop the build, write the finding and design the staging fallback (documentation only). Inbound receipt is never faked.
+- ✅ 2026-09-26 **Receiver:**
+  - a reference token in the Phase 4 subject identifies the draw and step, stable across Re:/Fwd: prefixes;
+  - the sender is validated against a constant mapping of each role to its authorized reply address (every role → scott.thorn@appian.com for the demo);
+  - a reply from an unauthorized address, or for a draw/step not awaiting that role, changes nothing and is logged on the draw.
+- ✅ 2026-09-26 **Reply interpretation:** one generative AI skill call (a language task, per the ruling) classifies the body as APPROVE / REJECT / AMBIGUOUS and extracts the substantive comment. A deterministic gate treats malformed or unrecognised output as AMBIGUOUS.
+  - APPROVE / REJECT go through `SD Apply Draw Approval Decision` with source EMAIL, exactly as a UI decision would. Final approval still triggers the treasury notification.
+  - AMBIGUOUS never changes state: a clarification reply goes out on the same thread.
+- ✅ 2026-09-26 **Exception queue:** an unclassifiable reply, or a second ambiguous reply on the same step, becomes a task for `SD Draw Demo Approvers` with the reply text. No state change until a human decides in the UI.
+- ✅ 2026-09-26 **Dollar guardrail** (new business rule): draws above `SD_EMAIL_APPROVAL_MAX` ($5,000,000) cannot be decided by email at any step. A reply changes nothing, is answered on the thread and is logged.
+- ✅ 2026-09-26 **Thread continuity** (new business rule): every outbound message in the flow keeps one Gmail thread (same subject with Re:, consistent sender, reply-to the receiver). Every inbound reply and outbound response is mirrored onto the approval row and rendered in the Approvals tab.
+- ✅ 2026-09-26 **Verification** without touching draw 66: approve, reject, ambiguous, ambiguous twice, unauthorized sender and the guardrail, each by loop-test email, with the Approvals-tab exchange read back.
+
+- [ ] **Live reply from a real mail client** (Scott, from scott.thorn@appian.com): proves the real sender path and the Reply-To routing that a loop test cannot (instance-sent mail always arrives from `admin@ny.appiancloud.com`). Browser checklist in `TODO.md`.
+- [ ] **Ruling on the step email's reply copy**, which now departs from the client sample (the instruction invites a reply in the approver's own words; the red warning is gone; an over-limit draw gets an amber line).
 
 **Dependencies:** Phases 1–5; an email-capable instance.
 
+**Verification (planned):**
+- **Interpretation specimens held constant:** a clear approve, a clear reject and an ambiguous reply. Each lands as specified.
+- **Break-test:** the ambiguous reply leaves the draw's state unchanged.
+
+**Demo-visible outcome:** "looks good, approve" completes the chain, and treasury is notified.
+
+### Phase 6b — Asset Manager edit, treasury content, polish
+
+**Objects:**
+- [ ] **Asset Manager budget edit** at their approval step only.
+  - Edits are attributed by record events, composed at write time.
+  - Edits are visible downstream in the view and the email.
+- [ ] **Treasury notification content** finalised.
+- [ ] **Tie-out colour unification to amber** (the chip-fix ruling owed in `TODO.md`): the pinned total's "off by" and the Summary's "Does not tie".
+- [ ] **Feed-arrival simulation** (staging/polish): the package arrives by email-in or a watched drop location, narrated as the EY API/SFTP feed, and starts the same intake (a set of documents in, one draw out). Receive Capital Call remains build-time tooling.
+- [ ] **Stretch: AI-drafted contingency narrative** with Fund Accountant review; the approved text lands in the draw's contingency explanation field.
+- [ ] **Polish and demo readiness:** a reset action with an explicit id list, a verify-ready check, and a rehearsal on the live path.
+
+**Dependencies:** Phase 6a.
+
 **Verification:**
-- **Interpretation specimens held constant:** a clear approve, a clear reject, and an ambiguous reply. Each lands as specified, and the ambiguous reply is confirmed to leave the draw's state unchanged. This is the break-test.
 - **Asset Manager edit:**
   - As the Asset Manager through sail, the edit is possible at their step.
   - It is blocked at any other step.
   - The attribution appears in the activity.
-
-**Demo-visible outcome:** "looks good, approve" completes the chain, and treasury is notified.
