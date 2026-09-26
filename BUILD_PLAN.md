@@ -289,11 +289,17 @@ The canonical definition is in `PROJECT_INSTRUCTIONS.md` § Data model. Field vo
   - v2: draw 96, Ingestion Failed, documents classified.
   - Draw 66 untouched.
   - Per document: ~50 s to classify, 3 AI actions; plus ~67 s and 3 AI actions to read a pay application. 5.5 took 5–8 s and 2–3 AI actions. See `BUILD_LOG.md`.
-- [ ] **Browser pass on the 5.6 display.**
-  - The three amber tags over the documented 40-character tag limit: "Does not tie: $X vs $Y", "No lien waiver received with the pay application", and the renumbered chip.
-  - The Documents tab's notes column.
-  - Rule on shorter chip wording if they truncate.
-  - *Owner: Scott. Trigger: the first rehearsal of the package beat.*
+- ✅ 2026-09-25 **Browser pass on the 5.6 display** (Scott): intake, the corroboration states, junk classification, the Documents tab and downloads verified. The one finding was that the chips truncate at 40 characters.
+- ✅ 2026-09-25 **Chip fix** (fix session, ruled wording from the brief):
+  - every tag in the flow is at most 40 characters, the longest rendered being 29;
+  - figures sit in wrapping text beside the chip ("Does not tie" + "off by $X") or below it (the verdict's lines-vs-draw line);
+  - collision chip "Renumbered from #N (on file)"; investment chip "Matches investment on file"; "No lien waiver received".
+- [ ] **Browser check of the chip layout** (the side-by-side Tie-out cell and the verdict's wrapping line; `TODO.md` Browser checks). *Owner: Scott. Trigger: the first rehearsal of the package beat.*
+- [ ] **Rulings from the chip fix** (`TODO.md` Deferred):
+  - a missing Hard Costs line ties against $0.00 rather than reading "No line to tie to";
+  - one colour for a non-tie (the verdict chip is amber, the pinned total and the Summary are red).
+
+  *Owner: Scott. Trigger: the chip-layout browser check.*
 - [ ] **Narrate or absorb the package latency.** The reconciliation task arrives at ~80 s; a pay application settles at ~2 min. *Owner: the presenter. Trigger: the first rehearsal of the package beat.*
 
 **Dependencies:** Phase 5.5.

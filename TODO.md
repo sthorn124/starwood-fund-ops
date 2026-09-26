@@ -27,7 +27,11 @@ Open items by class. Sessions add discovered items unprompted as they surface, a
     - **91:** Ingestion Failed; v2 plus the mismatch pay application.
     - Neither is deleted without Scott's word.
   - **New failure specimen:** **96** (v2 plus a pay application and a lien waiver, both classified; rows 6649–6651). With 83, 89 and 91 the Draws page now shows four "Not loaded" rows; keep one.
-  - **`sd.accountant`'s Awaiting My Action reads 14:** every verification draw sits at step 1.
+  - **Scott's Phase 5.6 browser pass (read 2026-09-25 evening):**
+    - **97 = #81:** the package with the junk PDF; TIES, "1 not classified".
+    - **98 = #82:** the mismatch package; ATTENTION.
+    - Both are In Progress at step 1. They are Scott's; neither is deleted without his word.
+  - **`sd.accountant`'s Awaiting My Action reads 16:** every verification draw sits at step 1.
   - **Before a rehearsal of the package beat:** clear the verification draws with `--cleanup-ingested`, children first. Read the children by `drawId`: lines 16, approvals 9, QIU from the prior set, and the document rows above.
   - *Owner:* the presenter or the session.
   - *Trigger:* before every rehearsal that shows ingestion.
@@ -62,46 +66,30 @@ Open items by class. Sessions add discovered items unprompted as they surface, a
   - *Trigger:* before the first rehearsal.
 - **The rebuilt full-width reconciliation form, as the persona (reconciliation stays a task by design, so its submit is a browser check; the persona submit itself was evidenced on 2026-09-22 by draw 75's "confirmed by Priya Raman").** Owner: Scott.
   1. Reset per "Ingestion demo reset" above, then as `sd.accountant` open `/suite/sites/subscription-agreement-analyst/receive-capital-call`, attach `THSV_Draw67_Budget_Template.xlsx`, click **Receive**. After ~80 s open the new draw's Summary → **Reconcile Extraction**.
-  2. Expect the form full width with two side-by-side panes and the navy header "Reconcile extracted draw #67". Left pane, top: the verdict strip "EXTRACTION instance #<n> · 13 header fields · 16 budget lines" with the no-per-field-confidence line and the green **Ties ✓ $2,604,252.23** chip at its right; "DRAW HEADER · EXTRACTED"; the header fields in two columns of normal-width inputs, labels above, no mid-word wrapping (Draw Number / Fund / Funding Date / Cash-Equity / Over Budget Reason on the left; Investment Name / Draw Type / Draw Amount / Budget status / Submitted By on the right); a chip under Draw Number (green **Next in sequence** when the extracted number is next; while other #67s exist, the field is prefilled **68** and the chip is amber **Submitted as #67, already on file — renumbered to next in sequence**; typing 67 back turns it amber **#67 is already on file for this investment**) and under Investment Name (green **Matches Tamarack Hotel & Spa Vail on file**); no chips anywhere else; Purpose, Budget and Contingency Explanation and General Comments as full-width paragraphs; the 16-row grid with right-aligned numbers and the pinned line "Current Draw total $2,604,252.23 vs draw amount $2,604,252.23 Ties ✓" beneath it.
+  2. Expect the form full width with two side-by-side panes and the navy header "Reconcile extracted draw #67". Left pane, top: the verdict strip "EXTRACTION instance #<n> · 13 header fields · 16 budget lines" with the no-per-field-confidence line and the green **Ties ✓ $2,604,252.23** chip at its right; "DRAW HEADER · EXTRACTED"; the header fields in two columns of normal-width inputs, labels above, no mid-word wrapping (Draw Number / Fund / Funding Date / Cash-Equity / Over Budget Reason on the left; Investment Name / Draw Type / Draw Amount / Budget status / Submitted By on the right); a chip under Draw Number (green **Next in sequence** when the extracted number is next; while other #67s exist, the field is prefilled **68** and the chip is amber **Renumbered from #67 (on file)**; typing 67 back turns it amber **#67 already on file**; wording since the 2026-09-25 chip fix) and under Investment Name (green **Matches investment on file**); no chips anywhere else; Purpose, Budget and Contingency Explanation and General Comments as full-width paragraphs; the 16-row grid with right-aligned numbers and the pinned line "Current Draw total $2,604,252.23 vs draw amount $2,604,252.23 Ties ✓" beneath it.
   3. Right pane: "SOURCE DOCUMENT", the xlsx name as a download link, and the workbook rendered inline (DocCenter's viewer) at TALL height — cells legible, no "cannot be displayed" fallback. If the viewer shows the fallback link instead, note it: it means the persona lacks Viewer on `AIA Reconcile Connected System` (granted to `SD Draw Approvers` on 2026-09-22) or the plug-in refuses xlsx for non-designers.
-  4. Edit Hard Costs' Current Draw to 2490296.00 and tab out: the pinned total recomputes to $2,604,252.00 and both tie-out chips turn red ("Does not tie" / "off by ($0.23)"). Restore 2490296.23; both turn green. Type "abc" in Investment Name: the chip turns amber **No matching investment** and the Draw Number chip disappears; restore it.
+  4. Edit Hard Costs' Current Draw to 2490296.00 and tab out: the pinned total recomputes to $2,604,252.00 with red "off by ($0.23)"; the verdict strip's chip turns amber **Does not tie** with the amber line "lines $2,604,252.00 vs draw $2,604,252.23 · off by $0.23" beneath it (since the 2026-09-25 chip fix). Restore 2490296.23; both turn green. Type "abc" in Investment Name: the chip turns amber **No matching investment** and the Draw Number chip disappears; restore it.
   5. Click **Confirm & Assemble Draw** (bottom right, the only button). Within ~15 s the draw shows #67 · In Progress · step 1 of 9 · Accountant · Priya Raman; Documents tab "Extracted & Confirmed · Doc Center extraction confirmed by **Priya Raman** MM/DD/YYYY"; Budget Detail 16 lines; QIU "model as of" today; Funding History #67, #65, #64, #63.
   6. Repeat at a laptop width (~1280 px) and a phone width: the panes stay side by side on desktop; the header columns stack on a phone.
   - *Trigger:* before the first rehearsal.
 - **The rebuilt intake page in a browser.** Owner: Scott. As `sd.accountant` open `/suite/sites/subscription-agreement-analyst/page/receive-capital-call`: navy header "Receive Capital Call"; the upload card with Receive disabled until a file is attached; attach the xlsx, click **Receive**: expect the card to be replaced by "Capital call received · Doc Center extraction is running on THSV_Draw67_Budget_Template.xlsx · The draw appears in the Draws list immediately…", a navy **Go to Draws** card-button and an outline **Receive Another** button. Click Go to Draws: the Draws page opens in the same tab with a new "New draw · Ingesting" row. Back on the page, Receive Another returns the empty upload form. *Trigger:* before the first rehearsal.
-- **Package intake, corroboration section and Documents tab, as the persona (Phase 5.5, reworded for Phase 5.6).** Owner: Scott.
-  1. **Intake.**
-     - As `sd.accountant` open `/suite/sites/subscription-agreement-analyst/page/receive-capital-call`.
-     - Expect "SUPPORTING DOCUMENTS · OPTIONAL" under the template drop zone, with one compact slot "Supporting document 1" ("PDF. Another slot opens after each upload (up to 10).").
-     - Attach the template, then `THSV_Draw67_PayApp_G702.pdf`, `THSV_Draw67_Invoice_AlderFinch.pdf`, `THSV_Draw67_LienWaiver_Conditional.pdf` and `THSV_Junk_UtilityNotice.pdf`, one per slot. A new empty slot appears after each.
-     - Attach a non-PDF to a slot: expect the red "Supporting documents must be PDF files".
-     - Click **Receive**: expect "4 supporting documents are being classified by Doc Center; a pay application is read and tied out against the template on the reconciliation task."
-  2. **Reconciliation form.** After ~2 min, open the new draw → **Reconcile Extraction** (see "Package latency" above).
-     - Heading: "SUPPORTING DOCUMENTS · CORROBORATION  4 with the package · typed by Doc Center; the pay application is read and tied out against the lines above".
-     - The grid rows:
-       - Pay Application: $2,490,296.23 / Hard Costs · current draw $2,490,296.23 / green **Ties**.
-       - Invoice: — / — / grey **Received · filed as Invoice**.
-       - Lien Waiver: green **Lien waiver received**.
-       - Utility notice (Backup): grey **Received · not classified**.
-     - **Tag length.** The docs say a tag shows at most 40 characters and truncates the rest (full text on hover). Edit Hard Costs' Current Draw to 2490296.00 and check whether the amber "Does not tie: $2,490,296.23 vs $2,490,296.00" chip (44 characters) truncates; restore it.
-     - With the mismatch package, check the amber "No lien waiver received with the pay application" (48) the same way. Check the Draw Number's "Submitted as #67, already on file — renumbered to next in sequence" (66) too.
-     - If they truncate, rule on shorter wording. Proposed: "Does not tie · off by $37,500.00", "No lien waiver received", "Renumbered from #67 (on file)". The figures stay in the grid's Document figure and Template figure columns.
-     - Check the grid fits the left pane without horizontal scroll. Click **Confirm & Assemble Draw**.
-  3. **Summary.** Draw Origin ends with "SUPPORTING DOCUMENTS", a green **Package ties** chip, and "4 supporting documents · pay application ties · invoice filed · lien waiver received · 1 not classified".
-  4. **Documents tab.** Five rows:
-     - the template "Extracted & Confirmed";
-     - the pay application green **Classified and read**;
-     - the invoice and waiver green **Classified only**;
-     - the notice amber **Not classified**.
-     - Each has its notes line ("Classified by Doc Center as … · N s · 3 AI actions · filed, not read"). Check that the notes column wraps rather than clips.
-     - Each PDF name downloads the file.
-  5. **Mismatch.** Repeat with the template plus `THSV_Draw67_PayApp_G702_mismatch.pdf` only. Expect:
-     - amber "Does not tie: $2,527,796.23 vs $2,490,296.23";
-     - the amber no-waiver tag;
-     - Confirm still enabled;
-     - Summary chip amber **Needs attention**.
+- ~~**Package intake, corroboration section and Documents tab, as the persona (Phase 5.5, reworded for Phase 5.6).**~~ Done 2026-09-25 by Scott: intake, the corroboration states, junk classification, the Documents tab and downloads verified in the browser. The one finding, chip text truncating at 40 characters, is resolved by the 2026-09-25 chip fix (see Done), and its layout has its own check below.
+- **Chip layout after the 40-character fix (2026-09-25).** Owner: Scott.
+  1. As `sd.accountant`, receive the template plus `THSV_Draw67_PayApp_G702_mismatch.pdf` only. After ~2 min open **Reconcile Extraction**.
+  2. **Tie-out cell.** Expect the amber **Does not tie** chip with amber "off by $37,500.00" beside it, in one cell. This is a side-by-side layout inside a read-only grid cell: documented from 26.9; the object validator accepted it and it rendered here, but the browser is the only proof. Check that:
+     - the text wraps under or beside the chip rather than being cut off;
+     - the chip is not squeezed;
+     - the grid still fits the left pane without horizontal scroll.
+  3. **Waiver tag.** Below the grid, expect the amber **No lien waiver received**, in full.
+  4. **Draw Number.** Expect the amber **Renumbered from #67 (on file)**. Under Investment Name, expect the green **Matches investment on file**, in full.
+  5. **Verdict strip.** Edit Hard Costs' Current Draw to 2490296.00 and tab out. The verdict strip should show the amber **Does not tie**, with the amber "lines $2,604,252.00 vs draw $2,604,252.23 · off by $0.23" right-aligned beneath it. Also check:
+     - the grid's pay application row now reads **Does not tie** / "off by $37,500.23";
+     - the pinned total still reads "off by ($0.23)" in red (see the colour ruling in Deferred).
+
+     Restore the value and **Confirm**.
+  6. At a laptop width (~1280 px): no tag shows an ellipsis anywhere on the form.
   - *Trigger:* before the first rehearsal that shows the package beat.
-- **Document download as a persona** (S9): on #67's Documents tab as `sd.accountant`, click `THSV_Draw67_Budget_Template.xlsx`; expect the 7,650-byte workbook. Owner: Scott. *Trigger:* with the check above.
+- ~~**Document download as a persona** (S9)~~ — Done 2026-09-25 by Scott: downloads from the Documents tab were verified as `sd.accountant` in the Phase 5.6 browser pass.
 - **Geometry of the two Phase 3 forms** (start form drop zone; the rebuilt reconciliation form's pane split — the left pane's nine-column DENSE grid must not wrap its numbers at desktop width, and the right pane's viewer should fill the pane height). Owner: Scott. *Trigger:* with the check above.
 
 ## Client validation questions
@@ -121,6 +109,21 @@ Open items by class. Sessions add discovered items unprompted as they surface, a
 - ~~**The reading prompt and model per instance:** DocCenter's Doc Input skill (id 267) and `SD_DOCUMENT_READING_MODEL`.~~ Retired 2026-09-25 (Phase 5.6; the constant is deleted). Replaced by the next item.
 - **Doc Center models per instance (Phase 5.6).** Classification model 7 (`sdDrawSupportingDocuments`, version 8, categories 31–34) and extraction model 86 (`sdPayApplication`, version 143, fields 3636–3638) are DocCenter data rows on this instance, not design objects, so they do not travel with the application. On another instance: re-insert them (the row shapes are in `BUILD_LOG.md`, Phase 5.6 Step 2), re-run the training set as labelled test instances, and point `SD_SUPPORTING_DOC_CLASSIFICATION_MODEL_KEY` / `SD_PAY_APPLICATION_EXTRACTION_MODEL_KEY` at the new keys. *Owner:* the build session. *Trigger:* any move of the app to another instance.
 - **Doc Center classification reports no confidence (measured 2026-09-25).** The instance's confidence is null on every run, even with the version's threshold at 80, so the "low confidence → Backup" branch of `SD_gateSupportingDocClassification` is dormant: only "Other", an error or an unknown label reach Backup live (the gauntlet covers the confidence branch, G5/G6). *Owner:* the build session. *Trigger:* a DocCenter update that returns a confidence, or a ruling to use Doc Center's self-learning (off on model 7).
+- **A pay application ties against $0.00 when the template has lines but no Hard Costs line (pre-existing, found 2026-09-25).**
+  - `SD_corroborateDocuments` sums the `SD_PAY_APP_TIE_CATEGORY` lines. With no such line the sum is 0, so the row reads **Does not tie** / "off by $2,490,296.23" against a template figure of $0.00.
+  - "No line to tie to" appears only when the template has no lines at all. Gauntlet C10 pins the current behaviour and C9 pins the no-line branch.
+  - Not changed in the chip fix: the brief allowed no behaviour changes.
+  - Ruling needed: should a missing Hard Costs line read "No line to tie to"?
+  - *Owner:* Scott (ruling), then the build session.
+  - *Trigger:* a template variant without a Hard Costs line, or the next change to the corroboration rule.
+- **Tie-out colours now differ by place (2026-09-25).** Three "does not tie" states use different colours:
+  - the reconciliation form's verdict chip is **amber**, per the chip-fix brief;
+  - the pinned total's "off by" beneath the grid is **red**;
+  - the Summary's AMOUNT VERIFICATION "Does not tie" is **red**.
+
+  The last two were not chips in scope. Ruling needed: one colour for an amount that does not tie.
+  - *Owner:* Scott.
+  - *Trigger:* the chip-layout browser check.
 - **5.5-era draws keep 5.5 statuses and summaries.** Draws 86–91 carry supporting-document rows with status Read / Not read and stored summaries that say "invoice ties"; the rules still handle them (Read rows are treated by type), but the wording is 5.5's. Clear them at the next ingestion reset rather than rewrite them. *Owner:* the presenter or the session. *Trigger:* the next ingestion demo reset.
 - **Doc Center `generalComments` field** removed from model 85 — re-add only when a template carries a filled General Comments cell (ruled 2026-09-22; `PROJECT_INSTRUCTIONS.md` Business rules). *Trigger:* that template.
 - **`SD Draw Approvers` holds Viewer on DocCenter's `AIA Reconcile Connected System`** (granted 2026-09-22 for the reconciliation form's inline xlsx viewer; the `updateObjectSecurity` readback also flipped `inheritSecurity` to `true` with no inherited groups). *Status 2026-09-22:* Scott has messaged DocCenter's owners; no objection has been raised, so this is a note, not an open check. If a reply objects, revert with `updateObjectSecurity` to the original role map (administrator `14a675fc-…`, viewer `AIA All Users` only) and route the accountant to the download link. *Owner:* Scott. *Trigger:* an objection from the DocCenter owners.
@@ -166,6 +169,21 @@ Open items by class. Sessions add discovered items unprompted as they surface, a
 *(Each item names its trigger.)*
 
 ## Done
+
+- ✅ 2026-09-25 — **Chip fix: every tag under 40 characters, with figures in wrapping text.**
+  - Changed (old → new, all in the reconciliation form or its corroboration rule):
+    - the verdict "Does not tie · lines $X vs draw $Y" → amber **Does not tie** plus a wrapping line;
+    - the tie-out "Does not tie: $X vs $Y" → **Does not tie** plus "off by $X" beside it;
+    - "No <category> line to tie to" → **No line to tie to** plus a detail line;
+    - the waiver tag → **No lien waiver received**;
+    - the renumbered chip → **Renumbered from #N (on file)**;
+    - "#N is already on file for this investment" → **#N already on file**;
+    - "Out of sequence: last draw is …" → **Out of sequence (last #N)** / **(none on file)**;
+    - "Matches <name> on file" → **Matches investment on file**.
+  - Verified by `testInterface` on the live payloads (draws 92, 93, 94) and on constructed states: next in sequence, out of sequence, a forced already-on-file value, and a non-tie. The longest rendered tag is 29 characters.
+  - Gauntlet 10/10.
+  - Persona smoke check as `sd.accountant`. Browser layout check owed (above).
+- ✅ 2026-09-25 — **Phase 5.6 browser checklist (Scott):** intake, the corroboration states, junk classification, the Documents tab and downloads, verified in the browser. The one finding was chip truncation at 40 characters, resolved the same day by the chip fix.
 
 - ✅ 2026-09-25 — **Phase 5.6 built and verified live.** Supporting documents are now typed by a Doc Center classification model. Only the pay application is read, by extraction.
   - **Models and training:** classification model 7 / version 8, trained on 24 labelled specimens, 24/24 correct; extraction model 86 / version 143.

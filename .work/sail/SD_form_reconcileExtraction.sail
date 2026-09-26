@@ -14,8 +14,12 @@
    Draw-number collision (ruled 2026-09-22): the draw number is business data extracted from the template and is never
    replaced silently; a collision is resolved here, at reconciliation. When the extracted number already exists for the
    extracted investment, the field is prefilled with the next available number for that investment and an amber chip
-   says so ("Submitted as #<extracted>, already on file — renumbered to next in sequence"); the accountant can override,
-   and whatever is confirmed commits. When the extracted number is genuinely next in sequence the chip is green.
+   says so ("Renumbered from #<extracted> (on file)"); the accountant can override, and whatever is confirmed commits.
+   When the extracted number is genuinely next in sequence the chip is green.
+   Chips (fix session 2026-09-25): a tag displays at most 40 characters and truncates the rest, so no chip carries a
+   figure or a name. Figures go in wrapping text beside or below the chip: the verdict strip's "Does not tie" has the
+   lines-vs-draw line under it; a document's "Does not tie" has "off by $X" beside it in the Tie-out cell (a side by
+   side layout inside a read-only grid cell — accepted by the object validator and rendered on this instance).
    Corroboration (Phase 5.5, 2026-09-25; Phase 5.6 document handling): beneath the budget lines, every supporting document that came with the package
    (rule!SD_getSupportingDocuments, re-read every 30 s and on Refresh while any is still being classified) is shown with
    its Doc Center type and tied out against the lines on this form as edited (rule!SD_corroborateDocuments, no model):
@@ -81,7 +85,6 @@ a!localVariables(
   local!matchIdx: if(or(a!isNullOrEmpty(local!investmentNames), local!investmentName = ""), {}, wherecontains(lower(local!investmentName), local!investmentNames)),
   local!matchedInvestment: if(a!isNullOrEmpty(local!matchIdx), null, index(local!investments, local!matchIdx[1], null)),
   local!matchedInvestmentId: if(a!isNullOrEmpty(local!matchedInvestment), null, local!matchedInvestment['recordType!{f285a98c-746c-40e7-899e-65d8d20f766b}SD Investment.fields.{5739486c-cd04-4774-a878-17ca0b9933c4}id']),
-  local!matchedInvestmentName: if(a!isNullOrEmpty(local!matchedInvestment), "", tostring(local!matchedInvestment['recordType!{f285a98c-746c-40e7-899e-65d8d20f766b}SD Investment.fields.{e79c63ed-a43c-4951-b679-e2578ed5cbf6}investmentName'])),
   /* Draw sequence: the highest draw number already on file for the matched investment, this draw's own row excluded. */
   local!priorDrawNumbers: if(
     a!isNullOrEmpty(local!matchedInvestmentId),
@@ -188,13 +191,9 @@ a!localVariables(
                     item: a!tagField(
                       labelPosition: "COLLAPSED",
                       tags: a!tagItem(
-                        text: if(
-                          local!ties,
-                          "Ties ✓ " & rule!SD_fmtMoney(value: local!linesTotal, showCents: true),
-                          "Does not tie · lines " & rule!SD_fmtMoney(value: local!linesTotal, showCents: true) & " vs draw " & if(a!isNullOrEmpty(local!drawAmount), "—", rule!SD_fmtMoney(value: local!drawAmount, showCents: true))
-                        ),
-                        backgroundColor: if(local!ties, local!green.bg, local!red.bg),
-                        textColor: if(local!ties, local!green.fg, local!red.fg)
+                        text: if(local!ties, "Ties ✓ " & rule!SD_fmtMoney(value: local!linesTotal, showCents: true), "Does not tie"),
+                        backgroundColor: if(local!ties, local!green.bg, local!amber.bg),
+                        textColor: if(local!ties, local!green.fg, local!amber.fg)
                       ),
                       size: "SMALL",
                       align: "END"
@@ -204,6 +203,20 @@ a!localVariables(
                 },
                 alignVertical: "TOP",
                 spacing: "STANDARD",
+                marginBelow: if(local!ties, "STANDARD", "NONE")
+              ),
+              /* The figures behind a "Does not tie" verdict, as wrapping text under the chip (never in the chip). */
+              a!richTextDisplayField(
+                labelPosition: "COLLAPSED",
+                align: "RIGHT",
+                value: a!richTextItem(
+                  text: "lines " & rule!SD_fmtMoney(value: local!linesTotal, showCents: true)
+                    & " vs draw " & if(a!isNullOrEmpty(local!drawAmount), "—", rule!SD_fmtMoney(value: local!drawAmount, showCents: true))
+                    & if(a!isNullOrEmpty(local!drawAmount), "", " · off by " & rule!SD_fmtMoney(value: abs(local!difference), showCents: true)),
+                  color: local!amber.fg,
+                  size: "SMALL"
+                ),
+                showWhen: not(local!ties),
                 marginBelow: "STANDARD"
               ),
               /* Header facts, two columns. */
@@ -222,10 +235,10 @@ a!localVariables(
                         tags: a!tagItem(
                           text: a!match(
                             value: local!drawNumberChip,
-                            equals: "RENUMBERED", then: "Submitted as #" & local!extractedDrawNumber & ", already on file — renumbered to next in sequence",
+                            equals: "RENUMBERED", then: "Renumbered from #" & local!extractedDrawNumber & " (on file)",
                             equals: "NEXT", then: "Next in sequence",
-                            equals: "ON_FILE", then: "#" & local!drawNumber & " is already on file for this investment",
-                            default: "Out of sequence: last draw is " & if(local!lastDrawNumber = 0, "none on file", "#" & local!lastDrawNumber)
+                            equals: "ON_FILE", then: "#" & local!drawNumber & " already on file",
+                            default: "Out of sequence (" & if(local!lastDrawNumber = 0, "none on file", "last #" & local!lastDrawNumber) & ")"
                           ),
                           backgroundColor: if(local!drawNumberChip = "NEXT", local!green.bg, local!amber.bg),
                           textColor: if(local!drawNumberChip = "NEXT", local!green.fg, local!amber.fg)
@@ -250,7 +263,7 @@ a!localVariables(
                           text: if(
                             a!isNullOrEmpty(local!matchedInvestmentId),
                             "No matching investment",
-                            "Matches " & local!matchedInvestmentName & " on file"
+                            "Matches investment on file"
                           ),
                           backgroundColor: if(a!isNullOrEmpty(local!matchedInvestmentId), local!amber.bg, local!green.bg),
                           textColor: if(a!isNullOrEmpty(local!matchedInvestmentId), local!amber.fg, local!green.fg)
@@ -435,10 +448,27 @@ a!localVariables(
                       ),
                       a!gridColumn(
                         label: "Tie-out",
-                        value: a!tagField(
-                          labelPosition: "COLLAPSED",
-                          tags: a!tagItem(text: fv!row.chip, backgroundColor: fv!row.chipBg, textColor: fv!row.chipFg),
-                          size: "SMALL"
+                        value: a!sideBySideLayout(
+                          items: {
+                            a!sideBySideItem(
+                              item: a!tagField(
+                                labelPosition: "COLLAPSED",
+                                tags: a!tagItem(text: fv!row.chip, backgroundColor: fv!row.chipBg, textColor: fv!row.chipFg),
+                                size: "SMALL"
+                              ),
+                              width: "MINIMIZE"
+                            ),
+                            /* the figures behind the chip ("off by $X"), wrapping beside it */
+                            a!sideBySideItem(
+                              item: a!richTextDisplayField(
+                                labelPosition: "COLLAPSED",
+                                value: a!richTextItem(text: fv!row.detail, color: fv!row.chipFg, size: "SMALL")
+                              ),
+                              showWhen: a!defaultValue(fv!row.detail, "") <> ""
+                            )
+                          },
+                          alignVertical: "MIDDLE",
+                          spacing: "DENSE"
                         ),
                         width: "3X"
                       )
@@ -451,7 +481,7 @@ a!localVariables(
                   ),
                   a!tagField(
                     labelPosition: "COLLAPSED",
-                    tags: a!tagItem(text: "No lien waiver received with the pay application", backgroundColor: local!amber.bg, textColor: local!amber.fg),
+                    tags: a!tagItem(text: "No lien waiver received", backgroundColor: local!amber.bg, textColor: local!amber.fg),
                     size: "SMALL",
                     showWhen: a!defaultValue(index(local!corroboration, "waiverMissing", false), false),
                     marginBelow: "STANDARD"

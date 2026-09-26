@@ -8,8 +8,10 @@
    - Lien Waiver: presence only — "Lien waiver received". A Pay Application without any Lien Waiver adds the waiver line.
    - Backup: "Received · not classified" when Doc Center could not type it, else "Received"; neither is a warning.
    - A row still "Received" (the worker has not finished) is "Being classified".
+   Chip text stays under the tag's 40-character display limit (fix session 2026-09-25): figures never go in a chip;
+   they go in the item's detail, which the form shows as wrapping text beside the chip ("Does not tie" + "off by $X").
    Returns a map: count, items (rowId, document, name, type, party, reference, figure, figureLabel, templateFigure,
-   templateLabel, state TIES / ATTENTION / RECEIVED / PENDING, chip, chipBg, chipFg), hasPayApplication, waiverMissing,
+   templateLabel, state TIES / ATTENTION / RECEIVED / PENDING, chip, chipBg, chipFg, detail), hasPayApplication, waiverMissing,
    pendingCount, state (NONE / TIES / RECEIVED / ATTENTION: TIES when a pay application tied and nothing needs
    attention, RECEIVED when the documents are filed and there is nothing to tie), summary (≤ 250 characters). */
 a!localVariables(
@@ -48,13 +50,14 @@ a!localVariables(
               a!map(state: "ATTENTION", chip: "Figure could not be read", colors: local!amber, templateFigure: local!payTarget, templateLabel: local!payCategory & " · current draw"),
               if(
                 a!isNullOrEmpty(local!payTarget),
-                a!map(state: "ATTENTION", chip: "No " & local!payCategory & " line to tie to", colors: local!amber, templateFigure: null, templateLabel: ""),
+                a!map(state: "ATTENTION", chip: "No line to tie to", detail: "no " & local!payCategory & " line in the template", colors: local!amber, templateFigure: null, templateLabel: ""),
                 if(
                   abs(todecimal(local!amount) - todecimal(local!payTarget)) < 0.005,
                   a!map(state: "TIES", chip: "Ties", colors: local!green, templateFigure: local!payTarget, templateLabel: local!payCategory & " · current draw"),
                   a!map(
                     state: "ATTENTION",
-                    chip: "Does not tie: " & rule!SD_fmtMoney(value: local!amount, showCents: true) & " vs " & rule!SD_fmtMoney(value: local!payTarget, showCents: true),
+                    chip: "Does not tie",
+                    detail: "off by " & rule!SD_fmtMoney(value: abs(todecimal(local!amount) - todecimal(local!payTarget)), showCents: true),
                     colors: local!amber,
                     templateFigure: local!payTarget,
                     templateLabel: local!payCategory & " · current draw"
@@ -88,7 +91,8 @@ a!localVariables(
           state: local!result.state,
           chip: local!result.chip,
           chipBg: local!result.colors.bg,
-          chipFg: local!result.colors.fg
+          chipFg: local!result.colors.fg,
+          detail: tostring(a!defaultValue(index(local!result, "detail", ""), ""))
         )
       )
     )

@@ -2,7 +2,7 @@
 
 What has actually been built in the environment, with object identifiers and the decisions behind them. Append after every build step; never rewrite a closed entry — a correction is a new entry that names what it corrects. Entry shape: date and title; scope line (the identity and group memberships every readback ran under); what changed, by object; decisions and why; verified (how, with counts and scope); not verified (and the browser checklist that covers it); promotion checkpoint. The contract is `CLAUDE.md` §7; the promotion loop is §9.
 
-**Promotion checkpoint: current through 2026-09-25 — Phase 5.6: Doc Center classification for supporting documents, extraction on pay applications only — level with the log tail.** A session touching promotion refuses to call itself complete if this checkpoint lags the log tail by more than one session.
+**Promotion checkpoint: current through 2026-09-25 — Fix session: tie-out chips with wrapping off-by detail, all tags under 40 characters — level with the log tail.** A session touching promotion refuses to call itself complete if this checkpoint lags the log tail by more than one session.
 
 ## Promotion candidates (staging)
 
@@ -80,7 +80,9 @@ What has actually been built in the environment, with object identifiers and the
 - **STAGED (gate 1, 2026-09-25, Phase 5.6) — a synchronous Doc Center run spends ~40–45 s of orchestration around an ~8 s LLM call.** Measured: classification instance 85 went from created to classified in 8.0 s, while the calling worker measured 53.9 s from its start to the subprocess returning. Across 10 live classifications the worker saw 48.5–54.3 s; the 4 extractions took 64.4–70.2 s. Working form: one asynchronous worker per document (the documents then settle in the time of the slowest), and never a serial loop. *Trigger:* the next Doc Center run inside a latency-sensitive flow.
 - **STAGED (gate 1, 2026-09-25, Phase 5.6) — Doc Center's reconcile process for test instances takes a full instance record as its input, which a Dev MCP process test cannot pass.** Working form used: write the fields a correct, override-free reconciliation sets (status 4, accuracy 1, reconciled by/on) with `updateRecordData`, with explicit ids; the model version's accuracy readback then reports the set (24/24). This bypasses Doc Center's reconcile logic, which is safe only with self-learning off. *Trigger:* the next Doc Center model trained over the Dev MCP.
 - **STAGED (gate 1, 2026-09-25, Phase 5.6) — pure-ASCII PDFs survive `uploadDocument`.** The known corruption (bytes above 0x7F doubled) comes only from the optional binary-marker comment in generated PDFs. Dropping it made 24/24 training files store at their exact local size, and Doc Center read them. Working form: generate test PDFs ASCII-only and verify the stored size. Extends `reference/mcp-capability-boundaries.md`'s upload entry. *Trigger:* the next generated document uploaded over the Dev MCP.
-- **STAGED (gate 1, 2026-09-25, Phase 5.6; method, not platform) — a reading gate is skipped silently when edits are batched.** The docs-search gate was not run before four interface edits made in one batch; the transcript showed it, not memory. Run afterwards, it surfaced a real finding (tag text truncates at 40 characters). Working form: before claiming a gate in a log, check that the call is in the transcript; run the gate before the batch, not per edit. Home: the project `CLAUDE.md` if promoted. *Trigger:* the next batch of interface edits.
+- **[TRIGGER FIRED 2026-09-25, chip fix — working form applied; held at gate 1, see the fix-session entry]** **STAGED (gate 1, 2026-09-25, Phase 5.6; method, not platform) — a reading gate is skipped silently when edits are batched.** The docs-search gate was not run before four interface edits made in one batch; the transcript showed it, not memory. Run afterwards, it surfaced a real finding (tag text truncates at 40 characters). Working form: before claiming a gate in a log, check that the call is in the transcript; run the gate before the batch, not per edit. Home: the project `CLAUDE.md` if promoted. *Trigger:* the next batch of interface edits.
+- **STAGED (gate 1, 2026-09-25, chip fix) — a side-by-side layout inside a read-only grid cell passes the object validator and renders on this instance**, though the 26.6 docs and the vendor pack (`components/grid-field-instructions.md`: "NOT ALLOWED IN GRID COLUMNS") say a cell takes a single component. The 26.9 release notes document it. Measured: `createInterface` accepted it and `testInterface` rendered it with `error: null`. Working form: a tag (`MINIMIZE`) beside a wrapping rich-text detail in one cell. Platform-version-dependent; re-verify per instance. *Trigger:* the browser check of the Tie-out cell.
+- **STAGED (gate 1, 2026-09-25, chip fix) — `joinarray` drops empty strings** (`joinarray({"","",""}, ";")` returned "", not ";;"). Working form: map empties to a visible marker before joining when positions matter. *Trigger:* the next `joinarray` over items that can be empty.
 
 ## Entries
 
@@ -1156,3 +1158,114 @@ The three 5.6 constants read back "sdDrawSupportingDocuments", "sdPayApplication
 - **None promoted.** The supplemental is unchanged; the repo and user-level copies are identical (diffed at close-out).
 
 Promotion checkpoint: current through 2026-09-25 — Phase 5.6: Doc Center classification for supporting documents, extraction on pay applications only.
+
+## 2026-09-25 — Fix session: tie-out chips with wrapping off-by detail, all tags under 40 characters
+
+**Scope.** Same session and identities as Phase 5.6.
+- Dev MCP `appian` as `scott.thorn@appian.com` (full scope: `SD Administrators`, `SD Users`, the three step groups). Every render, rule test, readback and delete ran under it.
+- sail as `sd.accountant` (`~/.sail-sd.accountant`) for the persona smoke check.
+- `appian-runtime` and `--from-devmcp` were not used. Draw 66 was not touched. No data was written: this is wording and layout only.
+
+**Why.** Scott's browser pass on the Phase 5.6 checklist confirmed that chips truncate at 40 characters. That is the documented tag limit the 5.6 close-out flagged. Everything else on that checklist passed: intake, the corroboration states, junk classification, the Documents tab and downloads.
+
+**Gate (§5 and the supplemental's UI grounding), run before any edit this time:**
+- **Frontend-design guidance:** read.
+- **Pack:** `components/grid-field-instructions.md` says to NEVER use a `sideBySideLayout` in a grid column; it lists single components only (tag, rich text, and so on). `layouts/sidebyside-layout-instructions.md` and `components/rich-text-instructions.md` were available.
+- **Docs-search:**
+  - `a!gridColumn` value: on 26.6, only a single supported component (text, image, link, rich text, button array, tag, record action, progress bar).
+  - The **26.9 release notes** add side-by-side layouts in read-only grid cells ("place a status tag next to a due date").
+  - `a!sideBySideItem`: `MINIMIZE` suits fixed-width items, and `preventWrapping` must not be used with `MINIMIZE`.
+  - `a!richTextDisplayField` `align` / wrapping.
+  - The tag's 40-character display limit (from Phase 5.6).
+- **Measured on the instance, which wins:** a throwaway `zz_probeGridCell` (`…_575479`) holding a grid whose cell is a side-by-side of a tag (`MINIMIZE`) and a rich-text line.
+  - The object validator accepted it at `createInterface`.
+  - `testInterface` rendered it with `error: null`: the cell carries the side-by-side, the tag, and the rich text with `preventWrapping=false`.
+  - Deleted; 404.
+
+**What changed.**
+- **`SD_corroborateDocuments` v6** (`…_573561`; `gen_corroboration.py`):
+  - Chips never carry figures. Each item gains `detail`.
+  - "Does not tie: $X vs $Y" → chip **Does not tie**, with detail "off by $<absolute difference>".
+  - "No <category> line to tie to" (length depended on a constant) → **No line to tie to**, with detail "no Hard Costs line in the template".
+  - The stored summary is unchanged ("pay application does not tie ($X vs $Y)" is rich text on the Summary, not a chip).
+  - `SD_getSupportingDocuments` and `SD_getDrawCorroboration` regenerated byte-identical.
+- **Gauntlet** `gauntlet_SD_corroboration.sail`, now C1–C10:
+  - Every case checks the detail line and fails any chip over 40 characters.
+  - C9 covers "No line to tie to" (no lines at all).
+  - C10 pins a pre-existing behaviour (see Findings).
+  - Result: **10/10 pass**, run through a throwaway `zz_gauntletChips` (`…_575490`), deleted with a 404.
+  - The first run showed 4 false failures from the gauntlet's own expectation format: `joinarray` drops empty strings. Empty details are now shown as "-". C9's expected text was fixed from `SD_fmtMoney`'s source (a null prints "—") before the run.
+- **`SD_form_reconcileExtraction` v7** (`…_571183`):
+  - **Verdict strip:** "Does not tie · lines $X vs draw $Y" (red; 56 characters with this draw's figures) → amber **Does not tie**. Beneath it is a right-aligned, wrapping amber line: "lines $<sum> vs draw $<amount> · off by $<difference>" ("vs draw —" with no off-by when there is no draw amount). The strip's bottom margin moves to the new line when it shows. Green "Ties ✓ $X" is unchanged.
+  - **Tie-out cell:** a side-by-side of the chip (`MINIMIZE`) and its detail in the chip's colour, shown only when there is a detail.
+  - **Draw Number chip:**
+    - "Submitted as #N, already on file — renumbered to next in sequence" → **Renumbered from #N (on file)**;
+    - "#N is already on file for this investment" → **#N already on file**;
+    - "Out of sequence: last draw is #N / none on file" → **Out of sequence (last #N)** / **Out of sequence (none on file)**.
+  - **Investment chip:** "Matches <investment name> on file" → **Matches investment on file**. The now-unused `local!matchedInvestmentName` was removed.
+  - **Waiver tag:** "No lien waiver received with the pay application" → **No lien waiver received**.
+  - The header comment was updated.
+- **Swept and unchanged (all ≤ 40, fixed text):**
+  - `SD_cmp_statusTag`: fixed vocabulary, longest "Extracted & Confirmed" (21). It is used by the fact strip, the Draws list, and the Approvals, Documents and Summary views.
+  - Summary chips: "No budget lines", "Ties ✓", "Does not tie", "Package ties", "Package received", "Needs attention", "None received".
+  - Corroboration chips: "Being classified", "Figure could not be read", "Ties", "Received · filed as Invoice", "Lien waiver received", "Received · not classified", "Received".
+  - "Next in sequence", "No matching investment".
+  - "YOUR ACTION" on the Draws page is rich text, not a tag.
+- **Docs:**
+  - `PROJECT_INSTRUCTIONS.md`: the collision-chip wording, noted as shortened.
+  - `CLAUDE.md`: collision and corroboration wording, a new "Chips never carry figures or names" rule, object versions, Scott's draws 97/98.
+  - `TODO.md` and `BUILD_PLAN.md`.
+
+**Verified** (`testInterface` as the designer). A throwaway wrapper `zz_probeReconcileStates` (`…_575506`) built the payload exactly as the pipeline does, `SD_getExtractionForReconcile(instanceId)`, and passed it to the form. A checker listed every rendered tag with its length.
+
+| State | Payload | Tags rendered (longest) | Detail text |
+|---|---|---|---|
+| Clean | draw 92, instance 868 | Ties ✓ $2,604,252.23 · Renumbered from #67 (on file) · Matches investment on file · Ties · Received · filed as Invoice · Lien waiver received (29) | none |
+| Mismatch, no waiver | draw 93, instance 870 | … · **Does not tie** (12) · **No lien waiver received** (23) (29) | "off by $37,500.00", amber, `preventWrapping=false`, in the same side-by-side cell as the chip |
+| Junk package | draw 94, instance 872 | … · Received · not classified (25) (29) | none |
+| Collision | every live payload (duplicate #67s on file) | Renumbered from #67 (on file) (29) | — |
+| Non-tie + collision | draw 92, Hard Costs 2,490,296.00, number 81 (on file: Scott's draw 97) | Does not tie ×2 · Renumbered from #81 (on file) (29) | verdict "lines $2,604,252.00 vs draw $2,604,252.23 · off by $0.23" (amber, right-aligned); grid "off by $0.23" |
+| Next in sequence | draw 92, number 83 | Next in sequence (16) | — |
+| Out of sequence | draw 92, number 90 | Out of sequence (last #82) (26) | — |
+| Override onto a used number | probe copy `zz_probeFormOnFile` (`…_575512`; prefill forced to 77, payload from the instance), draw 93 | #77 already on file (19) | — |
+
+- **Over 40 in any render: none.** Before the fix, the same checker on the Phase 5.6 render of draw 93 listed 66, 41, 44 and 48.
+- **Not rendered:** "Out of sequence (none on file)" (30, fixed text) needs an investment with no draws on file, and none exists.
+- **Both probes deleted;** each read returns 404.
+- **Close-out readback:** form v7 and rule v6 read back identical to the repo `.sail` files, trailing whitespace aside.
+- **Persona smoke check (sail as `sd.accountant`):**
+  - The Draws page loads: 27 rows, Awaiting My Action 16.
+  - #78's Summary renders: "current draw lines sum to $2,604,252.23"; the SUPPORTING DOCUMENTS line; the chip **Needs attention**.
+  - The Documents tab shows statuses Classified and read / Extracted & Confirmed.
+  - The distinct tags on those pages run up to 21 characters.
+
+**Not verified (and why).**
+- **The reconciliation form as the persona.** It is reachable only through its task, and sail does not follow task links (reproduced in Phase 5.5 and 5.6). No draw is Ingesting now, so there is no task to reach. The form's content was verified by the designer renders above.
+- **Geometry:**
+  - whether the side-by-side cell wraps "off by …" cleanly in the browser (the object validator and the tree prove structure only);
+  - whether the verdict's right-aligned line wraps well;
+  - that no tag shows an ellipsis.
+
+  Browser checklist: `TODO.md` → "Chip layout after the 40-character fix".
+
+**Findings.**
+- **A pay application ties against $0.00 when the template has lines but none for Hard Costs** (pre-existing since 5.5). The target is a sum of the matching lines, which is 0 when none match. "No line to tie to" fires only when there are no lines at all. Gauntlet C10 pins the current behaviour. It was not changed, because the brief allowed no behaviour changes. A ruling is owed (`TODO.md` Deferred).
+- **Colours now differ by place.** The verdict chip is amber (per the brief), while the pinned total's "off by" and the Summary's "Does not tie" stay red. A ruling is owed.
+- **Two more draws are Scott's:** 97 (#81) and 98 (#82) from his browser pass. The next ingested draw prefills #83.
+
+**Promotion candidates.**
+- **STAGED (gate 1, 2026-09-25, chip fix) — a side-by-side layout inside a read-only grid cell passes the object validator and renders on this instance.** The 26.6 docs and the vendor pack say a grid cell takes a single component, and the pack says a `sideBySideLayout` there is "NOT ALLOWED". The 26.9 release notes document the feature.
+  - Measured: `createInterface` accepted it; `testInterface` rendered the side-by-side with its tag and rich text, `error: null`.
+  - Working form: a status tag (`MINIMIZE`) beside a wrapping rich-text detail in one cell.
+  - Contradicts `components/grid-field-instructions.md` ("CRITICAL GRID COLUMN RESTRICTIONS"). Platform-version-dependent: re-verify per instance.
+  - *Trigger:* Scott's browser check of the Tie-out cell. If it renders cleanly there, the candidate meets gate 1's measurement bar for the pack correction.
+- **STAGED (gate 1, 2026-09-25, chip fix) — `joinarray` drops empty strings:** `joinarray({"","",""}, ";")` returned "", not ";;".
+  - Working form: map empties to a visible marker before joining when positions matter.
+  - *Trigger:* the next `joinarray` over items that can be empty.
+- **[TRIGGER FIRED 2026-09-25, chip fix — working form applied, held at gate 1]** The Phase 5.6 method candidate "a reading gate is skipped silently when edits are batched" fired.
+  - This batch ran the gate first (frontend-design, pack, docs-search, then an instance probe) and logged it before any edit.
+  - Run first, the gate changed the design: the pack's grid-cell rule would have forced the detail into another column, and the probe showed that was unnecessary.
+  - Held at gate 1 (method, one application). *New trigger:* the next batch of interface edits.
+- **None promoted.**
+
+Promotion checkpoint: current through 2026-09-25 — Fix session: tie-out chips with wrapping off-by detail, all tags under 40 characters.
