@@ -58,7 +58,8 @@ F = {
     subject="8a51f991-924b-415f-b810-3f5452f7ea83", body="a73467a6-901c-42cd-87c2-e6f52a81dcd1",
     messageAt="13756bd6-152a-4c93-aba0-84269d1d5ade", outcome="ae349a0e-1ad6-4f39-ab7f-f531937147d1",
     interpretation="0aef50c3-deb5-4704-ac28-a9a3a35ae650", source="4c41085b-ca45-480a-bb74-ebc8e9b58299",
-    notes="26ebc1a1-f628-4e0f-8e50-67a18fdd3fa4"),
+    notes="26ebc1a1-f628-4e0f-8e50-67a18fdd3fa4",
+    decisivePhrase="9a40d4fd-6882-49ff-acf3-cf887b1bc545", senderName="e014b841-d300-4065-859e-25eabb721ec7"),
 }
 REL = dict(investment="58a1018a-d85c-42b9-94ed-b51a9f0ef3d2", fund="1b588a74-afbc-4756-aacf-69483491d566",
            budgetLines="c52fed02-7e7f-4be0-93a3-c35ee33b10eb", approvals="c0c98a7d-4967-47dd-b576-6eaffcddaf0c",

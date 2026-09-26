@@ -304,7 +304,7 @@ The canonical definition is in `PROJECT_INSTRUCTIONS.md` § Data model. Field vo
 
 **Dependencies:** Phase 5.5.
 
-### Phase 6a — CEO approval by email reply  ✅ built and verified 2026-09-26 (Scott's live Gmail reply owed; see TODO)
+### Phase 6a — CEO approval by email reply  ✅ built and verified 2026-09-26 (Scott's live Gmail reply passed the same day)
 
 The demo's finale beat: the CEO replies conversationally to the approval email and AI interprets the reply, within the guardrails from the client's questions (2026-09-25). Split from Phase 6 on 2026-09-26.
 
@@ -322,8 +322,8 @@ The demo's finale beat: the CEO replies conversationally to the approval email a
 - ✅ 2026-09-26 **Thread continuity** (new business rule): every outbound message in the flow keeps one Gmail thread (same subject with Re:, consistent sender, reply-to the receiver). Every inbound reply and outbound response is mirrored onto the approval row and rendered in the Approvals tab.
 - ✅ 2026-09-26 **Verification** without touching draw 66: approve, reject, ambiguous, ambiguous twice, unauthorized sender and the guardrail, each by loop-test email, with the Approvals-tab exchange read back.
 
-- [ ] **Live reply from a real mail client** (Scott, from scott.thorn@appian.com): proves the real sender path and the Reply-To routing that a loop test cannot (instance-sent mail always arrives from `admin@ny.appiancloud.com`). Browser checklist in `TODO.md`.
-- [ ] **Ruling on the step email's reply copy**, which now departs from the client sample (the instruction invites a reply in the approver's own words; the red warning is gone; an over-limit draw gets an amber line).
+- ✅ 2026-09-26 **Live reply from a real mail client** (Scott, from scott.thorn@appian.com; read as APPROVE, completed draw 94's chain): proves the real sender path and the Reply-To routing that a loop test cannot (instance-sent mail always arrives from `admin@ny.appiancloud.com`). Browser checklist in `TODO.md`.
+- ✅ 2026-09-26 **Ruling on the step email's reply copy** (ruled: the conversational copy stands; the sample's red exact-match warning is deliberately gone and is narrated, not reproduced), which now departs from the client sample (the instruction invites a reply in the approver's own words; the red warning is gone; an over-limit draw gets an amber line).
 
 **Dependencies:** Phases 1–5; an email-capable instance.
 
@@ -333,9 +333,30 @@ The demo's finale beat: the CEO replies conversationally to the approval email a
 
 **Demo-visible outcome:** "looks good, approve" completes the chain, and treasury is notified.
 
-### Phase 6b — Asset Manager edit, treasury content, polish
+### Phase 6b — The email lane becomes a conversation  ✅ built and verified 2026-09-26 (Scott's live Q&A loop from Gmail owed; see TODO)
+
+Rescoped 2026-09-26: 6b is the conversation lane on the 6a receiver and message log; the former 6b items move to 6c.
 
 **Objects:**
+- ✅ 2026-09-26 **QUESTION as an interpretation outcome:** the one AI call returns APPROVE / REJECT / QUESTION / AMBIGUOUS. A question changes nothing, is logged on the draw with outcome QUESTION, and shows as pending on the Summary (draw approval team only) and on the thread. No automatic reply to the approver.
+- ✅ 2026-09-26 **Grounded-quote gate** (the ruled guardrail): the AI returns the decisive phrase; the gate applies a decision only when the phrase is verbatim in the reply. Conditional and hedged decisions are AMBIGUOUS. The phrase is stored on the message row and shown in the Reading. Gauntlet grounding cases: clean approve, clean reject, question, hedge, conditional, enthusiasm-not-approval, fabricated phrase.
+- ✅ 2026-09-26 **Specialist reply from the record:** SD Draw Demo Approvers answer a pending question on the draw; the answer goes on the same thread to the step's approver address and is logged with the sender's name; answering clears the pending state.
+- ✅ 2026-09-26 **Emails tab:** the thread moves from Approvals to its own tab (Summary / Budget Detail / Approvals / Emails / Documents), rendered as a conversation with the pending question prominent and the reply box; Approvals keeps a one-line pointer.
+- ✅ 2026-09-26 **Decision receipt:** an applied email decision is confirmed on the thread ("Recorded as your approval of Draw #n, $amount. The chain has advanced."), logged as outbound; treasury on final approval unchanged.
+- ✅ 2026-09-26 **Verification** without touching draw 66: question → pending → specialist answer (as sd.accountant via sail) → cleared; hedge → AMBIGUOUS; approve with phrase stored, receipt, treasury; the grounding gauntlet incl. the fabrication case; 6a regressions (unauthorized, guardrail); the Emails tab read as sd.accountant.
+
+- [ ] **Scott's live Q&A loop from Gmail** (a question from his inbox, answered from the record as the specialist, then "thanks, approved"): the real-sender and threading proof loop tests cannot give. Browser checklist in `TODO.md`.
+- [ ] **Ruling: questions on a draw above the email limit** currently get the guardrail refusal (the limit check runs before the AI reads the reply).
+
+**Dependencies:** Phase 6a.
+
+### Phase 6c — Velocity, Asset Manager edit, treasury content, polish
+
+**Objects:**
+- [ ] **Deadline reminders** through task escalations on the step tasks.
+- [ ] **Chase digest** backed by a site view (what is waiting on whom, and for how long).
+- [ ] **Cycle-time capture** per step and per draw.
+- [ ] **SMS channel** (staged only).
 - [ ] **Asset Manager budget edit** at their approval step only.
   - Edits are attributed by record events, composed at write time.
   - Edits are visible downstream in the view and the email.
@@ -345,7 +366,7 @@ The demo's finale beat: the CEO replies conversationally to the approval email a
 - [ ] **Stretch: AI-drafted contingency narrative** with Fund Accountant review; the approved text lands in the draw's contingency explanation field.
 - [ ] **Polish and demo readiness:** a reset action with an explicit id list, a verify-ready check, and a rehearsal on the live path.
 
-**Dependencies:** Phase 6a.
+**Dependencies:** Phases 6a and 6b.
 
 **Verification:**
 - **Asset Manager edit:**

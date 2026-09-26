@@ -1,10 +1,13 @@
-/* Draw approval (Phase 6a): the reply's own words. A mail client's reply carries the whole approval email beneath
+/* Draw approval (Phase 6a; 6b signature cuts): the reply's own words. A mail client's reply carries the whole approval email beneath
    it (quoted with ">" in plain text, or after an "On <date>, <name> wrote:" line, or in an HTML quote container), and
    that email itself says "Approve" and "Reject", so the history must never reach the interpretation. An HTML body is
    cut at its quote container and stripped line by line; the text is then cut
    at the first quote marker (a ">" line, an "On … wrote:" line — also when the client wraps it onto a second line —
    "-----Original Message-----", an Outlook
-   "From:" header block or its underscore divider, "Sent from my …"); blank lines collapse; at most 2,000 characters. */
+   "From:" header block or its underscore divider, "Sent from my …"; Phase 6b adds the "-- " signature delimiter and
+   Gmail's HTML signature container); blank lines collapse; at most 2,000 characters. A signature with no delimiter in a
+   plain-text reply (Gmail's plain-text part, measured on a live reply) stays in the text: harmless to the reading, which
+   rests on the decisive phrase, and shown as sent. */
 a!localVariables(
   local!raw: substitute(substitute(a!defaultValue(ri!body, ""), char(13) & char(10), char(10)), char(13), char(10)),
   /* HTML only when real markup is present: a plain-text reply can hold "<name@host>" in its attribution line, and
@@ -17,8 +20,20 @@ a!localVariables(
      before stripping, then turn line-ending tags into line breaks and strip each line on its own */
   local!cutAt: a!localVariables(
     local!hits: a!forEach(
-      items: {"<div class=""gmail_quote", "class=""gmail_quote", "<blockquote", "id=""divRplyFwdMsg", "id=""appendonsend", "<hr"},
-      expression: search(fv!item, local!raw)
+      items: {"<div class=""gmail_quote", "class=""gmail_quote", "<blockquote", "id=""divRplyFwdMsg", "id=""appendonsend", "<hr", "class=""gmail_signature", "data-smartmail=""gmail_signature"},
+      /* an attribute marker (class=…, id=…, data-smartmail=…) cuts at the start of the tag that carries it (measured:
+         Gmail's signature div opens with dir="ltr" before its class, which would otherwise be left behind) */
+      expression: a!localVariables(
+        local!h: search(fv!item, local!raw),
+        if(
+          or(local!h = 0, left(fv!item, 1) = "<"),
+          local!h,
+          a!localVariables(
+            local!parts: split(left(local!raw, local!h - 1), "<"),
+            if(count(local!parts) <= 1, local!h, local!h - len(index(local!parts, count(local!parts), "")) - 1)
+          )
+        )
+      )
     ),
     local!found: where(a!forEach(items: local!hits, expression: fv!item > 0)),
     if(a!isNullOrEmpty(local!found), 0, min(index(local!hits, local!found, {})))
@@ -43,7 +58,9 @@ a!localVariables(
         search("-----Original Message-----", local!t) > 0,
         left(local!t, 10) = "__________",
         and(left(local!t, 5) = "From:", fv!index > 1),
-        left(local!t, 13) = "Sent from my "
+        left(local!t, 13) = "Sent from my ",
+        /* Phase 6b: the standard signature delimiter ("-- " on its own line; trimmed to "--") */
+        local!t = "--"
       )
     )
   ),

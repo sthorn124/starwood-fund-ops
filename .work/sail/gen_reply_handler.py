@@ -2,10 +2,14 @@
 SD Draw Approval Step. Writes reply_handler_payload.json (PVs + nodes) and step_email_payload.json (node 8 data + the new
 node 13). No f-strings.
 
+Phase 6b: QUESTION route, decision receipts, the decisive phrase and the sender's name on every row.
+
 Handler flow (every node as the designer):
   3 read the reply (token, reply text)  ->  5 checks (SD_getReplyContext)  ->  4 XOR on the verdict
      OK          -> 10 AI request -> 11 AI (DocCenter Text Input skill, Runtime Prompt) -> 12 gate -> 14 route -> 13 XOR
-                      APPLY   -> 40 SD Apply Draw Approval Decision (sync, source EMAIL) -> 41 log the reply -> end
+                      APPLY   -> 40 SD Apply Draw Approval Decision (sync, source EMAIL) -> 41 log the reply
+                                 -> 42 recorded? -> 43 receipt (rules) -> 44 send the receipt on the thread -> 45 log it -> end
+                      QUESTION (6b) -> 70 log the question (outcome QUESTION; no reply to the approver) -> end
                       CLARIFY -> 50 build clarification -> 51 log the reply -> 52 send on the thread -> 53 log it -> end
                       else    -> 60 log the reply -> 61 exception task (SD Draw Demo Approvers) -> 62 log the review -> end
      GUARDRAIL   -> 20 build refusal -> 21 log the reply -> 22 send on the thread -> 23 log it -> end
@@ -68,23 +72,31 @@ def send(i, name, xy, to_expr, to):
 CTX = "drawId: tointeger(index(pv!context, \"drawId\", null)), approvalId: tointeger(index(pv!context, \"approvalId\", null)), stepOrder: tointeger(index(pv!context, \"stepOrder\", null))"
 
 
-def inbound(outcome_expr, interp_expr, notes_expr):
+# the approver's name and role once the sender is authorized (6b); an unknown sender shows as its address only
+SENDER = ("if(a!defaultValue(index(pv!context, \"authorized\", false), false), index(pv!context, \"approverName\", \"\") & \" (\" & "
+          "index(pv!context, \"role\", \"\") & \")\", \"\")")
+PHRASE = "tostring(index(pv!reading, \"phrase\", \"\"))"
+
+
+def inbound(outcome_expr, interp_expr, notes_expr, phrase_expr="\"\""):
     return ("={ rule!SD_newEmailMessage(" + CTX + ", direction: \"INBOUND\", kind: \"REPLY\", fromAddress: pv!fromAddress, "
             "toAddress: cons!SD_EMAIL_REPLY_ADDRESS, subject: pv!subject, body: pv!replyText, messageAt: pv!receivedAt, "
-            "outcome: " + outcome_expr + ", interpretation: " + interp_expr + ", source: \"EMAIL\", notes: " + notes_expr + ") }")
+            "outcome: " + outcome_expr + ", interpretation: " + interp_expr + ", source: \"EMAIL\", notes: " + notes_expr + ", "
+            "decisivePhrase: " + phrase_expr + ", senderName: " + SENDER + ") }")
 
 
 # one outbound row: what the flow sent back on the thread
-def outbound(kind):
+def outbound(kind, notes="Sent on the reply thread (Re: the step email), from and reply-to the receiver address"):
     return ("={ rule!SD_newEmailMessage(" + CTX + ", direction: \"OUTBOUND\", kind: \"" + kind + "\", "
             "fromAddress: cons!SD_EMAIL_REPLY_ADDRESS, toAddress: pv!fromAddress, subject: tostring(index(pv!response, \"subject\", \"\")), "
             "body: tostring(index(pv!response, \"text\", \"\")), messageAt: now(), outcome: \"SENT\", interpretation: \"\", source: \"EMAIL\", "
-            "notes: \"Sent on the reply thread (Re: the step email), from and reply-to the receiver address\") }")
+            "notes: \"" + notes + "\", senderName: cons!SD_EMAIL_SENDER_NAME) }")
 
 
 REVIEW = ("={ rule!SD_newEmailMessage(" + CTX + ", direction: \"INTERNAL\", kind: \"EXCEPTION_REVIEW\", fromAddress: pv!reviewedBy, "
           "toAddress: \"\", subject: pv!subject, body: pv!reviewNote, messageAt: now(), outcome: \"REVIEWED\", interpretation: \"\", "
-          "source: \"EXCEPTION_QUEUE\", notes: \"Exception queue task reviewed by \" & a!defaultValue(pv!reviewedBy, \"(unknown)\") & \"; the draw was not changed by the queue\") }")
+          "source: \"EXCEPTION_QUEUE\", notes: \"Exception queue task reviewed by \" & a!defaultValue(pv!reviewedBy, \"(unknown)\") & \"; the draw was not changed by the queue\", "
+          "senderName: rule!SD_getUserDisplayName(username: pv!reviewedBy)) }")
 
 pvs = [
     {"name": "fromAddress", "type": "Text", "isParameter": True},
@@ -153,24 +165,31 @@ nodes = [
          "pv!reading")], 14),
     script(14, "Route (rules)", [880, 300], [
         ("a!localVariables(local!r: pv!reading, local!c: a!defaultValue(index(local!r, \"classified\", false), false), local!d: index(local!r, \"decision\", \"AMBIGUOUS\"), "
-         "if(and(local!c, or(local!d = \"APPROVE\", local!d = \"REJECT\")), \"APPLY\", if(and(local!c, local!d = \"AMBIGUOUS\", a!defaultValue(index(pv!context, \"priorAmbiguous\", 0), 0) = 0), \"CLARIFY\", \"EXCEPTION\")))",
+         "if(and(local!c, or(local!d = \"APPROVE\", local!d = \"REJECT\")), \"APPLY\", if(and(local!c, local!d = \"QUESTION\"), \"QUESTION\", "
+         "if(and(local!c, local!d = \"AMBIGUOUS\", a!defaultValue(index(pv!context, \"priorAmbiguous\", 0), 0) = 0), \"CLARIFY\", \"EXCEPTION\"))))",
          "pv!route"),
         ("if(a!defaultValue(index(pv!reading, \"classified\", false), false), \"A second reply on this step that is not a clear approval or rejection.\", "
          "\"The reply could not be classified: \" & index(pv!reading, \"reason\", \"\"))", "pv!exceptionReason"),
-        ("\"Read as \" & index(pv!reading, \"decision\", \"AMBIGUOUS\") & if(a!defaultValue(index(pv!reading, \"comment\", \"\"), \"\") = \"\", \"\", \" · comment: \" & index(pv!reading, \"comment\", \"\")) & "
+        ("\"Read as \" & index(pv!reading, \"decision\", \"AMBIGUOUS\") & if(a!defaultValue(index(pv!reading, \"phrase\", \"\"), \"\") = \"\", \"\", \" · decisive phrase: \"\"\" & index(pv!reading, \"phrase\", \"\") & \"\"\"\") & if(a!defaultValue(index(pv!reading, \"comment\", \"\"), \"\") = \"\", \"\", \" · comment: \" & index(pv!reading, \"comment\", \"\")) & "
          "\" · \" & index(pv!reading, \"reason\", \"\") & \" · \" & a!defaultValue(pv!aiModel, \"model?\") & \", \" & fixed(todecimal(pv!aiEndedAt - pv!aiStartedAt) * 86400, 1) & \" s, \" & a!defaultValue(pv!aiActions, 0) & \" AI actions\"",
          "pv!interpretationText"),
         ("tointeger(index(pv!context, \"drawId\", null))", "pv!applyDrawId"),
         ("tointeger(index(pv!context, \"stepOrder\", null))", "pv!applyStep"),
         ("index(pv!reading, \"decision\", \"\")", "pv!applyDecision"),
         ("left(\"Email reply from \" & pv!fromAddress & \": \"\"\" & left(pv!replyText, 600) & \"\"\" · read as \" & index(pv!reading, \"decision\", \"\") & "
+         "\" on \"\"\" & index(pv!reading, \"phrase\", \"\") & \"\"\"\" & "
          "if(a!defaultValue(index(pv!reading, \"comment\", \"\"), \"\") = \"\", \"\", \" (comment: \" & index(pv!reading, \"comment\", \"\") & \")\"), 1000)", "pv!applyComment"),
         ("pv!fromAddress", "pv!applyActor"),
         ("pv!receivedAt", "pv!applyDate"),
         ("\"Step \" & index(pv!context, \"stepOrder\", \"?\") & \" · \" & index(pv!context, \"role\", \"\")", "pv!stepLabel")], 13),
     xor(13, "Route?", [1000, 300], [
         ("=pv!route = \"APPLY\"", 40, "approve or reject"),
+        ("=pv!route = \"QUESTION\"", 70, "a question"),
         ("=pv!route = \"CLARIFY\"", 50, "first ambiguous")], 60),
+    # a question (6b): logged on the draw, the step keeps awaiting its decision, nothing is sent to the approver; the draw
+    # approval team answers from the draw record (SD Answer Draw Question)
+    write(70, "Log the question", [1120, 60],
+          inbound("\"QUESTION\"", "pv!interpretationText", "\"A question for the draw approval team; answered from the draw record. Nothing changed; the step still awaits its decision.\"", PHRASE), 2),
     # apply through the one transition, exactly as a UI decision
     {"id": 40, "type": "internal.38", "name": "Apply the decision (sync, source EMAIL)", "coordinates": [1120, 180],
      "connections": conn(41),
@@ -186,17 +205,26 @@ nodes = [
          "outputs": [{"name": "outcome", "saveInto": "pv!transitionOutcome"}]},
      "assignment": {"attended": False, "runAs": "DESIGNER"}},
     write(41, "Log reply (decision applied)", [1240, 180],
-          inbound("pv!applyDecision", "pv!interpretationText", "\"Applied through SD Apply Draw Approval Decision (source EMAIL): \" & a!defaultValue(pv!transitionOutcome, \"(no outcome)\")"), 2),
+          inbound("pv!applyDecision", "pv!interpretationText", "\"Applied through SD Apply Draw Approval Decision (source EMAIL): \" & a!defaultValue(pv!transitionOutcome, \"(no outcome)\")", PHRASE), 42),
+    # decision receipt (6b): only when the transition recorded the decision (not STALE / ERROR); no reply expected
+    xor(42, "Decision recorded?", [1360, 180], [
+        ("=or(left(upper(a!defaultValue(pv!transitionOutcome, \"\")), 8) = \"ADVANCED\", left(upper(a!defaultValue(pv!transitionOutcome, \"\")), 8) = \"APPROVED\", "
+         "left(upper(a!defaultValue(pv!transitionOutcome, \"\")), 8) = \"REJECTED\")", 43, "recorded")], 2),
+    script(43, "Decision receipt (rules)", [1480, 180], [
+        ("rule!SD_buildReplyResponseEmail(kind: \"RECEIPT\", context: pv!context, replyText: pv!replyText, decision: pv!applyDecision, outcome: pv!transitionOutcome)",
+         "pv!response")], 44),
+    send(44, "Send the receipt on the thread", [1600, 180], "=toemailaddress(pv!fromAddress)", 45),
+    write(45, "Log receipt sent", [1720, 180], outbound("RECEIPT", "Decision receipt on the reply thread; no reply expected"), 2),
     # first ambiguous reply: clarification on the thread, nothing changed
     script(50, "Clarification (rules)", [1120, 300], [
         ("rule!SD_buildReplyResponseEmail(kind: \"CLARIFICATION\", context: pv!context, replyText: pv!replyText)", "pv!response")], 51),
     write(51, "Log reply (ambiguous)", [1240, 300],
-          inbound("\"AMBIGUOUS\"", "pv!interpretationText", "\"Not a clear approval or rejection; clarification requested on the thread. Nothing changed.\""), 52),
+          inbound("\"AMBIGUOUS\"", "pv!interpretationText", "\"Not a clear approval or rejection; clarification requested on the thread. Nothing changed.\"", PHRASE), 52),
     send(52, "Send clarification on the thread", [1360, 300], "=toemailaddress(pv!fromAddress)", 53),
     write(53, "Log clarification sent", [1480, 300], outbound("CLARIFICATION"), 2),
     # exception queue: a person reviews; nothing changes until a human decides in the UI
     write(60, "Log reply (to the exception queue)", [1120, 440],
-          inbound("\"EXCEPTION\"", "pv!interpretationText", "pv!exceptionReason & \" Sent to the exception queue (SD Draw Demo Approvers). Nothing changed.\""), 61),
+          inbound("\"EXCEPTION\"", "pv!interpretationText", "pv!exceptionReason & \" Sent to the exception queue (SD Draw Demo Approvers). Nothing changed.\"", PHRASE), 61),
     {"id": 61, "type": "internal.17", "name": "Review email reply", "coordinates": [1240, 440], "connections": conn(62),
      "data": {"customInputs": [
          {"name": "drawId", "type": "INTEGER", "expression": "=pv!applyDrawId"},
@@ -214,7 +242,7 @@ nodes = [
                             "replyText": "replyText", "reason": "reason", "reviewNote": "reviewNote", "reviewedBy": "reviewedBy"}},
      "assignment": {"attended": True, "assignTo": "=cons!SD_DRAW_DEMO_APPROVERS_GROUP", "reassignPrivileges": "REASSIGN_TO_ANY"}},
     write(62, "Log the review", [1360, 440], REVIEW, 2),
-    {"id": 2, "type": "core.1", "name": "End", "coordinates": [1600, 300]},
+    {"id": 2, "type": "core.1", "name": "End", "coordinates": [1860, 300]},
 ]
 
 # ---------------------------------------------------------------- SD Draw Approval Step: node 8 and the new node 13
@@ -233,7 +261,7 @@ STEP_ROW = ("={ rule!SD_newEmailMessage(drawId: pv!drawId, approvalId: tointeger
             "toAddress: tostring(group(pv!assignGroup, \"groupName\")), subject: tostring(index(pv!email, \"subject\", \"\")), "
             "body: \"Approval email for \" & a!defaultValue(pv!stepLabel, \"this step\") & \": the draw's funding detail, budget lines, budget summary, contingency, QIU and approval status (\" & round(a!defaultValue(index(pv!email, \"bytes\", 0), 0) / 1024, 0) & \" KB of HTML). Replies go to the reply address and are read and recorded here.\", "
             "messageAt: now(), outcome: \"SENT\", interpretation: \"\", source: \"EMAIL\", "
-            "notes: \"Sent to the step's group from and reply-to the receiver address (process \" & pp!id & \")\") }")
+            "notes: \"Sent to the step's group from and reply-to the receiver address (process \" & pp!id & \")\", senderName: cons!SD_EMAIL_SENDER_NAME) }")
 step_node13 = write(13, "Record step email on the draw", [950, 80], STEP_ROW, 10)
 step_node13["name"] = "Record step email on the draw"
 

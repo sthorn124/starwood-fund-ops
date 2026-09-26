@@ -25,6 +25,12 @@ Open items by class. Sessions add discovered items unprompted as they surface, a
     - **12 (Gateway #12):** the guardrail refusal.
   - **Before rehearsing the beat on draw 66:** delete draw 66's earlier `SD Draw Email Message` rows by explicit id (`deleteRecordData`; read them with `SD_getDrawEmailMessages`). A leftover INBOUND AMBIGUOUS row makes the next unclear reply skip the clarification and go straight to the exception queue.
   - **Before a rehearsal that clears ingested draws:** pass their message rows as `msgs=` to `--cleanup-ingested`.
+  - **Phase 6b additions:**
+    - The CEO may reply with a question. It changes nothing and waits on the Summary (draw approval team) and the Emails tab. Priya answers from the Emails tab, and the answer goes on the same thread. Every applied email decision gets a receipt on the thread.
+    - **Specimens:**
+      - **95 (#80):** the full conversation (question → answer → conditional approval read as unclear → clarification → approval → receipt), Approved.
+      - **86 (#73):** at the CEO step, staged for Scott's live Q&A check.
+    - A pending question is derived from the log. Before a rehearsal on draw 66, the same message-row cleanup clears any leftover question.
   - *Owner:* the presenter or the session.
   - *Trigger:* before every rehearsal of the email beat.
 - **Ingestion demo reset — Phase 5.6 additions (read 2026-09-25; extends the Phase 5.5 state below).**
@@ -101,28 +107,39 @@ Open items by class. Sessions add discovered items unprompted as they surface, a
   6. At a laptop width (~1280 px): no tag shows an ellipsis anywhere on the form.
   - *Trigger:* before the first rehearsal that shows the package beat.
 - ~~**Document download as a persona** (S9)~~ — Done 2026-09-25 by Scott: downloads from the Documents tab were verified as `sd.accountant` in the Phase 5.6 browser pass.
-- **Live email reply from a real mailbox, and the Email Exchange in the browser (Phase 6a).** Owner: Scott. A loop test cannot be an authorized sender: instance-sent mail always arrives from `admin@ny.appiancloud.com`. The real sender path and the Reply-To routing are therefore proven only by this check.
-  1. **In your scott.thorn@appian.com inbox,** open "Draw Funding Approval: Draw #79 · Tamarack Hotel & Spa Vail · $2,604,252.23 · Step 9 of 9 (CEO) [SD-DRAW-94-S9]" (sent 2026-09-26 ~9:59 AM EDT). Note the sender line: display name "Starwood Draw Approvals"; the address is whatever Appian Cloud stamps.
-  2. **Click Reply.** The To line must be `processmodeluuid0000f074-9ac4-8000-25d1-7f0000014e7a@ny.appiancloud.com` (the Reply-To). If it is `admin@…` or anything else, stop and record it: Reply-To is not honoured and the flow needs another route.
-  3. **Write a clear approval** in your own words, e.g. "Looks good, approved. Please fund on the 16th.", and send.
-  4. **After 1–3 min, as `sd.accountant`,** open Draws › #79 › Approvals:
-     - **Approval Detail:** the CEO row is **Approved**, "email · scott.thorn@appian.com", and its comment quotes your reply and "read as APPROVE".
-     - **Email Exchange:** a new last row "Reply from scott.thorn@appian.com · Inbound · source email · step 9", Outcome **Approved by email**.
-     - The draw's status is **Approved**.
-     - The session can confirm `treasuryNotifiedAt` is set (the Phase 1 treasury placeholder; what it sends is Phase 6b).
-  5. **Optional, to see the thread:** ask the session to accelerate draw 95 (#80) to the CEO step first. Reply "let me think about it". Expect a clarification from "Starwood Draw Approvals" **in the same Gmail thread** within ~2 min, and nothing changed on #80. Then reply "Approved".
-  6. **Geometry,** as `sd.accountant`, on #77, #78, #79 and #12 › Approvals › Email Exchange:
-     - When is two lines;
-     - the Message text wraps in the wide column, with nothing cut;
-     - the Reading column's small text wraps;
-     - no Outcome tag shows an ellipsis (the longest is "Unclear · clarification sent", 28);
-     - no horizontal scroll at ~1280 px.
-  7. **Exception task:**
+- **Exception review click and email-lane geometry (Phase 6a, carried into 6b).** Owner: Scott. Scott's live reply (6a steps 1–4) passed on 2026-09-26; see Done. What remains:
+  1. **Exception task:**
      - As `sd.accountant`, open **Review email reply** (task 22161) from the task list.
      - Expect the navy header "Email reply needs a person", with "Draw #79 · Tamarack Hotel & Spa Vail · Step 9 · CEO" legible on the navy; WHY IT IS HERE "A second reply on this step that is not a clear approval or rejection."; THE REPLY "Can we talk about the contingency on Monday first?".
      - Type a note and click **Mark Reviewed**.
-     - #79's Email Exchange gains "Exception reviewed by sd.accountant · Internal · source exception_queue", Outcome **Reviewed**, with your note. The draw is unchanged.
+     - #79's **Emails** tab gains "<your name> · EXCEPTION REVIEW", Internal, outcome **Reviewed**, with your note. The draw is unchanged (it is Approved since your live reply).
      - This is the first live run of handler node 62.
+  2. **Geometry of the Emails tab** (the 6a Email Exchange grid moved there in 6b), as `sd.accountant`, on #77, #78, #79, #80 and #12 › Emails, at ~1280 px and at phone width:
+     - approver messages sit left, the flow's and the team's sit right; on a phone the cards go full width;
+     - text wraps inside the cards, with nothing cut;
+     - the time stays on one line at the card's right;
+     - the AI READING block and the notes line wrap;
+     - no tag shows an ellipsis (the longest is "Question · awaiting an answer", 29);
+     - no horizontal scroll.
+  3. **Approvals tab pointer:** "N approval emails on this draw · View the email exchange" sits under the chain and opens the Emails tab.
+  - *Trigger:* before the first rehearsal of the email beat.
+- **Live Q&A loop from Gmail (Phase 6b).** Owner: Scott. Loop tests cannot be an authorized sender, and they cannot show Gmail's threading; this is the proof of both.
+  1. **In your scott.thorn@appian.com inbox,** open "Draw Funding Approval: Draw #73 · Tamarack Hotel & Spa Vail · $2,604,252.23 · Step 9 of 9 (CEO) [SD-DRAW-86-S9]" (sent 2026-09-26 10:53 AM EDT; staged for this check). Reply with a question, e.g. "Before I sign, what's driving the contingency spend on this draw?"
+  2. **After 1–3 min, as `sd.accountant`,** open Draws › #73:
+     - the Summary shows the amber card "The CEO asked a question by email — answer it from the Emails tab", your question, and **Answer Question**;
+     - click it: the Emails tab opens with the amber "QUESTION FROM THE CEO · AWAITING AN ANSWER" card and the **Your answer** box; **Send Answer** is disabled until you type.
+  3. **As `sd.assetmanager`** (not in the draw approval team), open #73: no amber card on the Summary; the Emails tab shows the question card **without** the reply box, and the line "The draw approval team answers approver questions from this tab." This non-member branch has not been exercised yet.
+  4. **Back as `sd.accountant`,** type an answer and click **Send Answer**. Expect:
+     - the green "Answer sent to scott.thorn@appian.com. It is on the thread below, and the question is answered.";
+     - the question card is gone;
+     - the thread shows "Priya Raman via Starwood Draw Approvals · ANSWER".
+  5. **In Gmail:** the answer arrives **in the same thread** as the step email and your question, from "Starwood Draw Approvals", headed "Priya Raman answered your question on this draw.", quoting your question. Clicking Reply addresses `processmodeluuid0000f074-9ac4-8000-25d1-7f0000014e7a@ny.appiancloud.com`.
+  6. **Reply "thanks, approved".** After 1–3 min:
+     - #73 is **Approved**;
+     - the Emails tab shows your reply with outcome **Approved by email** and its decisive phrase in the AI READING block;
+     - a receipt "Recorded as your approval of Draw #73, $2,604,252.23. The chain has advanced. This was the final approval." arrives **in the same Gmail thread**;
+     - the Approvals CEO row reads "email · scott.thorn@appian.com".
+  7. **Geometry of the new pieces:** the amber Summary card (the button at the right; stacks on a phone), and the reply box full width inside the amber card.
   - *Trigger:* before the first rehearsal of the email beat.
 - **Geometry of the two Phase 3 forms** (start form drop zone; the rebuilt reconciliation form's pane split — the left pane's nine-column DENSE grid must not wrap its numbers at desktop width, and the right pane's viewer should fill the pane height). Owner: Scott. *Trigger:* with the check above.
 
@@ -131,12 +148,14 @@ Open items by class. Sessions add discovered items unprompted as they surface, a
 - ~~**Funding History on an ingested draw:** the view lists the last three *approved* draws (65/64/63 for #67); the Phase 3 brief expected 66/65/64.~~ Ruled 2026-09-22: prior approved draws only; 65/64/63 is correct. `PROJECT_INSTRUCTIONS.md` Business rules.
 - ~~**General Comments is not extracted from the template.** Does any real template carry General Comments, and should it be re-added with a filled specimen?~~ Ruled 2026-09-22: stays unextracted and editable at reconciliation; re-add only if a filled specimen appears. `PROJECT_INSTRUCTIONS.md` Business rules.
 
-- **The step email's reply copy now departs from the client sample (Phase 6a).** The sample's footer says Reply "Approve" or "Reject", with a red warning. The Phase 6a email instead:
+- ~~**The step email's reply copy now departs from the client sample (Phase 6a).** The sample's footer says Reply "Approve" or "Reject", with a red warning. The Phase 6a email instead:~~ **Ruled 2026-09-26:** the conversational copy stands; the sample's red exact-match warning is deliberately gone (the defect the client named) and is narrated, not reproduced. `PROJECT_INSTRUCTIONS.md` Business rules.
   - invites a reply "in your own words";
   - drops the red warning;
   - shows an amber "email approval is not available" line on a draw over $5,000,000.
 
-  Does the client accept this wording, or want the sample's back with the conversational rule narrated? *Owner:* Scott with the client. *Trigger:* the next client review of the email.
+  ~~Does the client accept this wording, or want the sample's back with the conversational rule narrated?~~
+
+- **Questions on a draw above the email limit (Phase 6b).** The guardrail check runs before the AI reads a reply, so an approver's question on a draw over $5,000,000 (e.g. Gateway #12) gets the "email approval is not available" refusal rather than being logged as a question for the team. Should a question on an over-limit draw still reach the draw approval team (the decision would still have to be made in the system)? *Owner:* Scott with the client. *Trigger:* the next review of the email lane.
 
 ## Deferred
 
@@ -210,7 +229,7 @@ Open items by class. Sessions add discovered items unprompted as they surface, a
 *(Each item names its trigger.)*
 
 - **`SD Receive Approval Reply`'s description names the old PVs** (`fromAddress` / `subject` / `body`). The trigger maps into `emailFrom` / `emailSubject` / `emailBody`. The old PVs are unused. Fix the text, and optionally delete the three unused PVs, **in Designer**, where the email trigger is safe. *Owner:* Scott. *Trigger:* the next time the receiver is opened in Designer.
-- **Email paths proven by rule tests only (Phase 6a):**
+- **Email paths proven by rule tests only (Phase 6a; 6b adds the non-member view of a pending question — see the Q&A browser check, step 3):**
   - a reply with no token (UNMATCHED);
   - a reply for a step not awaiting a decision (NOT_AWAITING: `SD_getReplyContext` returned it for draw 94 mid-acceleration);
   - an answer the gate could not classify. That route shares nodes 60–62 with the second-ambiguous route, which ran live; the gate's failure modes are gauntlet G7–G12.
@@ -226,6 +245,14 @@ Open items by class. Sessions add discovered items unprompted as they surface, a
 
 ## Done
 
+- ✅ 2026-09-26 **Phase 6b: the email lane becomes a conversation.**
+  - **Built:** approver questions logged and pending (Summary card for the team, Emails tab for all); the specialist's answer from the record on the same thread; the grounded-quote gate with wording checks; decision receipts; the thread on its own Emails tab, with a pointer on Approvals.
+  - **Tests:** the gauntlet passes 45/45; an 8-specimen live prompt probe passed.
+  - **Verified end to end on draw 95:** question → pending → answer as `sd.accountant` via sail → cleared → hedge read AMBIGUOUS → approve with its phrase stored → receipt → treasury.
+  - **6a regressions:** unauthorized and guardrail still behave. Draw 66 untouched.
+- ✅ 2026-09-26 **Scott's live Gmail reply (6a browser check, steps 1–4).** "This looks good to me. Go ahead with the draw and proceed." from scott.thorn@appian.com on #79 was read as APPROVE and completed the chain (row 19).
+  - The real sender address was kept, and Reply-To routed the reply to the receiver.
+  - His plain-text Gmail signature stayed in the stored text (no "-- " delimiter; known artifact).
 - ✅ 2026-09-26 **Phase 6a: CEO approval by email reply.**
   - **Built:** the receiver and handler, the reply rules and their gauntlet (29/29), the exception form, the dollar guardrail, thread continuity, and the Approvals tab's Email Exchange.
   - **Verified end to end by loop-test email, draw 66 untouched:** unauthorized sender, approve (with treasury), reject, unclear once (clarification), unclear twice (exception task), and the guardrail.

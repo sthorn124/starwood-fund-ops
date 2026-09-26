@@ -1,5 +1,6 @@
-/* Draw approval (Phase 6a): one SD Draw Email Message row, for a Write Records node. Lengths are cut to the
-   columns (from 255, subject/to/interpretation/notes 1,000, body 4,000) so a long email never fails the write. */
+/* Draw approval (Phase 6a; Phase 6b adds decisivePhrase and senderName): one SD Draw Email Message row, for a Write
+   Records node. Lengths are cut to the columns (from 255, subject/to/interpretation/notes/decisivePhrase 1,000,
+   body 4,000, senderName 255; measured through a real Write Records node) so a long email never fails the write. */
 'recordType!{3686a81f-86e2-498e-a4d1-ce40236c824a}SD Draw Email Message'(
   'recordType!{3686a81f-86e2-498e-a4d1-ce40236c824a}SD Draw Email Message.fields.{163bd929-1a5c-4862-a6b4-e64a7af2e463}drawId': ri!drawId,
   'recordType!{3686a81f-86e2-498e-a4d1-ce40236c824a}SD Draw Email Message.fields.{2bc241c2-0f50-4ca7-aad2-5f2065c28e3e}approvalId': ri!approvalId,
@@ -14,5 +15,7 @@
   'recordType!{3686a81f-86e2-498e-a4d1-ce40236c824a}SD Draw Email Message.fields.{ae349a0e-1ad6-4f39-ab7f-f531937147d1}outcome': ri!outcome,
   'recordType!{3686a81f-86e2-498e-a4d1-ce40236c824a}SD Draw Email Message.fields.{0aef50c3-deb5-4704-ac28-a9a3a35ae650}interpretation': left(a!defaultValue(ri!interpretation, ""), 1000),
   'recordType!{3686a81f-86e2-498e-a4d1-ce40236c824a}SD Draw Email Message.fields.{4c41085b-ca45-480a-bb74-ebc8e9b58299}source': a!defaultValue(ri!source, "EMAIL"),
-  'recordType!{3686a81f-86e2-498e-a4d1-ce40236c824a}SD Draw Email Message.fields.{26ebc1a1-f628-4e0f-8e50-67a18fdd3fa4}notes': left(a!defaultValue(ri!notes, ""), 1000)
+  'recordType!{3686a81f-86e2-498e-a4d1-ce40236c824a}SD Draw Email Message.fields.{26ebc1a1-f628-4e0f-8e50-67a18fdd3fa4}notes': left(a!defaultValue(ri!notes, ""), 1000),
+  'recordType!{3686a81f-86e2-498e-a4d1-ce40236c824a}SD Draw Email Message.fields.{9a40d4fd-6882-49ff-acf3-cf887b1bc545}decisivePhrase': left(a!defaultValue(ri!decisivePhrase, ""), 1000),
+  'recordType!{3686a81f-86e2-498e-a4d1-ce40236c824a}SD Draw Email Message.fields.{e014b841-d300-4065-859e-25eabb721ec7}senderName': left(a!defaultValue(ri!senderName, ""), 255)
 )

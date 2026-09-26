@@ -58,7 +58,8 @@ def heading(text_expr, src_expr=None):
     return h
 
 sail = f"""/* Draw approval: the Summary view of a draw record, built against mockups/draw-summary.html (the UI contract).
-   Section order: fact strip · action strip (current step's assignee group only) · ingestion-failed state card (Phase 5,
+   Section order: fact strip · action strip (current step's assignee group only) · pending approver question (Phase 6b,
+   draw approval team only; amber, links to the Emails tab) · ingestion-failed state card (Phase 5,
    failed draws only, which then show just the fact strip, the card and Draw Origin) · approval progress · Draw Origin ·
    Draw Funding Detail · Budget Summary + Remaining Contingency · Funding History · QIU Detail.
    Every figure is computed from the draw's rows: roll-ups from the budget lines, tie-out of the current draw lines
@@ -215,6 +216,9 @@ a!localVariables(
   local!failed: a!defaultValue(index(local!d, "ingestionFailed", false), false),
   local!reason: if(local!failed, rule!SD_splitIngestionText(text: index(local!d, "ingestionFailureReason", "")), null),
   local!comparison: if(local!failed, rule!SD_splitIngestionText(text: index(local!d, "ingestionComparison", "")), null),
+  /* Phase 6b: an approver's pending email question, shown to the draw approval team, who answer it on the Emails tab */
+  local!isSpecialist: a!isUserMemberOfGroup(username: loggedInUser(), groups: cons!SD_DRAW_DEMO_APPROVERS_GROUP),
+  local!pending: if(and(local!found, local!isSpecialist), rule!SD_getPendingQuestion(drawId: ri!drawId), a!map(pending: false)),
   {{
     a!richTextDisplayField(
       labelPosition: "COLLAPSED",
@@ -292,6 +296,68 @@ a!localVariables(
       style: "#E8F0FC",
       decorativeBarPosition: "START",
       decorativeBarColor: "#1D5BBF",
+      shape: "SEMI_ROUNDED",
+      padding: "STANDARD",
+      showBorder: false,
+      showShadow: false,
+      marginBelow: "STANDARD"
+    ),
+    /* Phase 6b: a pending approver question, for the draw approval team only (SD Draw Demo Approvers): amber, in the
+       action strip's area; the button opens the Emails tab, where the reply box lives */
+    a!cardLayout(
+      contents: {{
+        a!columnsLayout(
+          columns: {{
+            a!columnLayout(
+              contents: a!richTextDisplayField(
+                labelPosition: "COLLAPSED",
+                value: {{
+                  a!richTextItem(
+                    text: "The " & a!defaultValue(index(local!pending, "role", ""), "approver") & " asked a question by email — answer it from the Emails tab",
+                    style: "STRONG",
+                    color: "#92600A"
+                  ),
+                  char(10),
+                  a!richTextItem(
+                    text: "“" & a!defaultValue(index(local!pending, "question", ""), "") & "”"
+                      & if(a!isNullOrEmpty(index(local!pending, "askedAt", null)), "", " · asked " & text(index(local!pending, "askedAt", null), "MMM D, h:mm a"))
+                      & " · the step still awaits its decision",
+                    color: "#6B7280",
+                    size: "SMALL"
+                  )
+                }},
+                marginBelow: "NONE"
+              ),
+              width: "AUTO"
+            ),
+            a!columnLayout(
+              contents: a!cardLayout(
+                contents: a!richTextDisplayField(
+                  labelPosition: "COLLAPSED",
+                  value: a!richTextItem(text: "Answer Question", color: "#FFFFFF", style: "STRONG"),
+                  align: "CENTER",
+                  marginBelow: "NONE"
+                ),
+                link: a!recordLink(recordType: {rt(DRAW)}, identifier: ri!drawId, dashboard: "_ivHayg"),
+                style: "#B45309",
+                shape: "SEMI_ROUNDED",
+                padding: "LESS",
+                showBorder: false,
+                showShadow: false,
+                marginBelow: "NONE"
+              ),
+              width: "NARROW_PLUS"
+            )
+          }},
+          alignVertical: "MIDDLE",
+          stackWhen: {{"PHONE"}},
+          marginBelow: "NONE"
+        )
+      }},
+      showWhen: and(local!found, local!isSpecialist, a!defaultValue(index(local!pending, "pending", false), false)),
+      style: "#FDF3E0",
+      decorativeBarPosition: "START",
+      decorativeBarColor: "#D97706",
       shape: "SEMI_ROUNDED",
       padding: "STANDARD",
       showBorder: false,

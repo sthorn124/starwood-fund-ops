@@ -2,7 +2,7 @@
 
 What has actually been built in the environment, with object identifiers and the decisions behind them. Append after every build step; never rewrite a closed entry — a correction is a new entry that names what it corrects. Entry shape: date and title; scope line (the identity and group memberships every readback ran under); what changed, by object; decisions and why; verified (how, with counts and scope); not verified (and the browser checklist that covers it); promotion checkpoint. The contract is `CLAUDE.md` §7; the promotion loop is §9.
 
-**Promotion checkpoint: current through 2026-09-26 — Phase 6a: CEO email approval with AI reply interpretation — level with the log tail.** A session touching promotion refuses to call itself complete if this checkpoint lags the log tail by more than one session.
+**Promotion checkpoint: current through 2026-09-26 — Phase 6b: approver Q&A on the email thread, grounded interpretation, decision receipts — level with the log tail.** A session touching promotion refuses to call itself complete if this checkpoint lags the log tail by more than one session.
 
 ## Promotion candidates (staging)
 
@@ -84,14 +84,18 @@ What has actually been built in the environment, with object identifiers and the
 - **STAGED (gate 1, 2026-09-25, chip fix) — a side-by-side layout inside a read-only grid cell passes the object validator and renders on this instance**, though the 26.6 docs and the vendor pack (`components/grid-field-instructions.md`: "NOT ALLOWED IN GRID COLUMNS") say a cell takes a single component. The 26.9 release notes document it. Measured: `createInterface` accepted it and `testInterface` rendered it with `error: null`. Working form: a tag (`MINIMIZE`) beside a wrapping rich-text detail in one cell. Platform-version-dependent; re-verify per instance. *Trigger:* the browser check of the Tie-out cell.
 - **STAGED (gate 1, 2026-09-25, chip fix) — `joinarray` drops empty strings** (`joinarray({"","",""}, ";")` returned "", not ";;"). Working form: map empties to a visible marker before joining when positions matter. *Trigger:* the next `joinarray` over items that can be empty.
 
-- **STAGED (gate 1, 2026-09-26, Phase 6a) — a process model's email trigger and Public Events cannot be set over the Dev MCP.** The `core.0` and `event.receiveMessage` node schemas expose no inputs, and `getProcessModel` / `updateProcessModel` carry no trigger or Public Events field. Working form: a human sets both in Designer; keep that model minimal (a hand-off node only) so it never needs MCP edits. One observation: `updateProcessModelNode` on another node preserved the Designer-set trigger. *Trigger:* the next MCP edit to an email-started model — re-check the trigger after it.
+- **[RESOLVED 2026-09-26, Phase 6b: folded into the promoted appian-supplemental §9 entry below — a schema read (the start-event schemas expose no inputs), not a behavioural sample]** - **STAGED (gate 1, 2026-09-26, Phase 6a) — a process model's email trigger and Public Events cannot be set over the Dev MCP.** The `core.0` and `event.receiveMessage` node schemas expose no inputs, and `getProcessModel` / `updateProcessModel` carry no trigger or Public Events field. Working form: a human sets both in Designer; keep that model minimal (a hand-off node only) so it never needs MCP edits. One observation: `updateProcessModelNode` on another node preserved the Designer-set trigger. *Trigger:* the next MCP edit to an email-started model — re-check the trigger after it.
 - **STAGED (gate 1, 2026-09-26, Phase 6a) — Receive Message mappings target process parameters only.** In Designer, PVs created over MCP as non-parameters were not offered; "New…" creates parameters. Working form: create the mapping targets with `isParameter: true` before the Designer step. Property syntax (Scott): `msg!properties.FromEmail`, `msg!properties.Subject`, `msg!body`. *Trigger:* the next Receive Message trigger configured.
-- **STAGED (gate 1, 2026-09-26, Phase 6a) — mail the instance sends to itself arrives from `admin@<site>` whatever From says** (custom sender, process model and process designer, measured on `ny.appiancloud.com`; re-verify per instance). Consequence: a loop test is never an authorized sender. Working form: temporarily map the roles under test to that address, restore by readback. *Trigger:* Scott's live reply (does an external sender keep its address, and what does the recipient see as From?).
-- **STAGED (gate 1, 2026-09-26, Phase 6a) — a Send E-Mail text input written as a bare `=pv!x` failed the model save** with "begin 0, end -1, length 8"; `=tostring(pv!x)` saved. *Trigger:* the next Send E-Mail node configured over MCP.
+- **[PROMOTED 2026-09-26, Phase 6b → appian-supplemental §9 "Mail an Appian Cloud instance sends is stamped from the site's system address": loop-measured in three From modes across two sessions, with Scott's live Gmail reply as the control (real sender kept, Reply-To honoured); re-verify per instance]** - **STAGED (gate 1, 2026-09-26, Phase 6a) — mail the instance sends to itself arrives from `admin@<site>` whatever From says** (custom sender, process model and process designer, measured on `ny.appiancloud.com`; re-verify per instance). Consequence: a loop test is never an authorized sender. Working form: temporarily map the roles under test to that address, restore by readback. *Trigger:* Scott's live reply (does an external sender keep its address, and what does the recipient see as From?).
+- **[RESOLVED 2026-09-26, Phase 6b: already in appian-supplemental §9, Send E-Mail trap (3) — not new]** - **STAGED (gate 1, 2026-09-26, Phase 6a) — a Send E-Mail text input written as a bare `=pv!x` failed the model save** with "begin 0, end -1, length 8"; `=tostring(pv!x)` saved. *Trigger:* the next Send E-Mail node configured over MCP.
 - **STAGED (gate 1, 2026-09-26, Phase 6a) — `stripHtml()` deletes plain newlines**, collapsing a multi-line reply to one line (gauntlet X1–X3 failed, then passed with the working form: split on line breaks first, strip each line). *Trigger:* the next `stripHtml()` over multi-line text.
 - **STAGED (gate 1, 2026-09-26, Phase 6a) — `updateProcessModel` refuses to change the type of a node at an existing id** ("node type cannot be changed on update"). Working form: give the new node a new id. *Trigger:* the next full node replacement on an existing model.
-- **STAGED (gate 1, 2026-09-26, Phase 6a) — an HTML email's `msg!body` arrives as HTML** (loop test; an external client's reply is unmeasured). Working form: detect HTML and cut quote containers before stripping. *Trigger:* Scott's live reply.
-- **[TRIGGER FIRED 2026-09-26, Phase 6a — reproduced both ways; held at gate 1]** "a reading gate is skipped silently when edits are batched": the new exception form was created before its layout gate ran (found by transcript order; gated after the fact, no change needed); the Approvals view edit was gated first. Method, not platform; CLAUDE.md §5 already requires the gate for creations. *New trigger:* the next new interface.
+- **[TRIGGER FIRED 2026-09-26, Phase 6b — revised and re-staged below: Scott's Gmail reply arrived as its text/plain part]** - **STAGED (gate 1, 2026-09-26, Phase 6a) — an HTML email's `msg!body` arrives as HTML** (loop test; an external client's reply is unmeasured). Working form: detect HTML and cut quote containers before stripping. *Trigger:* Scott's live reply.
+- **[TRIGGER FIRED AGAIN 2026-09-26, Phase 6b — working form applied: the docs, pack and frontend-design gate ran before the new Emails view and before the Summary card; held at gate 1, method]** - **[TRIGGER FIRED 2026-09-26, Phase 6a — reproduced both ways; held at gate 1]** "a reading gate is skipped silently when edits are batched": the new exception form was created before its layout gate ran (found by transcript order; gated after the fact, no change needed); the Approvals view edit was gated first. Method, not platform; CLAUDE.md §5 already requires the gate for creations. *New trigger:* the next new interface.
+
+- **STAGED (gate 1, 2026-09-26, Phase 6b; revises the 6a msg!body candidate) — an email-started process's `msg!body` carries the text/plain part when the email has one; an HTML-only email arrives as HTML.** Measured: the loop sender's HTML-only mail arrived as HTML; Scott's Gmail reply (multipart) arrived as plain text, with Gmail's `*bold*` signature markers and no "-- " delimiter. Working form: parse both (HTML detection first), and do not rely on HTML containers to cut a Gmail signature. *Trigger:* the first reply from Outlook or Apple Mail.
+- **STAGED (gate 1, 2026-09-26, Phase 6b; sail) — after `sail interact`, `sail load <site> <page>` refuses ("loaded with 1 interaction already made … loading would … discard that") and navigation targets vanish; `sail load --fresh` reloads.** Working form: `load --fresh` before a verification read that follows an interaction (which §4 requires anyway: the submit prints the pre-submit page). *Trigger:* the next sail session that interacts and then re-reads.
+- **STAGED (gate 1, 2026-09-26, Phase 6b; prompt method, fails the noun test → project home) — asking the model to quote the decisive phrase *including any condition* made it mark its own hedges.** In an 8-specimen probe it returned AMBIGUOUS for a hedge, "except line 3", "if the lender signs off" and "great work team!", and quoted the condition inside the phrase, so the deterministic wording check had the condition in hand. *Trigger:* the next change to the interpretation prompt or model — re-run the probe set.
 
 ## Entries
 
@@ -1429,3 +1433,118 @@ Promotion checkpoint: current through 2026-09-25 — Fix session: tie-out chips 
 - **None promoted.**
 
 Promotion checkpoint: current through 2026-09-26 — Phase 6a: CEO email approval with AI reply interpretation.
+
+## 2026-09-26 — Phase 6b: approver Q&A on the email thread, grounded interpretation, decision receipts
+
+**Scope.**
+- **Dev MCP:** `appian` as `scott.thorn@appian.com`, full scope: `SD Administrators`, `SD Users`, the three step groups, and so `SD Draw Demo Approvers` too. Every design write, rule and interface test, process test and record readback ran under it. Unattended nodes in the handler and the answer process run as DESIGNER.
+- **sail:** as `sd.accountant` (`~/.sail-sd.accountant`, a member of `SD Draw Demo Approvers`). It read the Summary pending card, drove the Emails-tab reply box, and re-read the tabs fresh.
+- **Not used:** `appian-runtime` and `--from-devmcp`.
+- **Draw 66 untouched:** re-read at the end, step 3, step process 536909994, `updatedAt` 2026-09-22 15:34:33.
+
+**Bookkeeping (brief item 0).**
+- **Scott's live reply:** row 19, on draw 94 (#79) from scott.thorn@appian.com: "This looks good to me. Go ahead with the draw and proceed.", plus his Gmail signature. It was read as APPROVE and completed the chain (APPROVED, treasury 14:16:37).
+- **Ruling recorded** in `PROJECT_INSTRUCTIONS.md`: the conversational step-email copy stands; the sample's red exact-match warning is deliberately gone and is narrated, not reproduced.
+- **BUILD_PLAN rescoped:** 6b = this conversation lane; 6c = the velocity set (task-escalation reminders, a chase digest on a site view, cycle-time capture, SMS staged), plus the Asset Manager edit, treasury content, tie-out colour and feed staging.
+- **Exception review:** the Mark Reviewed click has not happened (no EXCEPTION_REVIEW row). It is still owed, with the Emails-tab geometry.
+
+**What changed, by object.**
+- **`SD Draw Email Message`:** new fields `decisivePhrase` (TEXT 1,000; `addRecordTypeField` reported `VARCHAR(255)`) and `senderName` (TEXT 255).
+  - Both widths were measured through a real Write Records node: a throwaway `zz_measureEmailMessageWidths6b` process wrote row 20, and a throwaway rule read back 1,000 / 255.
+  - Row, rule and process were deleted (404 / empty listings).
+- **Rules (`gen_email_reply.py`, `gen_email_message.py`):**
+  - `SD_newEmailMessage` v2: the two new fields.
+  - `SD_buildReplyInterpretationRequest` v2: three lines, with QUESTION and the verbatim PHRASE, which must include any condition.
+  - `SD_gateReplyInterpretation` v2: the grounded-quote gate, plus wording checks on the phrase's sentence. Approval / refusal / condition cue lists; rejection cues; question openings. Uses `search()`, which the docs say takes no wildcards.
+  - `SD_buildReplyResponseEmail` v2: kinds ANSWER and RECEIPT.
+  - `SD_getDrawEmailMessages` v2: the two new fields.
+  - `SD_extractReplyText` v3 → v4: Gmail's signature container and the "-- " delimiter. v4 cuts an attribute marker at the start of its tag: the gauntlet's X10 showed Gmail's `<div dir="ltr" class="gmail_signature">` otherwise left `<div dir="ltr"` behind.
+  - New `SD_normalizeReplyText` (`…_575680`) and `SD_getPendingQuestion` (`…_575706`).
+- **Process `SD Handle Approval Reply`:** 24 → 29 nodes, applied node by node.
+  - New nodes: 70 (log the QUESTION), 42 (the "Decision recorded?" gateway), 43/44/45 (the receipt: rules, send, log).
+  - Updated nodes:
+    - 13: the QUESTION branch;
+    - 14: the route, a reading line that carries the phrase, and the approval comment with the phrase;
+    - 41: the phrase, then on to 42;
+    - 21 / 30 / 51 / 60: the phrase and sender name;
+    - 23 / 53 / 62: the sender name;
+    - End moved.
+  - Validator: clean.
+- **Process `SD Draw Approval Step`:** node 13 now writes `senderName` = "Starwood Draw Approvals". Validator clean.
+- **New process `SD Answer Draw Question`** (`0000f074-ad0d-…`, 10 nodes, `gen_answer_process.py`).
+  - Security: administrator `SD Administrators`, viewer `SD Users`, initiator `SD Draw Demo Approvers`.
+  - New constant `SD_ANSWER_QUESTION_PM`.
+  - **Break-test** on draw 94, which has no pending question: outcome `NOT_SENT: no pending question on the draw`, and the send node was never reached.
+- **New interface `SD_view_drawEmails`** (`…_575734`) → new `SD Draw` view **Emails** (stub `_ivHayg`). Views reordered to Summary / Budget Detail / Approvals / Emails / Documents.
+- **`SD_view_drawApprovals` v4:** the 6a Email Exchange card replaced by a one-line pointer (count, record link to Emails, pending-question note).
+- **`SD_view_drawSummary` v10:** the amber pending-question card (draw approval team only; **Answer Question** → Emails).
+- **appian-supplemental:** one entry promoted (§9, instance mail stamped from `admin@<site>`); the repo copy synced (`skills/appian-supplemental/SKILL.md`, identical).
+
+**Gates run.**
+- **Docs-search:**
+  - `search()` / `find()` (search is case-insensitive, returns 0 when not found, no wildcards);
+  - `a!startProcess` (usable in any interface's `saveInto`; with `isSynchronous` true, `onSuccess` runs after completion, `onIncomplete` after 30 s);
+  - `a!cardLayout` decorative bar (TOP / BOTTOM / START / END / NONE; one position per interface; the bar must not be the only signal).
+- **Pack:** columns, card and rich-text references, and the interface checklist (relative widths `1X`–`10X`; white cards with accents).
+- **Frontend-design:** applied. The signature element is the two-sided conversation, with the pending question lifted in amber; everything else is quiet.
+- **Order:** every gate above ran before its interface was written, which is the staged method candidate's working form.
+
+**Verified.**
+- **Gauntlet `gauntlet_SD_emailReply.sail`: 45/45.**
+  - T1–T8.
+  - X1–X11, including the "-- " delimiter, the Gmail signature container, and Scott's plain-text signature (pinned).
+  - G1–G10 format.
+  - N1–N16 grounding: clean approve, clean reject, question, hedge, conditional "except" with a trimmed phrase, conditional "if" with a trimmed phrase, enthusiasm, fabricated phrase, non-question, refusal-as-approve, the same refusal as reject, Scott's live reply, case/space variance, fabricated question, "for now", and a later sentence's "if" not tainting.
+  - The first run was 44/45: X10, fixed as above.
+- **Live prompt probe** (throwaway `zz_probeReplyReading6b`: request → AI → gate; 8 specimens, pass conditions stated before the run). All passed in 3.6–7.4 s:
+  - clean approve → APPROVE ("Looks good, approved.");
+  - reject → REJECT (full sentence);
+  - question → QUESTION;
+  - hedge → AMBIGUOUS;
+  - "except line 3" → AMBIGUOUS (phrase with the condition);
+  - "if the lender signs off" → AMBIGUOUS;
+  - "great work team!" → AMBIGUOUS;
+  - Scott's live reply with signature → APPROVE.
+- **End to end on draw 95 (#80), by loop test.** The accelerator took it to the CEO step: step email row 21, now with a sender name.
+
+| Step | Mapping | Rows | Result read back |
+|---|---|---|---|
+| Unauthorized "Approved." | production | 22 | UNAUTHORIZED, no sender name, nothing changed |
+| (mapping) | CAO + CEO → admin@ (v4, read back) | — | — |
+| Question "Before I sign off, what's driving the contingency spend on this draw?" | temp | 25 | QUESTION, phrase "what's driving the contingency spend on this draw?", sender "Thomas Bergman (CEO)". Nothing sent to the approver (still 3 messages). `SD_getPendingQuestion`: pending true, unanswered 1 |
+| — as `sd.accountant` via sail | — | — | **Summary:** "The CEO asked a question by email — answer it from the Emails tab" + **Answer Question**. **Emails tab:** "QUESTION FROM THE CEO · AWAITING AN ANSWER", the question, "Thomas Bergman (CEO) · asked Sep 26, 10:45 AM · step 9", **Your answer**, **Send Answer** [DISABLED] while empty |
+| Answer, typed and sent **as `sd.accountant` via sail** | temp | 26 | ANSWER on the thread ("Re: <step subject>") to the CEO's address, sender "Priya Raman", notes "Answered from the draw record by Priya Raman (sd.accountant)" (the attribution naming the acting user). Pending false, unanswered 0. A fresh sail read: the question card gone, "Priya Raman via Starwood Draw Approvals · ANSWER" on the thread; the Summary card gone |
+| Hedge "Thanks. Approved if the lender signs off on the revised budget." | temp | 27, 28 | The model said AMBIGUOUS, phrase "Approved if the lender signs off on the revised budget.". Clarification sent; nothing changed |
+| Approve "Thanks, that covers it. Approved, go ahead and fund the draw." | temp | 29, 30 | APPROVE, phrase "Approved, go ahead and fund the draw.", comment "Thanks, that covers it."; transition APPROVED. Draw **Approved**, treasury 14:50:40. **Receipt** 14:50:46: "Recorded as your approval of Draw #80, $2,604,252.23. The chain has advanced. This was the final approval." |
+| Guardrail regression, Gateway #12 "Approved, go ahead." | temp | 23, 24 | GUARDRAIL (sender "Robert Chen (Chief Accounting Officer)"), refusal sent; step 6 unchanged |
+| (mapping restored) | all → scott.thorn@appian.com (v5, read back) | — | — |
+
+- **Persona read-back** (as `sd.accountant` via sail, fresh loads):
+  - **#80 Emails tab:** 8 messages. Tags in order: Approval request sent, Sender not authorized, Question, Answer sent, Unclear · clarification sent, Clarification sent, Approved by email, Receipt sent. The AI READING blocks show the decisive phrases.
+  - **#80 Approvals:** the pointer "8 approval emails on this draw · View the email exchange". The CEO row's comment: read as APPROVE on "Approved, go ahead and fund the draw." (comment: …).
+  - **#12 Emails:** 4 messages.
+- **Renders:** `SD_view_drawEmails` on draw 94, `diagnostics.error: null` (5 messages; the pending card hidden, so that branch was exercised live on draw 95).
+- **Close-out readback:** all 10 changed rules and interfaces are identical to the repo; the Summary v10 matched at deploy.
+- **Draw 86 (#73)** was accelerated to the CEO step for Scott's live Q&A check (row 31).
+- **Cleanup, by absence:** `zz_gauntletEmailReply6b` (404), `zz_probeReplyReading6b`, `zz_loopTestSendReply6b` and `zz_measureEmailMessageWidths6b` (no `zz` rule or process model listed).
+
+**Not verified (and why).**
+- **Scott's live Q&A from Gmail:** the real sender asking, the answer threading in Gmail, and the receipt threading. Loop tests cannot show any of these. Checklist: `TODO.md` → "Live Q&A loop from Gmail".
+- **The non-member branch:** a pending question seen by someone outside `SD Draw Demo Approvers` (no reply box, no Summary card). No second pending question existed to read as `sd.assetmanager`. The same checklist, step 3.
+- **Geometry:** the Emails tab, the amber cards and the pointer; browser only.
+- **The exception review click** (6a node 62): still owed.
+
+**Findings.**
+- **An approver's question on an over-limit draw gets the guardrail refusal.** The limit check runs before the AI; a ruling is owed.
+- **Gmail's plain-text part keeps the signature with no delimiter.** It stays in the stored reply (a known data artifact); the reading is unaffected.
+- **The "-- " delimiter and the HTML signature container are now cut** (gauntlet X9, X10).
+- **The decisive phrase makes the approval-row comment self-auditing:** the reply, what was read, and the words it was read on.
+
+**Promotion candidates.**
+- **Promoted:** 1 — appian-supplemental §9, instance mail stamped from `admin@<site>`, with the Designer-only email trigger.
+- **Resolved:** 2 (the trigger schema fact folded in; the bare-`pv!` Send E-Mail trap already recorded).
+- **Re-staged:** 1 (`msg!body` part).
+- **New staged:** 2 (sail `load --fresh`; the prompt-method observation).
+- **Method trigger fired again:** working form applied.
+
+Promotion checkpoint: current through 2026-09-26 — Phase 6b: approver Q&A on the email thread, grounded interpretation, decision receipts.

@@ -65,7 +65,8 @@ Field vocabulary follows the new approval email sample exactly.
 - Phase 5.5 (2026-09-25): supporting documents in the package, corroborated at reconciliation. Phase 5.6 (2026-09-25): supporting documents classified by a Doc Center classification model; extraction on pay applications only.
 - Phase 6 was split on 2026-09-26:
   - Phase 6a: CEO email approval with AI reply interpretation (receiver, interpretation, dollar guardrail, thread continuity, exchange on the Approvals tab).
-  - Phase 6b: asset manager budget edit at approval step; AI-drafted contingency narrative with accountant review (stretch); treasury notification content; polish.
+  - Phase 6b (rescoped 2026-09-26): the email lane becomes a conversation — approver questions answered from the draw record on the same thread, a grounded-quote interpretation gate, decision receipts, the thread on its own Emails tab.
+  - Phase 6c: the velocity set (deadline reminders through task escalations, a chase digest backed by a site view, cycle-time capture, SMS staged); asset manager budget edit at approval step; treasury notification content; tie-out colour unification; feed staging; AI-drafted contingency narrative with accountant review (stretch); polish.
 
 ## Vocabulary canon
 - Flow name: draw approval. Never "capital call" in object names; "capital call request" acceptable in narrative text only.
@@ -90,6 +91,17 @@ Field vocabulary follows the new approval email sample exactly.
   - **Reading the reply.** One Generative AI skill call reads the reply's own words (quoted history cut first) as APPROVE, REJECT or AMBIGUOUS, with the reply's own comment. A deterministic gate turns any malformed answer into an unclassified AMBIGUOUS.
   - **APPROVE or REJECT** goes through the one decision transition with source EMAIL. The approval row's comments carry the reply text and the reading, and final approval triggers treasury as usual.
   - **Exceptions.** An unclassifiable reply, or a second unclear reply on the same step, goes to an exception-queue task for SD Draw Demo Approvers. It sends no email and changes nothing.
+- **Questions by email (Phase 6b, 2026-09-26).** A reply may ask a substantive question about the draw instead of deciding ("what's driving the contingency spend?").
+  - It is read as QUESTION, logged on the draw, and changes nothing: the step keeps awaiting its decision. Nothing is sent back to the approver automatically.
+  - The question is pending until the draw approval team (SD Draw Demo Approvers) answers it from the draw record, or the step is decided. The Summary shows it to that team; the Emails tab shows it to everyone.
+  - The answer goes on the same email thread to the step's approver address and is logged with the answerer's name. The approver's next reply is read as usual: a decision, another question, or unclear.
+- **Grounded interpretation (Phase 6b, ruled guardrail design).** The AI must quote the decisive phrase: the exact words in the reply that make the decision or ask the question.
+  - A decision is applied only when that phrase appears verbatim in the reply. A phrase that is missing or not in the reply makes the reading AMBIGUOUS, never applied.
+  - A conditional or hedged decision is AMBIGUOUS. Examples: "approve everything except line 3", "approved if the lender signs off", "probably fine, I guess". The fixed-rules gate also refuses an approval whose sentence carries a condition, an approval with no approval words ("great work team!"), and a refusal read as an approval.
+  - The phrase is stored with the reading and shown on the thread.
+- **Decision receipt (Phase 6b).** When an email decision is applied, the approver gets a short receipt on the same thread: "Recorded as your approval of Draw #<n>, $<amount>. The chain has advanced." A rejection gets the rejection wording. No action is requested and no reply is expected. The treasury notification on final approval is unchanged.
+- **The thread has its own tab (Phase 6b).** The Emails tab (Summary / Budget Detail / Approvals / Emails / Documents) shows the approval email thread as one conversation, with the pending question and the reply box on top. Approvals keeps a one-line pointer.
+- **Step email reply copy (ruled 2026-09-26).** The step email's conversational reply instruction ("reply in your own words") stands. The client sample's red exact-match warning (reply exactly "Approve" or "Reject") is deliberately gone: it is the defect the client named. It is narrated in the demo, not reproduced.
 - **Dollar guardrail (Phase 6a, ruled 2026-09-26).** A draw above `SD_EMAIL_APPROVAL_MAX` ($5,000,000) cannot be decided by email at any step.
   - A reply on such a draw changes nothing.
   - The sender is told on the thread to decide in the system, and the attempt is logged on the draw.
