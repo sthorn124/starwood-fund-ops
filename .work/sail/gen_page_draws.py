@@ -38,7 +38,9 @@ sail = f"""/* Draw approval: the Draws page on the intake site, built against mo
    can switch to "Needs chasing": rule!SD_getChaseRows over the same rows — steps waiting SD_CHASE_AGE_DAYS or more and
    replies to review, ranked by amount then days to funding, with who holds each and how to reach them. */
 a!localVariables(
-  local!rows: rule!SD_getDrawListRows(),
+  /* bumped by the staging card after a cleanup or a stage check, so the list reflects what changed */
+  local!dataVersion: 0,
+  local!rows: a!refreshVariable(value: rule!SD_getDrawListRows(), refreshOnVarChange: local!dataVersion),
   local!search,
   local!status,
   local!fund,
@@ -84,6 +86,76 @@ a!localVariables(
   local!isAdmin: a!defaultValue(a!isUserMemberOfGroup(username: loggedInUser(), groups: cons!SD_ADMINISTRATORS_GROUP), false),
   local!feedState,
   local!feedAt,
+  /* Stage for Approval: the eligible draws (most recent first), the choice, and the draw last started with a live check */
+  local!stageCandidates: if(local!isAdmin, rule!SD_getStageForApprovalCandidates(rows: local!rows), {{}}),
+  local!stageIds: if(a!isNullOrEmpty(local!stageCandidates), {{}}, a!forEach(items: local!stageCandidates, expression: tointeger(fv!item.drawId))),
+  local!stageChoice,
+  local!stageEffective: if(
+    a!isNullOrEmpty(local!stageIds),
+    null,
+    if(and(not(a!isNullOrEmpty(local!stageChoice)), contains(local!stageIds, tointeger(local!stageChoice))), tointeger(local!stageChoice), index(local!stageIds, 1, null))
+  ),
+  local!stageDrawId,
+  local!stageError: false,
+  local!stageCheck: 0,
+  local!stageStatus: a!refreshVariable(
+    value: if(a!isNullOrEmpty(local!stageDrawId), null, rule!SD_getDrawDetail(drawId: local!stageDrawId)),
+    refreshInterval: if(a!isNullOrEmpty(local!stageDrawId), null, 0.5),
+    refreshOnVarChange: local!stageCheck
+  ),
+  local!stageDone: and(
+    not(a!isNullOrEmpty(local!stageStatus)),
+    tostring(a!defaultValue(index(local!stageStatus, "status", ""), "")) = "In Progress",
+    tointeger(a!defaultValue(index(local!stageStatus, "currentStep", 0), 0)) = 3,
+    not(a!isNullOrEmpty(index(local!stageStatus, "openTaskId", null)))
+  ),
+  local!stageLine: if(
+    local!stageError,
+    "Stage for Approval could not be started.",
+    if(
+      a!isNullOrEmpty(local!stageDrawId),
+      "",
+      a!localVariables(
+        local!n: "#" & a!defaultValue(index(local!stageStatus, "drawNumber", null), local!stageDrawId),
+        local!step: tointeger(a!defaultValue(index(local!stageStatus, "currentStep", 0), 0)),
+        local!st: tostring(a!defaultValue(index(local!stageStatus, "status", ""), "")),
+        if(
+          local!stageDone,
+          "Draw " & local!n & " is staged for approval: step 3 of 9 · Asset Manager (" & a!defaultValue(index(local!stageStatus, "currentApprover", ""), "") & ") · the task is live for SD Draw Asset Managers.",
+          if(
+            and(local!st = "In Progress", local!step = 3),
+            "Draw " & local!n & " is at the Asset Manager step; its task is being issued.",
+            if(
+              or(local!st <> "In Progress", local!step > 3),
+              "Draw " & local!n & " is " & local!st & " at step " & local!step & ".",
+              "Staging draw " & local!n & ": approving steps 1–2 as the chain's named approvers, then issuing the Asset Manager task (about 45 seconds; this line re-checks every 30 seconds)."
+            )
+          )
+        )
+      )
+    )
+  ),
+  /* Clean Up Old Runs (optional): what would go, and the two-click state */
+  local!cleanupCandidates: if(local!isAdmin, rule!SD_getCleanupCandidates(rows: local!rows), {{}}),
+  local!keepLabels: if(
+    not(local!isAdmin),
+    {{}},
+    a!forEach(
+      items: tointeger(cons!SD_DEMO_KEEP_DRAW_IDS),
+      expression: a!localVariables(
+        local!row: index(local!rows, wherecontains(fv!item, a!forEach(items: local!rows, expression: tointeger(fv!item.id))), null),
+        if(
+          a!isNullOrEmpty(local!row),
+          "draw " & fv!item,
+          if(a!isNullOrEmpty(index(index(local!row, 1, null), "drawNumber", null)), "a failed ingest", "#" & index(index(local!row, 1, null), "drawNumber", null))
+        )
+      )
+    )
+  ),
+  local!cleanupStage,
+  local!cleanupIds,
+  local!cleanupLabels,
+  local!cleanupReport,
   local!chaseRanked: if(a!isNullOrEmpty(local!chase), {{}}, a!forEach(items: local!chase, expression: a!update(fv!item, "rank", fv!index))),
   local!inApproval: if(a!isNullOrEmpty(local!rows), {{}}, index(local!rows, wherecontains("In Progress", a!forEach(items: local!rows, expression: tostring(a!defaultValue(fv!item.status, "")))), {{}})),
   local!next30: if(a!isNullOrEmpty(local!rows), {{}}, index(
@@ -495,53 +567,54 @@ a!localVariables(
         marginBelow: "STANDARD"
       )
       ,
-      /* Phase 6c: demo staging (SD Administrators only). The presenter stages the EY API/SFTP drop before beat 1: the
-         prepared template and supporting PDFs go through a!startProcess(cons!SD_RECEIVE_CAPITAL_CALL_PM, …) exactly as the
-         Receive Capital Call page sends them, so the pipeline, the Ingesting row and the reconciliation task are the real ones. */
+      /* Demo staging (SD Administrators only; fix session 2026-09-27). Demo prep is clickable only: this card stages what the
+         beats need and nothing is reset, reused or cleaned by requirement. Row 1 — the feed arrives: the corrected package
+         (beat 1) or the malformed template (beat 3) goes through a!startProcess(cons!SD_RECEIVE_CAPITAL_CALL_PM, …) exactly as
+         Receive Capital Call sends it. Row 2 — Stage for Approval (the one pre-demo click): approves steps 1–2 of an ingested
+         draw as its named approvers and issues a fresh Asset Manager task (SD Stage Draw for Approval; eligibility is
+         rule!SD_isStageForApprovalEligible, re-checked by the process). Row 3 — Clean Up Old Runs, optional: removes every
+         ingested draw that is not a named specimen, after a second click (SD Clean Up Old Runs, synchronous, with a report). */
       a!cardLayout(
         contents: {{
+          a!richTextDisplayField(
+            labelPosition: "COLLAPSED",
+            value: {{
+              a!richTextItem(text: "DEMO STAGING · ADMINISTRATORS ONLY", color: "#6B7280", size: "SMALL", style: "STRONG"),
+              char(10),
+              a!richTextItem(text: "Stages what the demo beats need. Nothing here resets or reuses a draw.", color: "#6B7280", size: "SMALL")
+            }},
+            marginBelow: "STANDARD"
+          ),
+          /* row 1: the feed arrives */
           a!columnsLayout(
             columns: {{
               a!columnLayout(
-                contents: {{
-                  a!richTextDisplayField(
-                    labelPosition: "COLLAPSED",
-                    value: {{
-                      a!richTextItem(text: "DEMO STAGING · ADMINISTRATORS ONLY", color: "#6B7280", size: "SMALL", style: "STRONG"),
-                      char(10),
-                      a!richTextItem(
-                        text: if(
-                          local!feedState = "ERROR",
-                          "The feed arrival could not be started. Check that the package documents in SD_FEED_PACKAGE_FAILING_TEMPLATE, SD_FEED_PACKAGE_TEMPLATE and SD_FEED_PACKAGE_SUPPORTING still exist.",
-                          if(
-                            a!isNullOrEmpty(local!feedState),
-                            "Stage the EY feed arrival through the same intake path as Receive Capital Call. Beats 1–2: the malformed template (" & document(cons!SD_FEED_PACKAGE_FAILING_TEMPLATE, "name") & ") fails validation and sends the alert. Beat 3: the corrected package (" & document(cons!SD_FEED_PACKAGE_TEMPLATE, "name") & " and " & count(cons!SD_FEED_PACKAGE_SUPPORTING) & " supporting PDFs) ingests.",
-                            if(local!feedState = "FAILING", "Malformed template", "Corrected package") & " staged at " & text(local!feedAt, "h:mm a") & ". The new draw appears within about 10 seconds (reload this page); " &
-                            if(local!feedState = "FAILING", "the ingestion failure alert follows in about 90 seconds.", "the accountant's reconciliation task follows in about 90 seconds.")
-                          )
-                        ),
-                        color: if(local!feedState = "ERROR", "#B42318", "#1F2937"),
-                        size: "SMALL"
-                      )
-                    }},
-                    marginBelow: "NONE"
-                  )
-                }}
+                contents: a!richTextDisplayField(
+                  labelPosition: "COLLAPSED",
+                  value: {{
+                    a!richTextItem(text: "The feed arrives", size: "SMALL", style: "STRONG", color: "#16294D"),
+                    char(10),
+                    a!richTextItem(
+                      text: if(
+                        local!feedState = "ERROR",
+                        "The feed arrival could not be started. Check that the package documents in SD_FEED_PACKAGE_TEMPLATE, SD_FEED_PACKAGE_SUPPORTING and SD_FEED_PACKAGE_FAILING_TEMPLATE still exist.",
+                        if(
+                          a!isNullOrEmpty(local!feedState),
+                          "Beat 1: the corrected package (" & document(cons!SD_FEED_PACKAGE_TEMPLATE, "name") & " and " & count(cons!SD_FEED_PACKAGE_SUPPORTING) & " supporting PDFs) ingests. Beat 3: the malformed template (" & document(cons!SD_FEED_PACKAGE_FAILING_TEMPLATE, "name") & ") fails validation and sends the alert. Both go through the same intake path as Receive Capital Call.",
+                          if(local!feedState = "FAILING", "Malformed template", "Corrected package") & " staged at " & text(local!feedAt, "h:mm a") & ". The new draw appears within about 10 seconds (reload this page); " &
+                          if(local!feedState = "FAILING", "the ingestion failure alert follows in about 90 seconds.", "the accountant's reconciliation task follows in about 90 seconds.")
+                        )
+                      ),
+                      color: if(local!feedState = "ERROR", "#B42318", "#1F2937"),
+                      size: "SMALL"
+                    )
+                  }},
+                  marginBelow: "NONE"
+                )
               ),
               a!columnLayout(
                 contents: a!buttonArrayLayout(
                   buttons: {{
-                    a!buttonWidget(
-                      label: "Stage Malformed Template",
-                      style: "OUTLINE",
-                      size: "SMALL",
-                      saveInto: a!startProcess(
-                        processModel: cons!SD_RECEIVE_CAPITAL_CALL_PM,
-                        processParameters: a!map(document: cons!SD_FEED_PACKAGE_FAILING_TEMPLATE, supportingDocuments: {{}}),
-                        onSuccess: {{ a!save(local!feedState, "FAILING"), a!save(local!feedAt, now()) }},
-                        onError: a!save(local!feedState, "ERROR")
-                      )
-                    ),
                     a!buttonWidget(
                       label: "Stage Corrected Package",
                       style: "OUTLINE",
@@ -550,6 +623,17 @@ a!localVariables(
                         processModel: cons!SD_RECEIVE_CAPITAL_CALL_PM,
                         processParameters: a!map(document: cons!SD_FEED_PACKAGE_TEMPLATE, supportingDocuments: cons!SD_FEED_PACKAGE_SUPPORTING),
                         onSuccess: {{ a!save(local!feedState, "PACKAGE"), a!save(local!feedAt, now()) }},
+                        onError: a!save(local!feedState, "ERROR")
+                      )
+                    ),
+                    a!buttonWidget(
+                      label: "Stage Malformed Template",
+                      style: "OUTLINE",
+                      size: "SMALL",
+                      saveInto: a!startProcess(
+                        processModel: cons!SD_RECEIVE_CAPITAL_CALL_PM,
+                        processParameters: a!map(document: cons!SD_FEED_PACKAGE_FAILING_TEMPLATE, supportingDocuments: {{}}),
+                        onSuccess: {{ a!save(local!feedState, "FAILING"), a!save(local!feedAt, now()) }},
                         onError: a!save(local!feedState, "ERROR")
                       )
                     )
@@ -562,13 +646,184 @@ a!localVariables(
             }},
             alignVertical: "MIDDLE",
             stackWhen: {{"PHONE"}},
+            marginBelow: "STANDARD"
+          ),
+          /* row 2: stage a draw for approval (the pre-demo click) */
+          a!columnsLayout(
+            columns: {{
+              a!columnLayout(
+                contents: {{
+                  a!richTextDisplayField(
+                    labelPosition: "COLLAPSED",
+                    value: {{
+                      a!richTextItem(text: "Stage for approval", size: "SMALL", style: "STRONG", color: "#16294D"),
+                      char(10),
+                      a!richTextItem(
+                        text: if(
+                          a!isNullOrEmpty(local!stageIds),
+                          "No ingested draw is at step 1 or 2 with a live task. Stage the corrected package and confirm its reconciliation first.",
+                          "Before the demo: approves steps 1–2 of the chosen draw as its named approvers (dates a day apart) and issues a fresh Asset Manager task."
+                        ),
+                        color: "#1F2937",
+                        size: "SMALL"
+                      )
+                    }},
+                    marginBelow: "EVEN_LESS"
+                  ),
+                  a!dropdownField(
+                    labelPosition: "COLLAPSED",
+                    choiceLabels: a!forEach(items: local!stageCandidates, expression: tostring(fv!item.label)),
+                    choiceValues: local!stageIds,
+                    value: local!stageEffective,
+                    saveInto: local!stageChoice,
+                    showWhen: not(a!isNullOrEmpty(local!stageIds)),
+                    marginBelow: "EVEN_LESS"
+                  ),
+                  a!richTextDisplayField(
+                    labelPosition: "COLLAPSED",
+                    value: {{
+                      a!richTextItem(
+                        text: local!stageLine,
+                        color: if(local!stageDone, "#1E7E46", if(local!stageError, "#B42318", "#1F2937")),
+                        size: "SMALL",
+                        style: if(local!stageDone, "STRONG", "PLAIN")
+                      ),
+                      if(
+                        or(a!isNullOrEmpty(local!stageDrawId), local!stageDone),
+                        "",
+                        {{
+                          " ",
+                          a!richTextItem(
+                            text: "Check now",
+                            link: a!dynamicLink(saveInto: {{ a!save(local!stageCheck, local!stageCheck + 1), a!save(local!dataVersion, local!dataVersion + 1) }}),
+                            linkStyle: "STANDALONE",
+                            size: "SMALL"
+                          )
+                        }}
+                      )
+                    }},
+                    showWhen: or(not(a!isNullOrEmpty(local!stageDrawId)), local!stageError),
+                    marginBelow: "NONE"
+                  )
+                }}
+              ),
+              a!columnLayout(
+                contents: a!buttonArrayLayout(
+                  buttons: a!buttonWidget(
+                    label: "Stage for Approval",
+                    style: "OUTLINE",
+                    size: "SMALL",
+                    disabled: a!isNullOrEmpty(local!stageEffective),
+                    saveInto: a!startProcess(
+                      processModel: cons!SD_STAGE_FOR_APPROVAL_PM,
+                      processParameters: a!map(drawId: local!stageEffective),
+                      onSuccess: {{ a!save(local!stageDrawId, local!stageEffective), a!save(local!stageError, false), a!save(local!stageCheck, local!stageCheck + 1) }},
+                      onError: a!save(local!stageError, true)
+                    )
+                  ),
+                  align: "END",
+                  marginBelow: "NONE"
+                ),
+                width: "MEDIUM"
+              )
+            }},
+            alignVertical: "TOP",
+            stackWhen: {{"PHONE"}},
+            marginBelow: "STANDARD"
+          ),
+          /* row 3: optional housekeeping, two clicks */
+          a!columnsLayout(
+            columns: {{
+              a!columnLayout(
+                contents: a!richTextDisplayField(
+                  labelPosition: "COLLAPSED",
+                  value: {{
+                    a!richTextItem(text: "Clean up old runs", size: "SMALL", style: "STRONG", color: "#16294D"),
+                    char(10),
+                    a!richTextItem(
+                      text: if(
+                        local!cleanupStage = "CONFIRM",
+                        "Delete these " & count(local!cleanupIds) & " draws and everything under them (budget lines, approvals, QIU rows, documents, email messages, line events), and cancel their open tasks: " & joinarray(local!cleanupLabels, ", ") & ". This cannot be undone.",
+                        if(
+                          local!cleanupStage = "DONE",
+                          a!defaultValue(local!cleanupReport, "Done."),
+                          "Optional: removes accumulated ingested draws; the demo does not require it. " &
+                          if(
+                            a!isNullOrEmpty(local!cleanupCandidates),
+                            "Nothing to remove.",
+                            count(local!cleanupCandidates) & if(count(local!cleanupCandidates) = 1, " draw", " draws") & " would go."
+                          ) &
+                          " Kept: the seeded draws and the named specimens" & if(a!isNullOrEmpty(local!keepLabels), ".", " (" & joinarray(local!keepLabels, ", ") & ").")
+                        )
+                      ),
+                      color: if(local!cleanupStage = "CONFIRM", "#B42318", "#1F2937"),
+                      size: "SMALL",
+                      style: if(local!cleanupStage = "CONFIRM", "STRONG", "PLAIN")
+                    )
+                  }},
+                  marginBelow: "NONE"
+                )
+              ),
+              a!columnLayout(
+                contents: a!buttonArrayLayout(
+                  buttons: if(
+                    local!cleanupStage = "CONFIRM",
+                    {{
+                      a!buttonWidget(
+                        label: "Delete " & count(local!cleanupIds) & if(count(local!cleanupIds) = 1, " Draw", " Draws"),
+                        style: "SOLID",
+                        color: "NEGATIVE",
+                        size: "SMALL",
+                        saveInto: a!startProcess(
+                          processModel: cons!SD_CLEAN_UP_OLD_RUNS_PM,
+                          processParameters: a!map(drawIds: local!cleanupIds),
+                          isSynchronous: true,
+                          onSuccess: {{
+                            a!save(local!cleanupReport, tostring(fv!processInfo.pv.report)),
+                            a!save(local!cleanupStage, "DONE"),
+                            a!save(local!dataVersion, local!dataVersion + 1)
+                          }},
+                          onError: {{ a!save(local!cleanupReport, "The cleanup could not be started."), a!save(local!cleanupStage, "DONE") }},
+                          onIncomplete: {{
+                            a!save(local!cleanupReport, "The cleanup is still running in the background (over 30 seconds). Reload the page in a minute to see the result."),
+                            a!save(local!cleanupStage, "DONE"),
+                            a!save(local!dataVersion, local!dataVersion + 1)
+                          }}
+                        )
+                      ),
+                      a!buttonWidget(label: "Cancel", style: "LINK", size: "SMALL", saveInto: a!save(local!cleanupStage, null))
+                    }},
+                    if(
+                      local!cleanupStage = "DONE",
+                      a!buttonWidget(label: "Done", style: "LINK", size: "SMALL", saveInto: {{ a!save(local!cleanupStage, null), a!save(local!cleanupReport, null) }}),
+                      a!buttonWidget(
+                        label: "Clean Up Old Runs…",
+                        style: "OUTLINE",
+                        size: "SMALL",
+                        disabled: a!isNullOrEmpty(local!cleanupCandidates),
+                        saveInto: {{
+                          a!save(local!cleanupIds, a!forEach(items: local!cleanupCandidates, expression: tointeger(fv!item.drawId))),
+                          a!save(local!cleanupLabels, a!forEach(items: local!cleanupCandidates, expression: tostring(fv!item.label))),
+                          a!save(local!cleanupStage, "CONFIRM")
+                        }}
+                      )
+                    )
+                  ),
+                  align: "END",
+                  marginBelow: "NONE"
+                ),
+                width: "MEDIUM"
+              )
+            }},
+            alignVertical: "TOP",
+            stackWhen: {{"PHONE"}},
             marginBelow: "NONE"
           )
         }},
         showWhen: local!isAdmin,
         style: "NONE",
         shape: "SEMI_ROUNDED",
-        padding: "LESS",
+        padding: "STANDARD",
         showBorder: true,
         showShadow: false,
         marginBelow: "STANDARD"

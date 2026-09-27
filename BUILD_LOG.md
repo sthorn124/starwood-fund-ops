@@ -2,7 +2,7 @@
 
 What has actually been built in the environment, with object identifiers and the decisions behind them. Append after every build step; never rewrite a closed entry — a correction is a new entry that names what it corrects. Entry shape: date and title; scope line (the identity and group memberships every readback ran under); what changed, by object; decisions and why; verified (how, with counts and scope); not verified (and the browser checklist that covers it); promotion checkpoint. The contract is `CLAUDE.md` §7; the promotion loop is §9.
 
-**Promotion checkpoint: current through 2026-09-26 — Phase 6c: velocity ladder, site-reachable exceptions, Asset Manager edit, treasury content, feed staging — level with the log tail.** A session touching promotion refuses to call itself complete if this checkpoint lags the log tail by more than one session.
+**Promotion checkpoint: current through 2026-09-27 — Fix session: stage-for-approval and optional cleanup buttons; runbook without resets — level with the log tail.** A session touching promotion refuses to call itself complete if this checkpoint lags the log tail by more than one session.
 
 ## Promotion candidates (staging)
 
@@ -105,7 +105,12 @@ What has actually been built in the environment, with object identifiers and the
 - **STAGED (gate 1, 2026-09-26, Phase 6c) — `max()` over integers returns a Decimal**, which `wherecontains()` then fails to match against integers. Working form: `tointeger(max(…))`. *Trigger:* the next `max()` result used as a key.
 - **STAGED (gate 1, 2026-09-26, Phase 6c; Dev MCP boundary) — escalations, Receive Message triggers and timer triggers are not settable over the Dev MCP** (the user-input-task node schema has no escalation inputs; the start node takes none). Working form: build the receiving process over MCP so the Designer step is minimal (one standard-property mapping), and record the Designer steps in TODO; afterwards do not re-save the configured model over MCP. Home when promoted: `reference/mcp-capability-boundaries.md`. *Trigger:* the Designer setup of the step-task escalations (verify the escalation fires the chase process with `OriginProcessID`).
 - **STAGED (gate 1, 2026-09-26, Phase 6c) — an HTTP integration can send a form-urlencoded body though the MCP schema offers no such body type**: body type text/plain, the body built with `urlencode()`, and an explicit `Content-Type: application/x-www-form-urlencoded` header (the docs say explicit headers override the default). Measured: Twilio parsed the request and answered with a content-level error (572006), not a format error. *Trigger:* the first successful live send (a non-trial account), which proves the parse end to end.
+- **[TRIGGER FIRED 2026-09-27, fix session — working form confirmed on a substitute; held at gate 1]** The draw 66 cycle was retired by ruling (no resets), so the trigger fired on its replacement: Stage for Approval had the current `SD Draw Approval Step` issue a fresh step-3 task (7602, draw 98), and its submit wrote both budget edits (events 5 and 6) before the decision. The trap itself (an old task running an old flow) is still one observation. *New trigger:* the next process change that a form change depends on.
 - **STAGED (gate 1, 2026-09-26, Phase 6c) — a task keeps the process version that issued it; its form follows the interface's latest version.** Draw 66's live task (issued before the edit nodes existed) renders the new edit grid, but its process has no nodes to write the edits. Working form: after a process change that a form change depends on, cycle the open tasks (reset and restart) before demoing. *Trigger:* the draw 66 cycle in the demo runbook — confirm the cycled task writes edits.
+
+- **STAGED (gate 1, 2026-09-27, fix session) — a rule whose fields depend on the viewer answers differently inside a process than in a designer's rule test.** `SD_getDrawDetail.openTaskId` is computed only when `viewerIsAssignee`. As the designer, `testRule` returned the open task, but inside `SD Stage Draw for Approval`, running as DESIGNER through `testProcessModel`, it read null, so the eligibility check refused every draw. Calling `SD_getOpenTaskId` directly on `activeStepProcessId` fixed it: draw 98 then staged, and draw 75 was still refused. The cause is not isolated (who `loggedInUser()` is inside that process was not read). Working form: process-side decisions never read viewer-aware fields; they call the underlying lookup. Portable shape: "a render or a rule test proves nothing about the same rule evaluated in a process" (extends §4). *Trigger:* the next process that reuses a UI detail rule for a decision — read `loggedInUser()` inside it.
+- **STAGED (gate 1, 2026-09-27, fix session) — the Delete Records smart service (`internal3.delete_records_from_source_23r4`) builds and runs over the Dev MCP.** The inputs were `Records` (a list of record constructors by primary key, one record type per node) and `PauseOnError`; the hidden `Version` input was set to 6 on its own. `CountOfRecordsDeleted` matched the plan on all seven types (2, 7, 28, 90, 81, 144, 14), and absence was read back afterwards. Working form: one guarded node per type, children first, with the parent's delete gated on every child's `Error` being null. *Trigger:* the next Delete Records node built on any build — check the `Version` readback and the count against absence.
+- **STAGED (gate 1, 2026-09-27, fix session; cause not isolated) — Cancel Process reported `alreadyClosed` for 6 of 15 processes that the live-status task report had just listed as holding a task.** The list put each draw's ingestion pipeline ahead of its step process, and the pipeline starts the approval chain. The likely reading, not measured, is that cancelling the pipeline also closed its descendant step process, and that the "Current Tasks for Process" report returns a descendant's task for the parent. Working form: count "already closed" separately and report it (the fixed report does). *Trigger:* the next cancel of a process that started a subprocess — read the child's state before and after cancelling the parent.
 
 ## Entries
 
@@ -1692,3 +1697,139 @@ Promotion checkpoint: current through 2026-09-26 — Phase 6b: approver Q&A on t
 **Promotion candidates.** 9 found; 0 promoted; 9 staged (listed in the staging section, each with a trigger).
 
 Promotion checkpoint: current through 2026-09-26 — Phase 6c: velocity ladder, site-reachable exceptions, Asset Manager edit, treasury content, feed staging.
+
+## 2026-09-27 — Fix session: stage-for-approval and optional cleanup buttons; runbook without resets
+
+**Scope.** Every design read, rule test, process run and render ran as `scott.thorn@appian.com` through the Dev MCP (`appian`). That account is a member of `SD Administrators`, `SD Users` and the three draw approval step groups, so it has full scope: its reads prove nothing about a persona.
+- sail ran against `subscription-agreement-analyst` with two data directories:
+  - `~/.sail-sd.accountant` as `sd.accountant` (Priya Raman), a member of `SD Draw Approvers` › `SD Draw Demo Approvers`;
+  - `~/.sail-sd.assetmanager` as `sd.assetmanager` (Elena Marchetti), a member of `SD Draw Approvers` › `SD Draw Asset Managers`.
+- Identity was confirmed by the pages that resolved: neither persona sees the administrators' card, and each sees its own YOUR ACTION rows.
+- No runtime connector and no `--from-devmcp` import was used.
+
+**Rulings recorded** (the brief's item 0; in `PROJECT_INSTRUCTIONS.md` "Demo order and demo prep, ruled 2026-09-27", the runbook in `TODO.md`, and `CLAUDE.md` business rules):
+- Ingested chains start at step 1 as built (the 2026-09-22 ruling stands).
+- Demo prep is clickable only. Nothing is reset, reused or cleaned by requirement.
+- Draw 66 stays seeded list history, and no beat needs it.
+- The demo shows successful ingestion before the failure path, superseding the Phase 0 beat order.
+- Twilio stays STAGED.
+- The intake pages stay visible to the draw personas.
+
+**What changed, by object** (UUIDs in `CLAUDE.md`, "Demo prep (fix session 2026-09-27)"):
+- **Constants.**
+  - `SD_SEED_DRAW_IDS` {11, 12, 63, 64, 65, 66}.
+  - `SD_DEMO_KEEP_DRAW_IDS` {78, 79, 86, 87, 92, 93, 94, 95, 96}: #69 treasury, #70 exception, #73 Q&A, #74 Asset Manager edit, #77 approved by email, #78 mismatch, #79 junk PDF, #80 conversation, and draw 96 as the kept failed ingest.
+  - `SD_STAGE_FOR_APPROVAL_PM`, `SD_CLEAN_UP_OLD_RUNS_PM`.
+- **Rules.**
+  - `SD_isStageForApprovalEligible` (v2).
+  - `SD_getStageForApprovalCandidates`.
+  - `SD_getCleanupCandidates`.
+  - `SD_planCleanup`.
+  - `SD_cleanupRecords`.
+  - Generator: `.work/sail/gen_demo_prep.py`.
+- **`SD Advance Draw to CEO Step (Demo Accelerator)`.**
+  - New parameters `stopAtStep` (default `SD_DRAW_FINAL_APPROVAL_ORDER`) and `attribution` (default ACCELERATOR).
+  - Node 4 derives actor, source and comment. SEED gives the chain's approver name, source SEED and "N/A"; otherwise "demo accelerator", ACCELERATOR and "Approved via demo accelerator".
+  - Node 5 stops at `min(final, stopAtStep)`. Node 9 was renamed.
+  - The defaults keep the demo accelerator's behaviour unchanged, verified on draw 98 below.
+- **`SD Stage Draw for Approval`** (`0000f076-76a3-…`, 8 nodes as DESIGNER).
+- **`SD Clean Up Old Runs`** (`0000f076-76a6-…`, 24 nodes, 22 PVs, as DESIGNER). After the first live run, node 7 counts a cancellation only when the process was not already closed, and node 80's report reads "Cancelled N open processes; K had already closed".
+- **Security on both models:** administrator `SD Administrators` only (the inherited `SD Users` viewer was removed).
+- **`SD_page_draws` v12:** the staging card holds three rows.
+  - The feed arrives: corrected package first.
+  - Stage for approval: a picker of eligible draws defaulting to the newest, **Stage for Approval**, the result line and **Check now**.
+  - Clean up old runs: labelled optional ("Optional: removes accumulated ingested draws; the demo does not require it"), with a two-click confirm and the report.
+- **Docs.**
+  - The `TODO.md` runbook was rewritten: specimen plus live, success before failure, beats 0–7.
+  - Every reset, message-row deletion and cleanup-as-requirement instruction was struck with a pointer to the ruling.
+  - Browser checks 6 and 7 were re-aimed.
+  - `CLAUDE.md` and `BUILD_PLAN.md` were updated.
+
+**Decisions and why.**
+- **The eligibility rule calls `SD_getOpenTaskId` itself.** `SD_getDrawDetail.openTaskId` is viewer-aware and read null inside the process (finding below).
+- **Orders 1–2 are attributed to the chain's named approvers with source SEED,** the same way the seeded chains carry them. The brief asks for "attributed to the seed personas", and the Approvals tab then reads like a real chain.
+- **Stage for Approval reuses the accelerator with a stop step instead of a second transition driver.** One set of mechanics means settle, monotonic dates and the launcher behave identically.
+- **The draw delete is gated on every child delete succeeding,** so a failed child delete never leaves orphans.
+- **The keep list** holds the specimens the runbook names for the asides, plus one failed ingest (96). Draw 83 was the older failure specimen; 96 carries supporting documents as well.
+- **The Asset Manager edit test was attributed honestly** (actor `scott.thorn@appian.com`, comment "designer on behalf of the Asset Manager step"), because the designer completed the task.
+
+**Verified** (as the designer unless stated otherwise).
+- **Guards.** `SD Stage Draw for Approval` refused draw 66 (seeded), 87 (keep list, step 4) and 75 (step 2, no open task). Each read "REFUSED: … Nothing was written.", and 75 was re-tested after the v2 fix.
+- **Staging #82 (draw 98).**
+  - Staged in 46.8 s.
+  - Orders 1–2 were Approved with source SEED, 2026-09-27 23:16 and 2026-09-28 23:16, a day apart.
+  - Order 3 went In Progress, with launcher step process 39323 and task 7602.
+- **As `sd.assetmanager` via sail:**
+  - The Draws page showed YOUR ACTION on #66 and #82 ("Awaiting My Action 2") and no staging card.
+  - #82's Summary read "Your approval is pending — Asset Manager, step 3 of 9", with **Review & Approve** as a `ProcessTaskLink`.
+- **The task form, from the current model.** A designer render of `SD_form_drawApprovalDecision` for task 7602's inputs returned `error: null`, WIDE, 33 editable UNFOCUS fields, "Ties ✓" and "No lines edited".
+- **The edit and approval.**
+  - `completeTask(7602)` approved with two edits:
+    - line 6874, A&E - Architectural: adjustment 21,000 → 31,000;
+    - line 6881, All Project Contingency: (57,753) → (67,753);
+    - net adjustments stayed $0.
+  - It wrote events 5 and 6 ("Scott Thorn edited …").
+  - The draw moved to step 4: row 3 Approved 09/29, step process 39325.
+- **The accelerator with its defaults on draw 98** (process 536910600) reached the CEO step. It logged step email row 57 at 23:20:27 UTC (step process 536910607).
+- **The CEO step email.**
+  - `SD_buildApprovalEmail(98, 9)` rendered at 45,032 bytes.
+  - Its status table:
+
+    | Orders | Status | Comment |
+    |---|---|---|
+    | 1–2 | Approved | "N/A" |
+    | 3 | Approved | the fix-session comment |
+    | 4–8 | Approved | "Approved via demo accelerator" |
+    | 9 | In Progress | "◀ Current step" |
+
+  - Draw Detail carried the edits downstream: A&E adjustment $31,000, contingency ($67,753), Remaining Contingency 6.1%.
+- **Card states.**
+  - The designer render of v12 returned `error: null`, with 8 candidates, default #82, and "13 draws would go".
+  - The hidden confirm and done states were checked on `zz` probe copies with the defaults flipped: both `error: null`. The probes were then deleted and their absence confirmed (`listInterfaces` returned no `zz` entries).
+- **Clean Up Old Runs.**
+  - The plan for 14 draws (74–77, 80, 83, 88–91, 97–100) listed:
+    - 144 lines, 81 approvals, 90 QIU, 28 documents, 7 message rows, 2 events;
+    - 15 processes holding tasks;
+    - nothing refused.
+  - Run 39330 (46 s) reported "REMOVED 14 of 14 draws" with exactly those counts and "No errors".
+  - Absence as the designer:
+    - `SD Draw` now holds 11, 12, 63–66 and 78, 79, 86, 87, 92–96, plus the later 101.
+    - The approval and document tables hold only rows of those draws.
+    - The designer's task list no longer shows the cancelled tasks of draws 98 and 99.
+  - Draws 90, 91, 97 and 98 were in the pile. The superseded Phase 5.6 reset note had said those four are "not deleted without Scott's word", and the brief's item 4 ("run Clean Up Old Runs against the pile") is taken as that word. It is flagged in the close-out.
+- **The report fix.** Run 39330's line said "Cancelled 15 open processes (6 had already closed)", when 9 were cancelled. After the fix, run 536910620 on a throwaway intake (draw 102, sd.accountant via sail, with its reconciliation task open) reported "REMOVED 1 of 1 draws (draw 102 (Ingesting)): … 1 documents … Cancelled 1 open process. No errors." A re-read found draw 102 and its document row 6665 absent.
+- **Regression: the failure path.**
+  - Draw 100 was uploaded via sail as sd.accountant (`THSV_Draw67_Budget_Template_v2.xlsx`, document 56163). It went to Ingestion Failed with the plain-English reason.
+  - The AI comparison was "Compared with … (Draw #82 …) by AI (Claude Sonnet 4.6)".
+  - Template row 6663 read "alert email sent to the accountant and asset manager groups".
+- **Regression: a clean template-only intake.**
+  - Draw 101 was uploaded via sail as sd.accountant (document 56167, 23:26 UTC). Its reconciliation task 536876415 was open at ~80 s.
+  - The render showed the Draw Number prefilled "67", with an amber "Out of sequence (last #80)" chip. No #67 is on file after the cleanup.
+  - The task was completed as #81.
+  - Draw 101 then read In Progress at step 1, with a 9-row chain (6763–6771) and step 1's task 536876658 live. It is now the only Stage for Approval candidate.
+- **The Draws page as both personas via sail, after everything:**
+
+  | | `sd.accountant` | `sd.assetmanager` |
+  |---|---|---|
+  | Rows | 16 | 16 |
+  | Awaiting My Action | 3 (#81 Accountant step, #74, #70) | 1 (#66) |
+  | "Not loaded" rows | one (draw 96) | one (draw 96) |
+  | Staging card | absent | absent |
+
+**Not verified (and why).**
+- **The card's own clicks.** Stage for Approval, both staging buttons and the Clean Up confirm call `a!startProcess` from the page. The designer render cannot click, the personas cannot see the card, and sail as the designer would need `--from-devmcp`, which is barred for routine verification. The processes were verified directly. That includes whether `fv!processInfo.pv.report` reaches the page after a synchronous start. Browser check 7 covers all of this.
+- **The persona's own Asset Manager submit** (sail cannot open tasks). Browser check 6, on #81 once staged.
+- **Geometry** of the card and its picker. Browser check 7.
+- **The CEO step email for draw 98 arriving in Gmail.** Only the render and the logged row were read, and draw 98 has since been removed.
+- **The escalation ladder firing by itself** (brief item 5). `TODO.md` "Designer setup owed" B–D is not marked done, so it was skipped and stays owed.
+
+**Findings.**
+- **Viewer-aware fields inside a process.** Staged below.
+- **Delete Records over the Dev MCP.** Staged below.
+- **Cancel Process `alreadyClosed` on 6 of 15 listed processes.** Staged below; cause not isolated.
+- **The cleanup changed a downstream UI state.** It removed every #67 on file, so the next #67 reads "Out of sequence" rather than "Renumbered". This is a project fact, recorded in `CLAUDE.md` and the runbook's beat 2.
+- **`SD_planCleanup` lists a nonexistent id as refused.** Found by calling it with deleted ids; TODO, Deferred.
+
+**Promotion candidates.** 3 found; 0 promoted; 3 staged. One earlier trigger was ruled: the task-version candidate fired on a substitute, its working form was confirmed, and it was held at gate 1.
+
+Promotion checkpoint: current through 2026-09-27 — Fix session: stage-for-approval and optional cleanup buttons; runbook without resets.

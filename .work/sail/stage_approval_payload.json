@@ -1,0 +1,269 @@
+{
+ "processVariables": [
+  {
+   "name": "drawId",
+   "type": "Number (Integer)",
+   "isParameter": true,
+   "isRequired": true
+  },
+  {
+   "name": "before",
+   "type": "Map"
+  },
+  {
+   "name": "eligible",
+   "type": "Boolean"
+  },
+  {
+   "name": "accelOutcome",
+   "type": "Text"
+  },
+  {
+   "name": "after",
+   "type": "Map"
+  },
+  {
+   "name": "outcome",
+   "type": "Text",
+   "isParameter": true
+  },
+  {
+   "name": "stopAtStep",
+   "type": "Number (Integer)",
+   "value": "3"
+  },
+  {
+   "name": "attribution",
+   "type": "Text",
+   "value": "\"SEED\""
+  }
+ ],
+ "nodes": [
+  {
+   "id": 1,
+   "type": "core.0",
+   "name": "Start",
+   "coordinates": [
+    40,
+    200
+   ],
+   "connections": [
+    {
+     "targetNodeId": 3,
+     "activityChained": false
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "type": "internal.16",
+   "name": "Check the draw (rules)",
+   "coordinates": [
+    160,
+    200
+   ],
+   "connections": [
+    {
+     "targetNodeId": 4,
+     "activityChained": false
+    }
+   ],
+   "data": {
+    "customOutputs": [
+     {
+      "expression": "rule!SD_getDrawDetail(drawId: pv!drawId)",
+      "saveInto": "pv!before"
+     },
+     {
+      "expression": "rule!SD_isStageForApprovalEligible(detail: rule!SD_getDrawDetail(drawId: pv!drawId))",
+      "saveInto": "pv!eligible"
+     }
+    ]
+   },
+   "assignment": {
+    "attended": false,
+    "runAs": "DESIGNER"
+   }
+  },
+  {
+   "id": 4,
+   "type": "core.4",
+   "name": "Eligible?",
+   "coordinates": [
+    290,
+    200
+   ],
+   "connections": [
+    {
+     "targetNodeId": 9,
+     "activityChained": false
+    },
+    {
+     "targetNodeId": 5,
+     "activityChained": false
+    }
+   ],
+   "decision": {
+    "conditions": [
+     {
+      "expression": "=not(a!defaultValue(pv!eligible, false))",
+      "targetNodeId": 9,
+      "label": "refused"
+     }
+    ],
+    "defaultPath": 5
+   }
+  },
+  {
+   "id": 9,
+   "type": "internal.16",
+   "name": "Refused (nothing written)",
+   "coordinates": [
+    290,
+    360
+   ],
+   "connections": [
+    {
+     "targetNodeId": 2,
+     "activityChained": false
+    }
+   ],
+   "data": {
+    "customOutputs": [
+     {
+      "expression": "\"REFUSED: draw \" & pv!drawId & \" is \" & a!defaultValue(index(pv!before, \"status\", \"?\"), \"?\") & \" at step \" & a!defaultValue(index(pv!before, \"currentStep\", \"?\"), \"?\") & if(a!isNullOrEmpty(index(pv!before, \"activeStepProcessId\", null)), \" with no live step task (in mid-acceleration or not yet assembled)\", \"\") & \"; staging takes an ingested draw In Progress at step 1 or 2 with a live task, not a seeded draw or a named specimen. Nothing was written.\"",
+      "saveInto": "pv!outcome"
+     }
+    ]
+   },
+   "assignment": {
+    "attended": false,
+    "runAs": "DESIGNER"
+   }
+  },
+  {
+   "id": 5,
+   "type": "internal.38",
+   "name": "Advance to the Asset Manager step (accelerator, sync)",
+   "coordinates": [
+    440,
+    200
+   ],
+   "connections": [
+    {
+     "targetNodeId": 6,
+     "activityChained": false
+    }
+   ],
+   "data": {
+    "inputs": [
+     {
+      "name": "drawId",
+      "expression": "pv!drawId"
+     },
+     {
+      "name": "stopAtStep",
+      "expression": "pv!stopAtStep"
+     },
+     {
+      "name": "attribution",
+      "expression": "pv!attribution"
+     },
+     {
+      "name": "pmUUID",
+      "value": "0000f06e-a54d-8000-24cf-7f0000014e7a"
+     },
+     {
+      "name": "isAsynchronous",
+      "value": 0
+     },
+     {
+      "name": "isTransparent",
+      "value": 1
+     },
+     {
+      "name": "inheritSecurity",
+      "value": 0
+     },
+     {
+      "name": "chainsInto",
+      "value": 0
+     }
+    ],
+    "outputs": [
+     {
+      "name": "outcome",
+      "saveInto": "pv!accelOutcome"
+     }
+    ]
+   },
+   "assignment": {
+    "attended": false,
+    "runAs": "DESIGNER"
+   }
+  },
+  {
+   "id": 6,
+   "type": "internal.16",
+   "name": "Read the draw back (rules)",
+   "coordinates": [
+    590,
+    200
+   ],
+   "connections": [
+    {
+     "targetNodeId": 7,
+     "activityChained": false
+    }
+   ],
+   "data": {
+    "customOutputs": [
+     {
+      "expression": "rule!SD_getDrawDetail(drawId: pv!drawId)",
+      "saveInto": "pv!after"
+     }
+    ]
+   },
+   "assignment": {
+    "attended": false,
+    "runAs": "DESIGNER"
+   }
+  },
+  {
+   "id": 7,
+   "type": "internal.16",
+   "name": "Outcome",
+   "coordinates": [
+    740,
+    200
+   ],
+   "connections": [
+    {
+     "targetNodeId": 2,
+     "activityChained": false
+    }
+   ],
+   "data": {
+    "customOutputs": [
+     {
+      "expression": "a!localVariables(local!a: pv!after, local!n: a!defaultValue(index(local!a, \"drawNumber\", null), pv!drawId), if(and(tostring(a!defaultValue(index(local!a, \"status\", \"\"), \"\")) = \"In Progress\", tointeger(a!defaultValue(index(local!a, \"currentStep\", 0), 0)) = 3), \"STAGED: draw #\" & local!n & \" approved at steps 1-2 as the chain's named approvers and advanced to step 3 (Asset Manager); the step task goes to SD Draw Asset Managers. Accelerator: \" & a!defaultValue(pv!accelOutcome, \"(no outcome)\"), \"NOT STAGED: draw #\" & local!n & \" is \" & a!defaultValue(index(local!a, \"status\", \"?\"), \"?\") & \" at step \" & a!defaultValue(index(local!a, \"currentStep\", \"?\"), \"?\") & \". Accelerator: \" & a!defaultValue(pv!accelOutcome, \"(no outcome)\")))",
+      "saveInto": "pv!outcome"
+     }
+    ]
+   },
+   "assignment": {
+    "attended": false,
+    "runAs": "DESIGNER"
+   }
+  },
+  {
+   "id": 2,
+   "type": "core.1",
+   "name": "End",
+   "coordinates": [
+    900,
+    200
+   ]
+  }
+ ]
+}

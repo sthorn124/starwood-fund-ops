@@ -27,6 +27,14 @@ Continuation of the subscription intake story on one platform: Blue Granite's ca
 5. The asset manager reviews in the UI, edits a budget line at their approval step, and approves.
 6. The CEO (order 9) receives the new-format approval email, replies conversationally ("looks good, approve"), and AI interprets the reply as an approval. The chain completes.
 7. Treasury receives the execution notification. Capital moves.
+**Demo order and demo prep, ruled 2026-09-27 (fix session; supersedes the beat order above and every reset-based preparation).**
+- **Success before failure.** The demo shows a successful ingestion before the failure path: (1) the corrected package arrives from the feed and ingests; (2) the accountant reconciles and confirms it (that draw's on-stage story ends at step 1); (3) the malformed template arrives and fails, with the alert and the AI comparison; (4) QIU and the chain on a draw staged for approval; (5) the Asset Manager edits a line and approves it; (6) the chain runs on and the CEO approves by email; (7) treasury is told to fund.
+- **Demo prep is clickable only.** The Draws page's administrators-only staging card stages what the beats need: the feed packages, and one pre-demo **Stage for Approval** click. Nothing is reset, reused or cleaned by requirement; no script runs before a demo. **Clean Up Old Runs** exists and is optional.
+- **Ingested chains start at step 1**, as built (the 2026-09-22 ruling stands). Stage for Approval brings an ingested draw to the Asset Manager step by approving orders 1–2 as their named approvers, with the accelerator's date mechanics.
+- **Draw 66 stays as seeded list history.** No beat requires it; it is never reset for a demo.
+- **Twilio stays STAGED** (ruled): texts are composed and logged as "Staged · not sent" until an account that can send free-form messages exists.
+- **Intake pages stay visible to the draw personas** (ruled): `SD Draw Approvers` keeps its viewer role on the whole site.
+
 The 9-step approval chain (contiguous orders 1–9, as in the current email sample) exists as data and renders in the status table; live interactions are the asset manager (UI) and the CEO (email) only. Chain steps between the asset manager and the CEO are advanced by a demo accelerator, narrated as the chain approving over subsequent days.
 
 ## Personas
@@ -133,8 +141,8 @@ Field vocabulary follows the new approval email sample exactly.
 - Asset manager may modify budget lines only at their own approval step; edits are attributed and visible downstream.
 - Step emails go to the step group's members as wired (`To:` the step's group). scott.thorn@appian.com receives every step email and plays the CEO at the demo's email beat; no persona addresses, no recipient overrides. Ruled 2026-09-25.
 - Budget Summary figures (Land / Soft / Hard / Total) are computed as roll-ups from the budget detail lines, never reproduced from the sample as printed. The sample's summary contains arithmetic inconsistencies (totals shift by $57,753 while its adjustments column shows none); demo data must reconcile. Ruled 2026-09-21.
-- Accelerator decision dates spread 1 day per step (`dayOffsetPerStep` = 1), matching the "chain approves over subsequent days" narration. The funding date must stay after the last generated decision date. Ruled 2026-09-21.
-- New demo runs are created by Phase 3 ingestion of the standard template document, not by any generator or reset mechanism. The seeded draw 66 and the reset script are interim build tooling until ingestion exists. Ruled 2026-09-21.
+- Accelerator decision dates spread 1 day per step (`dayOffsetPerStep` = 1), matching the "chain approves over subsequent days" narration. Stage for Approval (2026-09-27) uses the same mechanics for orders 1–2. The funding date must stay after the last generated decision date. Ruled 2026-09-21.
+- New demo runs are created by Phase 3 ingestion of the standard template document, not by any generator or reset mechanism. The seeded draw 66 and the reset script are interim build tooling until ingestion exists. Ruled 2026-09-21. *Confirmed 2026-09-27: new runs come from the staging card's feed packages; draw 66 is list history and the reset script is no longer part of demo prep.*
 - The draw approval flow does not touch subscription intake data. No object in this flow reads or writes subscription records, and this build does not modify the intake demo's subscription data. The one intake object the flow relates to is SA Fund, through SD Investment.
 
 ## Open questions

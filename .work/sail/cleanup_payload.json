@@ -1,0 +1,864 @@
+{
+ "processVariables": [
+  {
+   "name": "drawIds",
+   "type": "Number (Integer)",
+   "isParameter": true,
+   "multiple": true
+  },
+  {
+   "name": "plan",
+   "type": "Map"
+  },
+  {
+   "name": "idx",
+   "type": "Number (Integer)",
+   "value": "1"
+  },
+  {
+   "name": "current",
+   "type": "Number (Integer)"
+  },
+  {
+   "name": "alreadyClosed",
+   "type": "Boolean"
+  },
+  {
+   "name": "cancelled",
+   "type": "Number (Integer)",
+   "value": "0"
+  },
+  {
+   "name": "wasClosed",
+   "type": "Number (Integer)",
+   "value": "0"
+  },
+  {
+   "name": "report",
+   "type": "Text",
+   "isParameter": true
+  },
+  {
+   "name": "nEvent",
+   "type": "Number (Integer)",
+   "value": "0"
+  },
+  {
+   "name": "errEvent",
+   "type": "Text"
+  },
+  {
+   "name": "nMessage",
+   "type": "Number (Integer)",
+   "value": "0"
+  },
+  {
+   "name": "errMessage",
+   "type": "Text"
+  },
+  {
+   "name": "nDocument",
+   "type": "Number (Integer)",
+   "value": "0"
+  },
+  {
+   "name": "errDocument",
+   "type": "Text"
+  },
+  {
+   "name": "nQiu",
+   "type": "Number (Integer)",
+   "value": "0"
+  },
+  {
+   "name": "errQiu",
+   "type": "Text"
+  },
+  {
+   "name": "nApproval",
+   "type": "Number (Integer)",
+   "value": "0"
+  },
+  {
+   "name": "errApproval",
+   "type": "Text"
+  },
+  {
+   "name": "nLine",
+   "type": "Number (Integer)",
+   "value": "0"
+  },
+  {
+   "name": "errLine",
+   "type": "Text"
+  },
+  {
+   "name": "nDraw",
+   "type": "Number (Integer)",
+   "value": "0"
+  },
+  {
+   "name": "errDraw",
+   "type": "Text"
+  }
+ ],
+ "nodes": [
+  {
+   "id": 1,
+   "type": "core.0",
+   "name": "Start",
+   "coordinates": [
+    40,
+    240
+   ],
+   "connections": [
+    {
+     "targetNodeId": 3,
+     "activityChained": false
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "type": "internal.16",
+   "name": "Plan (rules)",
+   "coordinates": [
+    150,
+    240
+   ],
+   "connections": [
+    {
+     "targetNodeId": 4,
+     "activityChained": false
+    }
+   ],
+   "data": {
+    "customOutputs": [
+     {
+      "expression": "rule!SD_planCleanup(drawIds: pv!drawIds)",
+      "saveInto": "pv!plan"
+     }
+    ]
+   },
+   "assignment": {
+    "attended": false,
+    "runAs": "DESIGNER"
+   }
+  },
+  {
+   "id": 4,
+   "type": "core.4",
+   "name": "Anything to remove?",
+   "coordinates": [
+    260,
+    240
+   ],
+   "connections": [
+    {
+     "targetNodeId": 90,
+     "activityChained": false
+    },
+    {
+     "targetNodeId": 5,
+     "activityChained": false
+    },
+    {
+     "targetNodeId": 10,
+     "activityChained": false
+    }
+   ],
+   "decision": {
+    "conditions": [
+     {
+      "expression": "=count(a!defaultValue(index(pv!plan, \"drawIds\", {}), {})) = 0",
+      "targetNodeId": 90,
+      "label": "nothing"
+     },
+     {
+      "expression": "=count(a!defaultValue(index(pv!plan, \"processIds\", {}), {})) > 0",
+      "targetNodeId": 5,
+      "label": "open processes"
+     }
+    ],
+    "defaultPath": 10
+   }
+  },
+  {
+   "id": 90,
+   "type": "internal.16",
+   "name": "Nothing to remove",
+   "coordinates": [
+    260,
+    420
+   ],
+   "connections": [
+    {
+     "targetNodeId": 2,
+     "activityChained": false
+    }
+   ],
+   "data": {
+    "customOutputs": [
+     {
+      "expression": "\"NOTHING REMOVED: none of the \" & count(a!defaultValue(pv!drawIds, {})) & \" requested draws can be cleaned up (seeded draws and named specimens are never removed).\"",
+      "saveInto": "pv!report"
+     }
+    ]
+   },
+   "assignment": {
+    "attended": false,
+    "runAs": "DESIGNER"
+   }
+  },
+  {
+   "id": 5,
+   "type": "internal.16",
+   "name": "Take the next process",
+   "coordinates": [
+    370,
+    100
+   ],
+   "connections": [
+    {
+     "targetNodeId": 6,
+     "activityChained": false
+    }
+   ],
+   "data": {
+    "customOutputs": [
+     {
+      "expression": "index(index(pv!plan, \"processIds\", {}), pv!idx, null)",
+      "saveInto": "pv!current"
+     }
+    ]
+   },
+   "assignment": {
+    "attended": false,
+    "runAs": "DESIGNER"
+   }
+  },
+  {
+   "id": 6,
+   "type": "appian.system.smart-services.cancel-process-2",
+   "name": "Cancel its open task's process",
+   "coordinates": [
+    480,
+    100
+   ],
+   "connections": [
+    {
+     "targetNodeId": 7,
+     "activityChained": false
+    }
+   ],
+   "data": {
+    "inputs": [
+     {
+      "name": "ProcessId",
+      "expression": "=pv!current"
+     }
+    ],
+    "outputs": [
+     {
+      "name": "alreadyClosed",
+      "saveInto": "pv!alreadyClosed"
+     }
+    ]
+   },
+   "assignment": {
+    "attended": false,
+    "runAs": "DESIGNER"
+   }
+  },
+  {
+   "id": 7,
+   "type": "internal.16",
+   "name": "Count",
+   "coordinates": [
+    590,
+    100
+   ],
+   "connections": [
+    {
+     "targetNodeId": 8,
+     "activityChained": false
+    }
+   ],
+   "data": {
+    "customOutputs": [
+     {
+      "expression": "a!defaultValue(pv!idx, 1) + 1",
+      "saveInto": "pv!idx"
+     },
+     {
+      "expression": "a!defaultValue(pv!cancelled, 0) + if(a!defaultValue(pv!alreadyClosed, false), 0, 1)",
+      "saveInto": "pv!cancelled"
+     },
+     {
+      "expression": "a!defaultValue(pv!wasClosed, 0) + if(a!defaultValue(pv!alreadyClosed, false), 1, 0)",
+      "saveInto": "pv!wasClosed"
+     }
+    ]
+   },
+   "assignment": {
+    "attended": false,
+    "runAs": "DESIGNER"
+   }
+  },
+  {
+   "id": 8,
+   "type": "core.4",
+   "name": "Another process?",
+   "coordinates": [
+    700,
+    100
+   ],
+   "connections": [
+    {
+     "targetNodeId": 5,
+     "activityChained": false
+    },
+    {
+     "targetNodeId": 10,
+     "activityChained": false
+    }
+   ],
+   "decision": {
+    "conditions": [
+     {
+      "expression": "=and(a!defaultValue(pv!idx, 1) <= count(a!defaultValue(index(pv!plan, \"processIds\", {}), {})), a!defaultValue(pv!idx, 1) <= 100)",
+      "targetNodeId": 5,
+      "label": "next"
+     }
+    ],
+    "defaultPath": 10
+   }
+  },
+  {
+   "id": 10,
+   "type": "core.4",
+   "name": "Any event rows?",
+   "coordinates": [
+    370,
+    240
+   ],
+   "connections": [
+    {
+     "targetNodeId": 11,
+     "activityChained": false
+    },
+    {
+     "targetNodeId": 12,
+     "activityChained": false
+    }
+   ],
+   "decision": {
+    "conditions": [
+     {
+      "expression": "=count(a!defaultValue(index(pv!plan, \"eventIds\", {}), {})) > 0",
+      "targetNodeId": 11,
+      "label": "delete"
+     }
+    ],
+    "defaultPath": 12
+   }
+  },
+  {
+   "id": 11,
+   "type": "internal3.delete_records_from_source_23r4",
+   "name": "Delete event rows",
+   "coordinates": [
+    370,
+    380
+   ],
+   "connections": [
+    {
+     "targetNodeId": 12,
+     "activityChained": false
+    }
+   ],
+   "data": {
+    "inputs": [
+     {
+      "name": "Records",
+      "expression": "=rule!SD_cleanupRecords(kind: \"EVENT\", ids: index(pv!plan, \"eventIds\", {}))"
+     },
+     {
+      "name": "PauseOnError",
+      "value": 0
+     }
+    ],
+    "outputs": [
+     {
+      "name": "CountOfRecordsDeleted",
+      "saveInto": "pv!nEvent"
+     },
+     {
+      "name": "Error",
+      "saveInto": "pv!errEvent"
+     }
+    ]
+   },
+   "assignment": {
+    "attended": false,
+    "runAs": "DESIGNER"
+   }
+  },
+  {
+   "id": 12,
+   "type": "core.4",
+   "name": "Any message rows?",
+   "coordinates": [
+    480,
+    240
+   ],
+   "connections": [
+    {
+     "targetNodeId": 13,
+     "activityChained": false
+    },
+    {
+     "targetNodeId": 14,
+     "activityChained": false
+    }
+   ],
+   "decision": {
+    "conditions": [
+     {
+      "expression": "=count(a!defaultValue(index(pv!plan, \"msgIds\", {}), {})) > 0",
+      "targetNodeId": 13,
+      "label": "delete"
+     }
+    ],
+    "defaultPath": 14
+   }
+  },
+  {
+   "id": 13,
+   "type": "internal3.delete_records_from_source_23r4",
+   "name": "Delete message rows",
+   "coordinates": [
+    480,
+    380
+   ],
+   "connections": [
+    {
+     "targetNodeId": 14,
+     "activityChained": false
+    }
+   ],
+   "data": {
+    "inputs": [
+     {
+      "name": "Records",
+      "expression": "=rule!SD_cleanupRecords(kind: \"MESSAGE\", ids: index(pv!plan, \"msgIds\", {}))"
+     },
+     {
+      "name": "PauseOnError",
+      "value": 0
+     }
+    ],
+    "outputs": [
+     {
+      "name": "CountOfRecordsDeleted",
+      "saveInto": "pv!nMessage"
+     },
+     {
+      "name": "Error",
+      "saveInto": "pv!errMessage"
+     }
+    ]
+   },
+   "assignment": {
+    "attended": false,
+    "runAs": "DESIGNER"
+   }
+  },
+  {
+   "id": 14,
+   "type": "core.4",
+   "name": "Any document rows?",
+   "coordinates": [
+    590,
+    240
+   ],
+   "connections": [
+    {
+     "targetNodeId": 15,
+     "activityChained": false
+    },
+    {
+     "targetNodeId": 16,
+     "activityChained": false
+    }
+   ],
+   "decision": {
+    "conditions": [
+     {
+      "expression": "=count(a!defaultValue(index(pv!plan, \"docIds\", {}), {})) > 0",
+      "targetNodeId": 15,
+      "label": "delete"
+     }
+    ],
+    "defaultPath": 16
+   }
+  },
+  {
+   "id": 15,
+   "type": "internal3.delete_records_from_source_23r4",
+   "name": "Delete document rows",
+   "coordinates": [
+    590,
+    380
+   ],
+   "connections": [
+    {
+     "targetNodeId": 16,
+     "activityChained": false
+    }
+   ],
+   "data": {
+    "inputs": [
+     {
+      "name": "Records",
+      "expression": "=rule!SD_cleanupRecords(kind: \"DOCUMENT\", ids: index(pv!plan, \"docIds\", {}))"
+     },
+     {
+      "name": "PauseOnError",
+      "value": 0
+     }
+    ],
+    "outputs": [
+     {
+      "name": "CountOfRecordsDeleted",
+      "saveInto": "pv!nDocument"
+     },
+     {
+      "name": "Error",
+      "saveInto": "pv!errDocument"
+     }
+    ]
+   },
+   "assignment": {
+    "attended": false,
+    "runAs": "DESIGNER"
+   }
+  },
+  {
+   "id": 16,
+   "type": "core.4",
+   "name": "Any qiu rows?",
+   "coordinates": [
+    700,
+    240
+   ],
+   "connections": [
+    {
+     "targetNodeId": 17,
+     "activityChained": false
+    },
+    {
+     "targetNodeId": 18,
+     "activityChained": false
+    }
+   ],
+   "decision": {
+    "conditions": [
+     {
+      "expression": "=count(a!defaultValue(index(pv!plan, \"qiuIds\", {}), {})) > 0",
+      "targetNodeId": 17,
+      "label": "delete"
+     }
+    ],
+    "defaultPath": 18
+   }
+  },
+  {
+   "id": 17,
+   "type": "internal3.delete_records_from_source_23r4",
+   "name": "Delete qiu rows",
+   "coordinates": [
+    700,
+    380
+   ],
+   "connections": [
+    {
+     "targetNodeId": 18,
+     "activityChained": false
+    }
+   ],
+   "data": {
+    "inputs": [
+     {
+      "name": "Records",
+      "expression": "=rule!SD_cleanupRecords(kind: \"QIU\", ids: index(pv!plan, \"qiuIds\", {}))"
+     },
+     {
+      "name": "PauseOnError",
+      "value": 0
+     }
+    ],
+    "outputs": [
+     {
+      "name": "CountOfRecordsDeleted",
+      "saveInto": "pv!nQiu"
+     },
+     {
+      "name": "Error",
+      "saveInto": "pv!errQiu"
+     }
+    ]
+   },
+   "assignment": {
+    "attended": false,
+    "runAs": "DESIGNER"
+   }
+  },
+  {
+   "id": 18,
+   "type": "core.4",
+   "name": "Any approval rows?",
+   "coordinates": [
+    810,
+    240
+   ],
+   "connections": [
+    {
+     "targetNodeId": 19,
+     "activityChained": false
+    },
+    {
+     "targetNodeId": 20,
+     "activityChained": false
+    }
+   ],
+   "decision": {
+    "conditions": [
+     {
+      "expression": "=count(a!defaultValue(index(pv!plan, \"approvalIds\", {}), {})) > 0",
+      "targetNodeId": 19,
+      "label": "delete"
+     }
+    ],
+    "defaultPath": 20
+   }
+  },
+  {
+   "id": 19,
+   "type": "internal3.delete_records_from_source_23r4",
+   "name": "Delete approval rows",
+   "coordinates": [
+    810,
+    380
+   ],
+   "connections": [
+    {
+     "targetNodeId": 20,
+     "activityChained": false
+    }
+   ],
+   "data": {
+    "inputs": [
+     {
+      "name": "Records",
+      "expression": "=rule!SD_cleanupRecords(kind: \"APPROVAL\", ids: index(pv!plan, \"approvalIds\", {}))"
+     },
+     {
+      "name": "PauseOnError",
+      "value": 0
+     }
+    ],
+    "outputs": [
+     {
+      "name": "CountOfRecordsDeleted",
+      "saveInto": "pv!nApproval"
+     },
+     {
+      "name": "Error",
+      "saveInto": "pv!errApproval"
+     }
+    ]
+   },
+   "assignment": {
+    "attended": false,
+    "runAs": "DESIGNER"
+   }
+  },
+  {
+   "id": 20,
+   "type": "core.4",
+   "name": "Any line rows?",
+   "coordinates": [
+    920,
+    240
+   ],
+   "connections": [
+    {
+     "targetNodeId": 21,
+     "activityChained": false
+    },
+    {
+     "targetNodeId": 22,
+     "activityChained": false
+    }
+   ],
+   "decision": {
+    "conditions": [
+     {
+      "expression": "=count(a!defaultValue(index(pv!plan, \"lineIds\", {}), {})) > 0",
+      "targetNodeId": 21,
+      "label": "delete"
+     }
+    ],
+    "defaultPath": 22
+   }
+  },
+  {
+   "id": 21,
+   "type": "internal3.delete_records_from_source_23r4",
+   "name": "Delete line rows",
+   "coordinates": [
+    920,
+    380
+   ],
+   "connections": [
+    {
+     "targetNodeId": 22,
+     "activityChained": false
+    }
+   ],
+   "data": {
+    "inputs": [
+     {
+      "name": "Records",
+      "expression": "=rule!SD_cleanupRecords(kind: \"LINE\", ids: index(pv!plan, \"lineIds\", {}))"
+     },
+     {
+      "name": "PauseOnError",
+      "value": 0
+     }
+    ],
+    "outputs": [
+     {
+      "name": "CountOfRecordsDeleted",
+      "saveInto": "pv!nLine"
+     },
+     {
+      "name": "Error",
+      "saveInto": "pv!errLine"
+     }
+    ]
+   },
+   "assignment": {
+    "attended": false,
+    "runAs": "DESIGNER"
+   }
+  },
+  {
+   "id": 22,
+   "type": "core.4",
+   "name": "Draws, if every child delete succeeded?",
+   "coordinates": [
+    1030,
+    240
+   ],
+   "connections": [
+    {
+     "targetNodeId": 23,
+     "activityChained": false
+    },
+    {
+     "targetNodeId": 80,
+     "activityChained": false
+    }
+   ],
+   "decision": {
+    "conditions": [
+     {
+      "expression": "=and(count(a!defaultValue(index(pv!plan, \"drawIds\", {}), {})) > 0, a!isNullOrEmpty(pv!errEvent), a!isNullOrEmpty(pv!errMessage), a!isNullOrEmpty(pv!errDocument), a!isNullOrEmpty(pv!errQiu), a!isNullOrEmpty(pv!errApproval), a!isNullOrEmpty(pv!errLine))",
+      "targetNodeId": 23,
+      "label": "delete"
+     }
+    ],
+    "defaultPath": 80
+   }
+  },
+  {
+   "id": 23,
+   "type": "internal3.delete_records_from_source_23r4",
+   "name": "Delete draw rows",
+   "coordinates": [
+    1030,
+    380
+   ],
+   "connections": [
+    {
+     "targetNodeId": 80,
+     "activityChained": false
+    }
+   ],
+   "data": {
+    "inputs": [
+     {
+      "name": "Records",
+      "expression": "=rule!SD_cleanupRecords(kind: \"DRAW\", ids: index(pv!plan, \"drawIds\", {}))"
+     },
+     {
+      "name": "PauseOnError",
+      "value": 0
+     }
+    ],
+    "outputs": [
+     {
+      "name": "CountOfRecordsDeleted",
+      "saveInto": "pv!nDraw"
+     },
+     {
+      "name": "Error",
+      "saveInto": "pv!errDraw"
+     }
+    ]
+   },
+   "assignment": {
+    "attended": false,
+    "runAs": "DESIGNER"
+   }
+  },
+  {
+   "id": 80,
+   "type": "internal.16",
+   "name": "Report",
+   "coordinates": [
+    1140,
+    240
+   ],
+   "connections": [
+    {
+     "targetNodeId": 2,
+     "activityChained": false
+    }
+   ],
+   "data": {
+    "customOutputs": [
+     {
+      "expression": "a!localVariables(local!p: pv!plan, local!errs: reject(a!isNullOrEmpty, {if(a!isNullOrEmpty(pv!errEvent), null, \"budget-line events: \" & pv!errEvent), if(a!isNullOrEmpty(pv!errMessage), null, \"email messages: \" & pv!errMessage), if(a!isNullOrEmpty(pv!errDocument), null, \"documents: \" & pv!errDocument), if(a!isNullOrEmpty(pv!errQiu), null, \"QIU rows: \" & pv!errQiu), if(a!isNullOrEmpty(pv!errApproval), null, \"approval rows: \" & pv!errApproval), if(a!isNullOrEmpty(pv!errLine), null, \"budget lines: \" & pv!errLine), if(a!isNullOrEmpty(pv!errDraw), null, \"draws: \" & pv!errDraw)}), \"REMOVED \" & a!defaultValue(pv!nDraw, 0) & \" of \" & count(a!defaultValue(index(local!p, \"drawIds\", {}), {})) & \" draws\" & if(a!isNullOrEmpty(index(local!p, \"drawLabels\", {})), \"\", \" (\" & joinarray(index(local!p, \"drawLabels\", {}), \", \") & \")\") & \": \" & a!defaultValue(pv!nEvent, 0) & \" budget-line events\" & \", \" & a!defaultValue(pv!nMessage, 0) & \" email messages\" & \", \" & a!defaultValue(pv!nDocument, 0) & \" documents\" & \", \" & a!defaultValue(pv!nQiu, 0) & \" QIU rows\" & \", \" & a!defaultValue(pv!nApproval, 0) & \" approval rows\" & \", \" & a!defaultValue(pv!nLine, 0) & \" budget lines\" & \". Cancelled \" & a!defaultValue(pv!cancelled, 0) & \" open process\" & if(a!defaultValue(pv!cancelled, 0) = 1, \"\", \"es\") & if(a!defaultValue(pv!wasClosed, 0) > 0, \"; \" & pv!wasClosed & \" had already closed\", \"\") & \". \" & if(a!isNullOrEmpty(index(local!p, \"refused\", {})), \"\", \"Not removed (seeded or a named specimen): draws \" & joinarray(index(local!p, \"refused\", {}), \", \") & \". \") & if(a!isNullOrEmpty(local!errs), \"No errors.\", \"Errors: \" & joinarray(local!errs, \"; \")))",
+      "saveInto": "pv!report"
+     }
+    ]
+   },
+   "assignment": {
+    "attended": false,
+    "runAs": "DESIGNER"
+   }
+  },
+  {
+   "id": 2,
+   "type": "core.1",
+   "name": "End",
+   "coordinates": [
+    1260,
+    240
+   ]
+  }
+ ]
+}
