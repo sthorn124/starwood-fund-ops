@@ -2,7 +2,7 @@
 
 What has actually been built in the environment, with object identifiers and the decisions behind them. Append after every build step; never rewrite a closed entry — a correction is a new entry that names what it corrects. Entry shape: date and title; scope line (the identity and group memberships every readback ran under); what changed, by object; decisions and why; verified (how, with counts and scope); not verified (and the browser checklist that covers it); promotion checkpoint. The contract is `CLAUDE.md` §7; the promotion loop is §9.
 
-**Promotion checkpoint: current through 2026-09-26 — Phase 6b: approver Q&A on the email thread, grounded interpretation, decision receipts — level with the log tail.** A session touching promotion refuses to call itself complete if this checkpoint lags the log tail by more than one session.
+**Promotion checkpoint: current through 2026-09-26 — Phase 6c: velocity ladder, site-reachable exceptions, Asset Manager edit, treasury content, feed staging — level with the log tail.** A session touching promotion refuses to call itself complete if this checkpoint lags the log tail by more than one session.
 
 ## Promotion candidates (staging)
 
@@ -96,6 +96,16 @@ What has actually been built in the environment, with object identifiers and the
 - **STAGED (gate 1, 2026-09-26, Phase 6b; revises the 6a msg!body candidate) — an email-started process's `msg!body` carries the text/plain part when the email has one; an HTML-only email arrives as HTML.** Measured: the loop sender's HTML-only mail arrived as HTML; Scott's Gmail reply (multipart) arrived as plain text, with Gmail's `*bold*` signature markers and no "-- " delimiter. Working form: parse both (HTML detection first), and do not rely on HTML containers to cut a Gmail signature. *Trigger:* the first reply from Outlook or Apple Mail.
 - **STAGED (gate 1, 2026-09-26, Phase 6b; sail) — after `sail interact`, `sail load <site> <page>` refuses ("loaded with 1 interaction already made … loading would … discard that") and navigation targets vanish; `sail load --fresh` reloads.** Working form: `load --fresh` before a verification read that follows an interaction (which §4 requires anyway: the submit prints the pre-submit page). *Trigger:* the next sail session that interacts and then re-reads.
 - **STAGED (gate 1, 2026-09-26, Phase 6b; prompt method, fails the noun test → project home) — asking the model to quote the decisive phrase *including any condition* made it mark its own hedges.** In an 8-specimen probe it returned AMBIGUOUS for a hedge, "except line 3", "if the lender signs off" and "great work team!", and quoted the condition inside the phrase, so the deterministic wording check had the condition in hand. *Trigger:* the next change to the interpretation prompt or model — re-run the probe set.
+
+- **STAGED (gate 1, 2026-09-26, Phase 6c; sail) — `group()` in an expression a persona renders throws "Insufficient permission" when the persona cannot view that group; the designer's render passes.** Measured: the Draws page returned 500 for `sd.accountant` from `group(<step group>, "groupName")` inside a chase rule; the designer's `testInterface` was clean. Working form: never call `group()` / `user()` for display in persona-rendered rules; take names from constants (`displayvalue()` over the group constants) or store them. Portable shape: "a design-account render proves nothing about group and user lookups a persona evaluates" (extends §4/§6). *Trigger:* the next persona-rendered rule that looks up a group or user.
+- **STAGED (gate 1, 2026-09-26, Phase 6c) — the custom outputs of one script task are all evaluated against the process variables as they stood when the node started**; an output that reads a PV set by another output in the same node sees the old value. Measured with a control: read-and-derive in one node returned STALE on a current step; split into two nodes it ran. Working form: one node per dependency level, or each output calls the rule itself. *Trigger:* the next script task whose outputs depend on each other.
+- **STAGED (gate 1, 2026-09-26, Phase 6c) — `a!urlForRecord` with a single identifier returns one Text, not a list; `index(…, 1)` returns its first character** (an email link rendered `href="h"`). Working form: `tostring(a!urlForRecord(…))`. *Trigger:* the next record URL built for an email or an integration.
+- **STAGED (gate 1, 2026-09-26, Phase 6c) — map keys are case-insensitive**: `a!map(username: …, userName: …)` fails "Keys must be unique". *Trigger:* the next map that carries two keys differing only in case.
+- **STAGED (gate 1, 2026-09-26, Phase 6c) — Send E-Mail's `ToValidAddresses` output is empty when To is a group** (the mail is delivered). Working form: do not report recipients from that output for group sends; name the group. *Trigger:* the next Send E-Mail node whose outputs are read.
+- **STAGED (gate 1, 2026-09-26, Phase 6c) — `max()` over integers returns a Decimal**, which `wherecontains()` then fails to match against integers. Working form: `tointeger(max(…))`. *Trigger:* the next `max()` result used as a key.
+- **STAGED (gate 1, 2026-09-26, Phase 6c; Dev MCP boundary) — escalations, Receive Message triggers and timer triggers are not settable over the Dev MCP** (the user-input-task node schema has no escalation inputs; the start node takes none). Working form: build the receiving process over MCP so the Designer step is minimal (one standard-property mapping), and record the Designer steps in TODO; afterwards do not re-save the configured model over MCP. Home when promoted: `reference/mcp-capability-boundaries.md`. *Trigger:* the Designer setup of the step-task escalations (verify the escalation fires the chase process with `OriginProcessID`).
+- **STAGED (gate 1, 2026-09-26, Phase 6c) — an HTTP integration can send a form-urlencoded body though the MCP schema offers no such body type**: body type text/plain, the body built with `urlencode()`, and an explicit `Content-Type: application/x-www-form-urlencoded` header (the docs say explicit headers override the default). Measured: Twilio parsed the request and answered with a content-level error (572006), not a format error. *Trigger:* the first successful live send (a non-trial account), which proves the parse end to end.
+- **STAGED (gate 1, 2026-09-26, Phase 6c) — a task keeps the process version that issued it; its form follows the interface's latest version.** Draw 66's live task (issued before the edit nodes existed) renders the new edit grid, but its process has no nodes to write the edits. Working form: after a process change that a form change depends on, cycle the open tasks (reset and restart) before demoing. *Trigger:* the draw 66 cycle in the demo runbook — confirm the cycled task writes edits.
 
 ## Entries
 
@@ -1548,3 +1558,137 @@ Promotion checkpoint: current through 2026-09-26 — Phase 6a: CEO email approva
 - **Method trigger fired again:** working form applied.
 
 Promotion checkpoint: current through 2026-09-26 — Phase 6b: approver Q&A on the email thread, grounded interpretation, decision receipts.
+
+## 2026-09-26 — Phase 6c: velocity ladder, site-reachable exceptions, Asset Manager edit, treasury content, feed staging
+
+**Scope.**
+- **Design:** Dev MCP `appian` as `scott.thorn@appian.com`, a member of `SD Administrators`, `SD Users` and the three draw step groups. Every `testRule`, `testInterface`, `testProcessModel`, `completeTask` and constant readback ran under it, at administrator scope.
+- **Personas via sail:**
+  - `~/.sail-sd.accountant` is `sd.accountant`, in `SD Draw Demo Approvers` under `SD Draw Approvers`.
+  - `~/.sail-sd.assetmanager` is `sd.assetmanager`, in `SD Draw Asset Managers` under `SD Draw Approvers`.
+- **Not used:** `appian-runtime` and `--from-devmcp`.
+- **Credentials:** Scott entered the Twilio SID and token in Designer. The session never saw them. He gave only the two phone numbers in chat.
+- **Draw 66 left alone:** its live task 536876873 and step process 536909994 were not submitted. The task form was rendered only.
+
+**What changed, by object** (versions as returned by each deploy. Objects deployed before this session's context summary are cited from those deploy responses).
+- **Rulings** (`PROJECT_INSTRUCTIONS.md`):
+  - Nothing requires Tempo.
+  - The guardrail blocks decisions, not conversation.
+  - Tie-out non-tie is amber everywhere.
+- **Guardrail order:**
+  - `SD_getReplyContext` checks UNMATCHED → UNAUTHORIZED → NOT_AWAITING → OK, and returns `overLimit` / `guardrailReason` as flags.
+  - Handler node 6 sends only OK onward. Node 14 routes a gated APPROVE/REJECT on an over-limit draw to GUARDRAIL. Nodes 20–23 moved and now log the reading.
+  - The clarification and footer copy mention the in-system decision on over-limit draws.
+- **Message log:** `SD Draw Email Message` gains `channel` (`03ae1c46-…`) and `processId` (`e9c9c4c7-…`). `SD_newEmailMessage` is v3. Handler node 60 stores `pp!id`.
+- **Site-reachable exception:**
+  - `SD_getOpenEmailException` (`…_575926`).
+  - `SD_getDrawDetail` v9 adds `actionForViewer`, the exception fields and cycle fields.
+  - `SD_getDrawListRows` v2.
+  - Summary v11 has the amber review card for the team and a state line for everyone else.
+  - Emails v2 adds **Review this reply**.
+  - The Draws page adds YOUR ACTION and the KPI on `actionForViewer`.
+- **Cycle time:** Summary and Approvals (v5) show cycle lines, Approvals has Time at Step, and the Draws page has a fifth KPI, Avg Days to Decide.
+- **Velocity:**
+  - **Constants:** `SD_CHASE_AGE_DAYS` 3, `SD_SMS_AGE_DAYS` 6, `SD_ESCALATION_TEST_MINUTES` 0, and `SD_SMS_MODE`. The mode ends the session **STAGED** (v5).
+  - **Rules:** `SD_getEscalationMinutes`, `SD_buildStepReminderEmail` (v2: "is still waiting" under one day), `SD_buildStepSms`, `SD_maskPhone`, `SD_getChaseRows` (v3), `SD_buildChaseDigestEmail` (v3) and **`SD_resolveChaseTarget`** (`…_576269`, v1).
+  - **`SD Chase Approval Step`** (`0000f075-2b51-…`): 17 nodes. The new parameter `originProcessId` and node 6 resolve the draw, step and rung. Node 23 logs Twilio's own error message.
+  - **`SD Send Chase Digest`** (`0000f075-2b54-…`).
+  - **Twilio:** connected system `SD Twilio SMS` and integration `SD_sendTwilioSms`. `SD_TWILIO_FROM_NUMBER` and `SD_SMS_RECIPIENT` are set (v2 each).
+  - **Draws page:** the Needs chasing view.
+- **Asset Manager edit:**
+  - Task form `SD_form_drawApprovalDecision` v4: at the Asset Manager's step only, it opens WIDE with the edit grid and saves `budgetEditsJson`.
+  - Rules `SD_planBudgetEdit`, `SD_budgetEditLineRecords`, `SD_budgetEditEventRecords`, `SD_getBudgetLineEdits` (v2).
+  - Record events on `SD Draw Budget Line`: history `ee493a87-…` and event type 1 "Edited at Approval".
+  - `SD Draw Approval Step` gains nodes 14–18.
+  - Budget Detail v4 shows the edit marks and the Line History.
+- **Treasury:** `SD_buildTreasuryEmail` and `SD_getDrawApprovalRowSource`. `SD Apply Draw Approval Decision` nodes 19–20 send it.
+- **Tie-out colour:** `SD_form_reconcileExtraction` v8 shows the pinned off-by in amber. The Summary's "Does not tie" is amber.
+- **Feed staging:**
+  - Constants `SD_FEED_PACKAGE_TEMPLATE`, `SD_FEED_PACKAGE_SUPPORTING`, **`SD_FEED_PACKAGE_FAILING_TEMPLATE`** (`…_576297`) and **`SD_ADMINISTRATORS_GROUP`** (`…_576287`).
+  - `SD_page_draws` **v11** has the administrators-only card with **Stage Malformed Template** and **Stage Corrected Package**. Both run `a!startProcess(cons!SD_RECEIVE_CAPITAL_CALL_PM, …)`, the page's own path.
+  - `SD Stage Feed Arrival` (`0000f075-2e2f-…`, a subprocess launcher built earlier this session) was **deleted** in favour of that card. Its only dependent was the application. `getProcessModel` now returns "Does not exist".
+
+**Decisions and why.**
+- **The escalation message carries nothing custom.** Scott found the Designer mapping step confusing ("the process variables don't exist" — they do: `drawId` and `stepOrder` are parameters, read back).
+  - The chase process now resolves everything from `msg!properties.OriginProcessID`, the escalating step process that `SD Draw.activeStepProcessId` already holds.
+  - The rung comes from the log: a reminder already logged for that approval row means the SMS rung.
+  - Designer work shrinks to checkboxes and dropdown picks, plus one standard-property mapping (`TODO.md`, "Designer setup owed").
+- **The feed trigger is a site card, not a Designer-started process.** The brief asked for "the same `a!startProcess` path Receive Capital Call uses". Two staging paths would confuse the runbook.
+  - The narrative's beat 1 package is the malformed one, so the card offers both packages.
+- **Draw 99 was left at reconciliation.** Its tie-out was proven by rendering the form with its real extraction. It serves as a feed-arrived specimen, and completing its task would have added another #83.
+- **SMS stays STAGED.** The live path is wired and authenticated, but the Twilio trial refuses free-form messages (below).
+
+**Verified** (how; scope in each line).
+- **Guardrail, as the designer through the receiver and handler** (loop sender, CAO/CEO temporarily mapped to `admin@ny.appiancloud.com`, restored to all-`scott.thorn@appian.com`, v7 read back):
+  - Gateway #12, row 40: QUESTION, decisive phrase quoted, logged for the team, no refusal.
+  - Row 45: "Approved, go ahead and fund it." read as APPROVE, then GUARDRAIL with the reading. Row 46: the refusal.
+- **Exception, draw 79 (#70) at the CEO step:**
+  - First hedge: row 44 AMBIGUOUS, with the clarification in row 47.
+  - Second hedge: row 48 EXCEPTION, `processId` 268477237, review task **268455639** (`SD_getOpenEmailException`).
+  - **As `sd.accountant` via sail:**
+    - Draws shows #70 YOUR ACTION, and the Needs chasing row reads "Email reply to review".
+    - The Summary shows the amber "An email reply needs review" card with **Review Reply**. The YAML carries a `ProcessTaskLink`, and the Emails tab carries the same link as **Review this reply**.
+  - **As `sd.assetmanager` via sail:** no chase switch; YOUR ACTION only on #66; #70 shows the state line with no task link (0 `ProcessTaskLink` on either tab).
+- **Defect found by the persona check and fixed:**
+  - The Draws page returned HTTP 500 for `sd.accountant`: "in rule 'sd_getchaserows' … function 'group' … Insufficient permission". The designer render had passed.
+  - Group names now come from a `displayvalue()` over the three step-group constants. The page loads as both personas.
+  - A staged text read "Text sent" in the chase view. It now reads "Text staged, not sent", and a failed one "Text failed".
+- **Cycle time:**
+  - #70: "Received Sep 22 · in approval 5 days so far · 55 days from receipt to funding date" (sail, both personas).
+  - #74 Approvals: "Cycle: received Sep 25 · in approval 2 days so far", with Time at Step per row.
+  - KPI: "AVG DAYS TO DECIDE 14.9 · 10 decided draws" (both personas).
+- **Velocity:**
+  - **Direct runs (the designer):**
+    - REMINDER on #72 step 2 (268477231): sent to the group and logged.
+    - SMS STAGED (39223): logged.
+  - **Escalation path** (`originProcessId` only, as an escalation will start it):
+    - 38779 resolved to draw 80, step 2, rung SMS; it ran LIVE and failed at Twilio (268477242).
+    - 536910534 resolved to draw 79, step 9, rung REMINDER: "REMINDER sent to SD Draw CEO", logged (268477243).
+    - `SD_resolveChaseTarget` gives `found: false` for an unknown id.
+  - **STALE guard:** a chase for step 9 while draw 78 sat at step 5 sent nothing.
+  - **Chase view** as `sd.accountant`: 8 rows, then 7, ranked by amount, with contact and last chase.
+  - **Digest:** run 268477201 before the context summary sent the digest to the team.
+- **Asset Manager edit:**
+  - On #74 (draw 87), steps 1–2 were approved with `completeTask` (268444978, 268454904). Step 3 (268455004) was completed as the designer with four line edits.
+  - Result: four events, the draw advanced to step 4 (sail: "Step 4 of 9 · AM SVP"), and net adjustments $0.
+  - As `sd.assetmanager` via sail, Budget Detail shows "Edited by Scott Thorn at approval, Sep 26" on four lines, plus a Line History of four rows.
+  - **Blocked elsewhere:**
+    - `SD_planBudgetEdit` at step 9 returns "Budget edits are allowed only at the Asset Manager's step".
+    - The form rendered for #70 step 9 is MEDIUM with no grid.
+    - Draw 66's step 3 render (render only): `error: null`, 34 editable fields, Ties ✓.
+- **Treasury on the live path:**
+  - Draw 78 (#69) was accelerated (39225) to the CEO step and approved by an email reply: row 50 APPROVE, APPROVED.
+  - Receipt row 51. `treasuryNotifiedAt` 2026-09-27 00:06:42 UTC.
+  - `SD_buildTreasuryEmail(78)` gives the subject "Approved for funding · Draw #69 · Tamarack Hotel & Spa Vail · $2,604,252.23 · fund by Nov 16", with PAYMENT, APPROVAL CHAIN 9 OF 9 (final approval by Thomas Bergman, by email reply), a link to the draw and no bank details. 9,774 bytes.
+- **Clean package through the feed path, draw 99** (staged before the summary; ingestion process 268477210):
+  - Three rows classified: pay application "Classified and read", $2,490,296.23; invoice and lien waiver "Classified only".
+  - The reconciliation form rendered with its real extraction (instance 881): **Ties ✓ $2,604,252.23**, "Renumbered from #67 (on file)", pay application vs Hard Costs $2,490,296.23, "filed as Invoice", lien waiver received.
+- **Feed staging card:**
+  - Designer render v11: `error: null`, both buttons, the beat copy naming both packages.
+  - As `sd.accountant` and `sd.assetmanager` via sail: the card is absent.
+- **Twilio:** authenticated; refused (below).
+- **Cleanup, by absence:** `zz_loopTestSendReply6c` (`getProcessModel`: "Does not exist"). No `zz` or `tmp` rules, process models, interfaces or constants are listed in the application.
+
+**Not verified (and why).** Browser checklist: `TODO.md`, "Phase 6c browser checks".
+- **Escalations firing by themselves.** The levels, the chase trigger and the digest timer are Designer settings. The chase process was fired the way an escalation will start it. Steps: `TODO.md`, "Designer setup owed".
+- **Live SMS on Scott's phone.** Twilio trial error 572006 (Deferred).
+- **The persona's own Asset Manager submit.** sail cannot open tasks; the write path was proven as the designer. The submit on a real task waits on the draw 66 cycle in the runbook.
+- **Geometry:** the chase grid, five KPIs in a row, the staging card, the reminder, digest and treasury emails in Gmail.
+- **The feed-trigger click itself.** A button running `a!startProcess` cannot be driven from a render, and the personas cannot see the card.
+
+**Findings.**
+- **`group()` in a persona-rendered expression throws "Insufficient permission"** when the persona lacks view rights on that group; the designer render passes. Found only by sail as the persona.
+- **Twilio trial accounts refuse free-form SMS** (HTTP 400, 572006 "Invalid template name. Trial accounts can only use predefined SMS templates.").
+  - This is a vendor-account fact, not an Appian one, so its home is the project.
+  - It proves the request shape reached Twilio's validation: the `text/plain` body built with `urlencode()` under an explicit `Content-Type: application/x-www-form-urlencoded` header.
+- **Script-task outputs read the PVs as they stood when the node started.** Measured: one node that read the state and derived from it returned STALE on a current step. Split into two nodes (control), it ran.
+- **`a!urlForRecord` with one identifier returns one string.** `index(…, 1)` gave `href="h"`; `tostring()` fixed it.
+- **Map keys are case-insensitive.** `a!map(username: …, userName: …)` raised "Keys must be unique".
+- **Send E-Mail's `ToValidAddresses` is empty when To is a group.**
+- **`max()` over integers returns a decimal.** It needed `tointeger()` before `wherecontains()`.
+- **Escalations, message triggers and timer triggers are Designer-only on this plugin.** The user-input-task node schema carries no escalation inputs, and the readback shows none.
+- **A task issued by an older process version keeps that version's flow.** Draw 66's live task shows the new edit grid, but its process has no edit nodes. An interface change reaches old tasks; a process change does not.
+
+**Promotion candidates.** 9 found; 0 promoted; 9 staged (listed in the staging section, each with a trigger).
+
+Promotion checkpoint: current through 2026-09-26 — Phase 6c: velocity ladder, site-reachable exceptions, Asset Manager edit, treasury content, feed staging.

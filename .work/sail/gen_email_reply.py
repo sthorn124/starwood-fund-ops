@@ -133,9 +133,12 @@ CONTEXT = r'''/* Draw approval (Phase 6a): everything the reply handler decides 
      UNMATCHED     no token, or the token names a draw or step that does not exist
      UNAUTHORIZED  the sender is not the authorized reply address for the step's role (SD_EMAIL_REPLY_ROLES /
                    SD_EMAIL_REPLY_ADDRESSES); no reply is ever sent to an unauthorized sender
-     GUARDRAIL     the draw amount is above SD_EMAIL_APPROVAL_MAX: email cannot decide it at any step
      NOT_AWAITING  the draw is not In Progress at this step, or the step's row is not In Progress
      OK            the reply may be interpreted
+   Phase 6c (ruled 2026-09-26): the dollar guardrail blocks email DECISIONS, not email conversation. The amount check no
+   longer gives a verdict here; overLimit is returned as a flag (with guardrailReason), the reply is interpreted like any
+   other, and the handler refuses only an APPROVE or REJECT reading on an over-limit draw. A question or an unclear reply
+   on such a draw flows normally (Q&A, clarification, exception).
    Also returns the approval row id, role, approver name, draw number, investment, amount, the number of earlier
    ambiguous replies on this approval row (a second one goes to the exception queue) and the step email's subject
    (for "Re:" on anything sent back). */
@@ -187,7 +190,7 @@ a!localVariables(
   local!verdict: if(
     or(not(local!found), a!isNullOrEmpty(local!row)),
     "UNMATCHED",
-    if(not(local!authorized), "UNAUTHORIZED", if(local!overLimit, "GUARDRAIL", if(not(local!awaiting), "NOT_AWAITING", "OK")))
+    if(not(local!authorized), "UNAUTHORIZED", if(not(local!awaiting), "NOT_AWAITING", "OK"))
   ),
   a!map(
     verdict: local!verdict,
@@ -195,7 +198,6 @@ a!localVariables(
       value: local!verdict,
       equals: "UNMATCHED", then: if(a!isNullOrEmpty(ri!drawId), "No draw reference token in the subject.", "The subject names draw " & ri!drawId & " step " & a!defaultValue(ri!stepOrder, "?") & ", which does not exist."),
       equals: "UNAUTHORIZED", then: "Sender " & a!defaultValue(ri!fromAddress, "(none)") & " is not the authorized reply address for the " & local!role & " step.",
-      equals: "GUARDRAIL", then: "Draw amount " & rule!SD_fmtMoney(value: local!amount, showCents: true) & " is above the email approval limit of " & rule!SD_fmtMoney(value: cons!SD_EMAIL_APPROVAL_MAX, showCents: false) & ".",
       equals: "NOT_AWAITING", then: "The draw is " & local!drawStatus & " at step " & local!currentStep & "; step " & ri!stepOrder & " (" & local!role & ") is " & if(local!rowStatus = "", "not active", local!rowStatus) & ".",
       default: "Awaiting the " & local!role & " decision."
     ),
@@ -211,6 +213,7 @@ a!localVariables(
     currentStep: local!currentStep,
     authorized: local!authorized,
     overLimit: local!overLimit,
+    guardrailReason: if(local!overLimit, "Draw amount " & rule!SD_fmtMoney(value: local!amount, showCents: true) & " is above the email approval limit of " & rule!SD_fmtMoney(value: cons!SD_EMAIL_APPROVAL_MAX, showCents: false) & ".", ""),
     awaiting: local!awaiting,
     priorAmbiguous: local!priorAmbiguous,
     stepSubject: if(or(not(local!found), a!isNullOrEmpty(ri!stepOrder)), "", index(rule!SD_buildApprovalEmail(drawId: ri!drawId, stepOrder: ri!stepOrder), "subject", ""))
@@ -455,6 +458,8 @@ a!localVariables(
   local!stepSubject: a!defaultValue(index(local!c, "stepSubject", ""), ""),
   local!subject: if(left(upper(local!stepSubject), 3) = "RE:", local!stepSubject, "Re: " & local!stepSubject),
   local!isFinal: left(upper(a!defaultValue(ri!outcome, "")), 8) = "APPROVED",
+  /* Phase 6c: on a draw above the email limit the conversation continues, but a decision is recorded in the system */
+  local!overLimit: a!defaultValue(index(local!c, "overLimit", false), false),
   local!lead: a!match(
     value: local!kind,
     equals: "GUARDRAIL", then: "Email approval is not available for this draw. Its amount, " & local!amount & ", is above the " & rule!SD_fmtMoney(value: cons!SD_EMAIL_APPROVAL_MAX, showCents: false) & " limit for decisions by email, so the decision must be made in the system. Your reply has not changed the draw.",
@@ -464,7 +469,11 @@ a!localVariables(
       "Recorded as your rejection of Draw #" & local!drawNo & ", " & local!amount & ". The draw will not proceed.",
       "Recorded as your approval of Draw #" & local!drawNo & ", " & local!amount & ". The chain has advanced." & if(local!isFinal, " This was the final approval.", "")
     ),
-    default: "We could not tell from your reply whether you approve or reject this draw, so nothing has been changed. Please reply to this email with a clear decision, for example ""Approved"" or ""Rejected"", and add any comment you want recorded with it."
+    default: if(
+      local!overLimit,
+      "We could not tell from your reply what you would like to do, so nothing has been changed. This draw is above the " & rule!SD_fmtMoney(value: cons!SD_EMAIL_APPROVAL_MAX, showCents: false) & " limit for decisions by email, so an approval or rejection must be recorded in the system; reply to this email with any question about the draw.",
+      "We could not tell from your reply whether you approve or reject this draw, so nothing has been changed. Please reply to this email with a clear decision, for example ""Approved"" or ""Rejected"", and add any comment you want recorded with it."
+    )
   ),
   local!quoted: rule!SD_htmlEscape(text: left(a!defaultValue(ri!replyText, ""), 600)),
   local!questionHtml: rule!SD_htmlEscape(text: left(a!defaultValue(ri!questionText, ""), 1000)),
@@ -481,9 +490,9 @@ a!localVariables(
   local!footer: a!match(
     value: local!kind,
     equals: "GUARDRAIL", then: "Open the draw in Starwood Draw Approvals to record your decision.",
-    equals: "ANSWER", then: "Reply to this email to approve or reject, or to ask another question. Your reply is recorded on the draw.",
+    equals: "ANSWER", then: if(local!overLimit, "Reply to this email to ask another question. This draw is above the email limit, so record your decision in Starwood Draw Approvals.", "Reply to this email to approve or reject, or to ask another question. Your reply is recorded on the draw."),
     equals: "RECEIPT", then: "No reply is needed.",
-    default: "Reply to this email to answer. Your reply is recorded on the draw."
+    default: if(local!overLimit, "Reply to this email with any question. Record your decision in Starwood Draw Approvals.", "Reply to this email to answer. Your reply is recorded on the draw.")
   ),
   local!html:
     "<table role=""presentation"" width=""100%"" cellpadding=""0"" cellspacing=""0"" style=""max-width:640px;border-collapse:collapse;font-family:Arial,Helvetica,sans-serif;"">" &
@@ -501,7 +510,7 @@ a!localVariables(
 )
 '''
 
-MESSAGES = r'''/* Draw approval (Phase 6a; 6b adds decisivePhrase and senderName): a draw's email exchange, oldest first (by time,
+MESSAGES = r'''/* Draw approval (Phase 6a; 6b adds decisivePhrase and senderName; 6c adds channel and processId): a draw's email exchange, oldest first (by time,
    then id), as maps for the Emails tab and the pending-question rule. */
 a!localVariables(
   local!rows: if(
@@ -509,7 +518,7 @@ a!localVariables(
     {},
     a!queryRecordType(
       recordType: @MSG@,
-      fields: {@M_ID@, @M_APPROVAL@, @M_STEP@, @M_DIRECTION@, @M_KIND@, @M_FROM@, @M_TO@, @M_SUBJECT@, @M_BODY@, @M_AT@, @M_OUTCOME@, @M_INTERP@, @M_SOURCE@, @M_NOTES@, @M_PHRASE@, @M_SENDER@},
+      fields: {@M_ID@, @M_APPROVAL@, @M_STEP@, @M_DIRECTION@, @M_KIND@, @M_FROM@, @M_TO@, @M_SUBJECT@, @M_BODY@, @M_AT@, @M_OUTCOME@, @M_INTERP@, @M_SOURCE@, @M_NOTES@, @M_PHRASE@, @M_SENDER@, @M_CHANNEL@, @M_PROCESS@},
       filters: a!queryFilter(field: @M_DRAW@, operator: "=", value: ri!drawId),
       pagingInfo: a!pagingInfo(startIndex: 1, batchSize: 200, sort: {a!sortInfo(field: @M_AT@, ascending: true), a!sortInfo(field: @M_ID@, ascending: true)})
     ).data
@@ -535,7 +544,9 @@ a!localVariables(
         source: tostring(a!defaultValue(fv!item[@M_SOURCE@], "")),
         notes: tostring(a!defaultValue(fv!item[@M_NOTES@], "")),
         decisivePhrase: tostring(a!defaultValue(fv!item[@M_PHRASE@], "")),
-        senderName: tostring(a!defaultValue(fv!item[@M_SENDER@], ""))
+        senderName: tostring(a!defaultValue(fv!item[@M_SENDER@], "")),
+        channel: if(a!isNullOrEmpty(fv!item[@M_CHANNEL@]), "EMAIL", tostring(fv!item[@M_CHANNEL@])),
+        processId: fv!item[@M_PROCESS@]
       )
     )
   )
@@ -589,17 +600,61 @@ a!localVariables(
 )
 '''
 
+OPEN_EXCEPTION = r'''/* Draw approval (Phase 6c): the draw's open email-exception review, derived from the message log (no stored flag).
+   An exception is an INBOUND reply logged with outcome EXCEPTION (the handler's node 60 sends it to the "Review email reply"
+   task for SD Draw Demo Approvers); a review is the INTERNAL EXCEPTION_REVIEW row the task writes when it is completed
+   (node 62). The latest exception is open while no review has been logged after it (message ids only grow). From Phase 6c
+   the exception row carries the handler's process id, so the open task is found through the platform's "Current Tasks
+   for Process" report (rule!SD_getOpenTaskId) when withTask is true; rows written before 6c have no process id and show
+   the state without a task link. Returns a map: open, messageId, stepOrder, replyText, reason, receivedAt, fromAddress,
+   senderName, processId, taskId, unreviewed (exceptions since the last review). */
+a!localVariables(
+  local!msgs: rule!SD_getDrawEmailMessages(drawId: ri!drawId),
+  local!isExc: if(a!isNullOrEmpty(local!msgs), {}, a!forEach(items: local!msgs, expression: and(fv!item.direction = "INBOUND", fv!item.outcome = "EXCEPTION"))),
+  local!isRev: if(a!isNullOrEmpty(local!msgs), {}, a!forEach(items: local!msgs, expression: fv!item.kind = "EXCEPTION_REVIEW")),
+  local!ePos: if(a!isNullOrEmpty(local!isExc), {}, where(local!isExc)),
+  local!rPos: if(a!isNullOrEmpty(local!isRev), {}, where(local!isRev)),
+  local!last: if(a!isNullOrEmpty(local!ePos), null, index(local!msgs, index(local!ePos, count(local!ePos), null), null)),
+  local!lastReviewId: if(a!isNullOrEmpty(local!rPos), 0, max(a!forEach(items: local!rPos, expression: tointeger(index(local!msgs, fv!item, null).id)))),
+  local!unreviewed: if(a!isNullOrEmpty(local!ePos), 0, sum(a!forEach(items: local!ePos, expression: if(tointeger(index(local!msgs, fv!item, null).id) > local!lastReviewId, 1, 0)))),
+  local!open: and(not(a!isNullOrEmpty(local!last)), local!unreviewed > 0),
+  local!processId: if(local!open, index(local!last, "processId", null), null),
+  local!taskId: if(
+    and(local!open, a!defaultValue(ri!withTask, false), not(a!isNullOrEmpty(local!processId))),
+    rule!SD_getOpenTaskId(processId: tointeger(local!processId)),
+    null
+  ),
+  local!notes: if(local!open, tostring(a!defaultValue(index(local!last, "notes", ""), "")), ""),
+  local!cut: if(local!notes = "", 0, search(" Sent to the exception queue", local!notes)),
+  a!map(
+    open: local!open,
+    messageId: if(local!open, index(local!last, "id", null), null),
+    stepOrder: if(local!open, index(local!last, "stepOrder", null), null),
+    replyText: if(local!open, tostring(a!defaultValue(index(local!last, "body", ""), "")), ""),
+    reason: if(local!cut > 1, left(local!notes, local!cut - 1), local!notes),
+    receivedAt: if(local!open, index(local!last, "messageAt", null), null),
+    fromAddress: if(local!open, tostring(a!defaultValue(index(local!last, "fromAddress", ""), "")), ""),
+    senderName: if(local!open, tostring(a!defaultValue(index(local!last, "senderName", ""), "")), ""),
+    processId: local!processId,
+    taskId: local!taskId,
+    unreviewed: local!unreviewed
+  )
+)
+'''
+
 subs = {"@APPR@": rt(APPR), "@A_ID@": a("id"), "@A_DRAW@": a("drawId"), "@A_ORDER@": a("approvalOrder"),
         "@A_ROLE@": a("role"), "@A_NAME@": a("approverName"), "@A_STATUS@": a("status"),
         "@MSG@": rt(MSG), "@M_ID@": m("id"), "@M_DRAW@": m("drawId"), "@M_APPROVAL@": m("approvalId"),
         "@M_STEP@": m("stepOrder"), "@M_DIRECTION@": m("direction"), "@M_KIND@": m("kind"), "@M_FROM@": m("fromAddress"),
         "@M_TO@": m("toAddress"), "@M_SUBJECT@": m("subject"), "@M_BODY@": m("body"), "@M_AT@": m("messageAt"),
         "@M_OUTCOME@": m("outcome"), "@M_INTERP@": m("interpretation"), "@M_SOURCE@": m("source"), "@M_NOTES@": m("notes"),
-        "@M_PHRASE@": m("decisivePhrase"), "@M_SENDER@": m("senderName")}
+        "@M_PHRASE@": m("decisivePhrase"), "@M_SENDER@": m("senderName"), "@M_CHANNEL@": m("channel"),
+        "@M_PROCESS@": m("processId")}
 for name, text in [("SD_parseReplyToken", TOKEN), ("SD_extractReplyText", EXTRACT), ("SD_getReplyContext", CONTEXT),
                    ("SD_buildReplyInterpretationRequest", REQUEST), ("SD_gateReplyInterpretation", GATE),
                    ("SD_buildReplyResponseEmail", RESPONSE), ("SD_getDrawEmailMessages", MESSAGES),
-                   ("SD_normalizeReplyText", NORMALIZE), ("SD_getPendingQuestion", PENDING)]:
+                   ("SD_normalizeReplyText", NORMALIZE), ("SD_getPendingQuestion", PENDING),
+                   ("SD_getOpenEmailException", OPEN_EXCEPTION)]:
     for k, v in subs.items():
         text = text.replace(k, v)
     assert "@A_" not in text and "@M_" not in text and "@MSG@" not in text and "@APPR@" not in text, name

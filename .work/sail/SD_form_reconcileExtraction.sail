@@ -17,7 +17,8 @@
    says so ("Renumbered from #<extracted> (on file)"); the accountant can override, and whatever is confirmed commits.
    When the extracted number is genuinely next in sequence the chip is green.
    Chips (fix session 2026-09-25): a tag displays at most 40 characters and truncates the rest, so no chip carries a
-   figure or a name. Figures go in wrapping text beside or below the chip: the verdict strip's "Does not tie" has the
+   figure or a name. Phase 6c (ruled 2026-09-26): an amount that does not tie is amber everywhere, the pinned total's
+   "off by" included (it was red). Figures go in wrapping text beside or below the chip: the verdict strip's "Does not tie" has the
    lines-vs-draw line under it; a document's "Does not tie" has "off by $X" beside it in the Tie-out cell (a side by
    side layout inside a read-only grid cell — accepted by the object validator and rendered on this instance).
    Corroboration (Phase 5.5, 2026-09-25; Phase 5.6 document handling): beneath the budget lines, every supporting document that came with the package
@@ -141,7 +142,6 @@ a!localVariables(
   local!ties: and(not(a!isNullOrEmpty(local!drawAmount)), abs(local!difference) < 0.005),
   local!green: a!map(bg: "#E6F4EC", fg: "#1E7E46"),
   local!amber: a!map(bg: "#FDF3E0", fg: "#92600A"),
-  local!red: a!map(bg: "#FDECEC", fg: "#B42318"),
   /* Corroboration: the supporting documents as the reading process has left them, tied out against the live lines. */
   local!docsRefresh: 0,
   local!supportingDocs: a!refreshVariable(
@@ -349,7 +349,7 @@ a!localVariables(
                   a!richTextItem(text: "   vs draw amount " & if(a!isNullOrEmpty(local!drawAmount), "—", rule!SD_fmtMoney(value: local!drawAmount, showCents: true)), color: "#6B7280", size: "SMALL"),
                   a!richTextItem(
                     text: if(local!ties, "   Ties ✓", "   off by " & rule!SD_fmtMoney(value: local!difference, showCents: true)),
-                    color: if(local!ties, local!green.fg, local!red.fg),
+                    color: if(local!ties, local!green.fg, local!amber.fg),
                     size: "SMALL",
                     style: "STRONG"
                   )

@@ -50,6 +50,10 @@ a!localVariables(
       local!sum
     }
   ),
+  /* Phase 6c: the Asset Manager's edits at approval (SD Draw Budget Line Event History), newest first; a line shows its
+     latest edit under its category, and the Line History card lists every edit with its frozen sentence */
+  local!edits: if(local!found, rule!SD_getBudgetLineEdits(drawId: ri!drawId), {}),
+  local!editLineIds: if(a!isNullOrEmpty(local!edits), {}, a!forEach(items: local!edits, expression: tointeger(fv!item.lineId))),
   local!sourceDoc: a!localVariables(
     local!raw: if(
       not(local!found),
@@ -89,12 +93,31 @@ a!localVariables(
           a!gridColumn(
             label: "Budget Category",
             value: a!richTextDisplayField(
-              value: a!richTextItem(
-                text: fv!row.budgetCategory,
-                style: if(or(fv!row.kind = "section", fv!row.kind = "total"), "STRONG", "PLAIN"),
-                color: if(fv!row.kind = "section", "#6B7280", "#16294D"),
-                size: if(fv!row.kind = "section", "SMALL", "STANDARD")
-              )
+              value: {
+                a!richTextItem(
+                  text: fv!row.budgetCategory,
+                  style: if(or(fv!row.kind = "section", fv!row.kind = "total"), "STRONG", "PLAIN"),
+                  color: if(fv!row.kind = "section", "#6B7280", "#16294D"),
+                  size: if(fv!row.kind = "section", "SMALL", "STANDARD")
+                ),
+                /* Phase 6c: the latest edit at approval on this line */
+                a!localVariables(
+                  local!pos: if(or(fv!row.kind <> "line", a!isNullOrEmpty(local!editLineIds)), {}, wherecontains(tointeger(fv!row.id), local!editLineIds)),
+                  local!edit: if(a!isNullOrEmpty(local!pos), null, index(local!edits, local!pos[1], null)),
+                  if(
+                    a!isNullOrEmpty(local!edit),
+                    "",
+                    {
+                      char(10),
+                      a!richTextItem(
+                        text: "Edited by " & local!edit.userName & " at approval, " & text(local!edit.at, "MMM D"),
+                        color: "#1D5BBF",
+                        size: "SMALL"
+                      )
+                    }
+                  )
+                )
+              }
             ),
             width: "MEDIUM_PLUS"
           ),
@@ -123,6 +146,38 @@ a!localVariables(
     showBorder: true,
     showShadow: false,
     marginBelow: "STANDARD"
-  )
+  ),
+    /* Phase 6c: Line History — every edit the Asset Manager made at approval, with the sentence frozen when it was saved */
+    a!cardLayout(
+      contents: {
+        a!richTextDisplayField(
+        labelPosition: "COLLAPSED",
+        value: a!richTextItem(text: "Line History", size: "MEDIUM", style: "STRONG", color: "#16294D"),
+        marginBelow: "EVEN_LESS"
+      ),
+      rule!SD_cmp_sourceLine(text: "Budget lines edited at the Asset Manager's approval step · recorded as events on each line, with the before and after values"),
+        a!gridField(
+          labelPosition: "COLLAPSED",
+          data: local!edits,
+          columns: {
+            a!gridColumn(label: "When", value: text(fv!row.at, "MMM D, YYYY h:mm a"), width: "NARROW_PLUS"),
+            a!gridColumn(label: "Budget Line", value: a!richTextDisplayField(value: a!richTextItem(text: fv!row.budgetCategory, style: "STRONG")), width: "MEDIUM"),
+            a!gridColumn(label: "Edited By", value: fv!row.userName, width: "NARROW_PLUS"),
+            a!gridColumn(label: "Change", value: fv!row.comment)
+          },
+          pageSize: 20,
+          spacing: "DENSE",
+          borderStyle: "LIGHT",
+          emptyGridMessage: "No budget lines edited at approval"
+        )
+      },
+      showWhen: not(a!isNullOrEmpty(local!edits)),
+      style: "NONE",
+      shape: "SEMI_ROUNDED",
+      padding: "STANDARD",
+      showBorder: true,
+      showShadow: false,
+      marginBelow: "STANDARD"
+    )
   }
 )

@@ -350,21 +350,25 @@ Rescoped 2026-09-26: 6b is the conversation lane on the 6a receiver and message 
 
 **Dependencies:** Phase 6a.
 
-### Phase 6c — Velocity, Asset Manager edit, treasury content, polish
+### Phase 6c — Velocity, Asset Manager edit, treasury content, polish  ✅ built and verified 2026-09-26 (Designer escalation setup and live SMS owed; see TODO)
 
 **Objects:**
-- [ ] **Deadline reminders** through task escalations on the step tasks.
-- [ ] **Chase digest** backed by a site view (what is waiting on whom, and for how long).
-- [ ] **Cycle-time capture** per step and per draw.
-- [ ] **SMS channel** (staged only).
-- [ ] **Asset Manager budget edit** at their approval step only.
+- ✅ 2026-09-26 **Deadline reminders**: the reminder rung (step email under an amber banner, same thread, logged) and the chase process that escalations start (resolved from the message's origin process). Fired through that path on #70 and #72. **Open:** the escalation levels, their message trigger and the digest schedule are Designer settings (TODO, "Designer setup owed").
+- ✅ 2026-09-26 **Chase digest** backed by the Draws page's **Needs chasing** view (one query, `SD_getChaseRows`); the digest ran once and was sent to the team.
+- ✅ 2026-09-26 **Cycle-time capture** from existing dates: Summary and Approvals cycle lines, Time at Step per row, the fifth KPI (Avg Days to Decide).
+- ✅ 2026-09-26 **SMS channel**: Twilio connected system and integration; staged and failed paths logged with channel SMS. **Live send blocked** by the Twilio trial (error 572006); mode STAGED (TODO, Deferred).
+- ✅ 2026-09-26 **Asset Manager budget edit** at their approval step only (edit grid on the task form; write path proven on #74; blocked at other steps).
   - Edits are attributed by record events, composed at write time.
   - Edits are visible downstream in the view and the email.
-- [ ] **Treasury notification content** finalised.
-- [ ] **Tie-out colour unification to amber** (the chip-fix ruling owed in `TODO.md`): the pinned total's "off by" and the Summary's "Does not tie".
-- [ ] **Feed-arrival simulation** (staging/polish): the package arrives by email-in or a watched drop location, narrated as the EY API/SFTP feed, and starts the same intake (a set of documents in, one draw out). Receive Capital Call remains build-time tooling.
-- [ ] **Stretch: AI-drafted contingency narrative** with Fund Accountant review; the approved text lands in the draw's contingency explanation field.
-- [ ] **Polish and demo readiness:** a reset action with an explicit id list, a verify-ready check, and a rehearsal on the live path.
+- ✅ 2026-09-26 **Treasury notification content** finalised (HTML, Phase 4 language; live on #69).
+- ✅ 2026-09-26 **Tie-out colour unification to amber** (the chip-fix ruling owed in `TODO.md`): the pinned total's "off by" and the Summary's "Does not tie".
+- ✅ 2026-09-26 **Feed-arrival simulation**: the Draws page's administrators-only staging card (malformed template for beats 1–2, corrected package for beat 3) through Receive Capital Call's `a!startProcess` path. Original item: (staging/polish): the package arrives by email-in or a watched drop location, narrated as the EY API/SFTP feed, and starts the same intake (a set of documents in, one draw out). Receive Capital Call remains build-time tooling.
+- [ ] ~~**Stretch: AI-drafted contingency narrative**~~ skipped in 6c by ruling (2026-09-26); open as a stretch item. with Fund Accountant review; the approved text lands in the draw's contingency explanation field.
+- [ ] **Polish and demo readiness:** a reset action with an explicit id list, a verify-ready check, and a rehearsal on the live path. *2026-09-26: the demo runbook (beats 1–7 with specimens) is in `TODO.md`; the reset remains the CSV script plus explicit-id cleanup; the rehearsal is Scott's.*
+- ✅ 2026-09-26 **Site-reachable email-reply review** (Summary card, Draws YOUR ACTION and KPI, Emails tab link; standing rule: nothing requires Tempo).
+- ✅ 2026-09-26 **Guardrail reorder**: interpretation before the limit check; questions and hedges flow on over-limit draws, decisions are refused.
+- [ ] **Designer setup** for the escalations, the chase trigger and the digest schedule (TODO; Scott), then one escalation fired end to end by the session.
+- [ ] **Live SMS** once the Twilio account can send free-form text.
 
 **Dependencies:** Phases 6a and 6b.
 

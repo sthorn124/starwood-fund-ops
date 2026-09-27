@@ -18,6 +18,8 @@ a!localVariables(
   local!stepSubject: a!defaultValue(index(local!c, "stepSubject", ""), ""),
   local!subject: if(left(upper(local!stepSubject), 3) = "RE:", local!stepSubject, "Re: " & local!stepSubject),
   local!isFinal: left(upper(a!defaultValue(ri!outcome, "")), 8) = "APPROVED",
+  /* Phase 6c: on a draw above the email limit the conversation continues, but a decision is recorded in the system */
+  local!overLimit: a!defaultValue(index(local!c, "overLimit", false), false),
   local!lead: a!match(
     value: local!kind,
     equals: "GUARDRAIL", then: "Email approval is not available for this draw. Its amount, " & local!amount & ", is above the " & rule!SD_fmtMoney(value: cons!SD_EMAIL_APPROVAL_MAX, showCents: false) & " limit for decisions by email, so the decision must be made in the system. Your reply has not changed the draw.",
@@ -27,7 +29,11 @@ a!localVariables(
       "Recorded as your rejection of Draw #" & local!drawNo & ", " & local!amount & ". The draw will not proceed.",
       "Recorded as your approval of Draw #" & local!drawNo & ", " & local!amount & ". The chain has advanced." & if(local!isFinal, " This was the final approval.", "")
     ),
-    default: "We could not tell from your reply whether you approve or reject this draw, so nothing has been changed. Please reply to this email with a clear decision, for example ""Approved"" or ""Rejected"", and add any comment you want recorded with it."
+    default: if(
+      local!overLimit,
+      "We could not tell from your reply what you would like to do, so nothing has been changed. This draw is above the " & rule!SD_fmtMoney(value: cons!SD_EMAIL_APPROVAL_MAX, showCents: false) & " limit for decisions by email, so an approval or rejection must be recorded in the system; reply to this email with any question about the draw.",
+      "We could not tell from your reply whether you approve or reject this draw, so nothing has been changed. Please reply to this email with a clear decision, for example ""Approved"" or ""Rejected"", and add any comment you want recorded with it."
+    )
   ),
   local!quoted: rule!SD_htmlEscape(text: left(a!defaultValue(ri!replyText, ""), 600)),
   local!questionHtml: rule!SD_htmlEscape(text: left(a!defaultValue(ri!questionText, ""), 1000)),
@@ -44,9 +50,9 @@ a!localVariables(
   local!footer: a!match(
     value: local!kind,
     equals: "GUARDRAIL", then: "Open the draw in Starwood Draw Approvals to record your decision.",
-    equals: "ANSWER", then: "Reply to this email to approve or reject, or to ask another question. Your reply is recorded on the draw.",
+    equals: "ANSWER", then: if(local!overLimit, "Reply to this email to ask another question. This draw is above the email limit, so record your decision in Starwood Draw Approvals.", "Reply to this email to approve or reject, or to ask another question. Your reply is recorded on the draw."),
     equals: "RECEIPT", then: "No reply is needed.",
-    default: "Reply to this email to answer. Your reply is recorded on the draw."
+    default: if(local!overLimit, "Reply to this email with any question. Record your decision in Starwood Draw Approvals.", "Reply to this email to answer. Your reply is recorded on the draw.")
   ),
   local!html:
     "<table role=""presentation"" width=""100%"" cellpadding=""0"" cellspacing=""0"" style=""max-width:640px;border-collapse:collapse;font-family:Arial,Helvetica,sans-serif;"">" &

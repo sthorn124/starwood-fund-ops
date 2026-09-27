@@ -68,7 +68,48 @@ a!localVariables(
     rule!SD_getOpenTaskId(processId: tointeger(local!activeProcess)),
     null
   ),
+  /* Phase 6c: an open email-exception review (rule!SD_getOpenEmailException) is the draw approval team's action too.
+     The task id is looked up only for a team member, so the Draws page does not pay for the report for anyone else. */
+  local!viewerIsSpecialist: a!defaultValue(a!isUserMemberOfGroup(username: loggedInUser(), groups: cons!SD_DRAW_DEMO_APPROVERS_GROUP), false),
+  local!exception: if(
+    or(not(local!found), local!ingesting, local!ingestionFailed),
+    null,
+    rule!SD_getOpenEmailException(drawId: ri!drawId, withTask: local!viewerIsSpecialist)
+  ),
+  local!exceptionOpen: if(a!isNullOrEmpty(local!exception), false, a!defaultValue(index(local!exception, "open", false), false)),
+  local!exceptionTaskId: if(local!exceptionOpen, index(local!exception, "taskId", null), null),
+  local!exceptionForViewer: and(local!viewerIsSpecialist, local!exceptionOpen, not(a!isNullOrEmpty(local!exceptionTaskId))),
   local!fundingDate: if(local!found, local!draw[{d("fundingDate")}], null),
+  /* Phase 6c cycle time, from dates the draw already holds (no event logging): received (receivedDate) to the terminal
+     decision (the decision date of the last decided approval row once the draw is Approved or Rejected). An accelerated
+     chain's decision dates are generated one day apart, so its durations are demo fiction, as narrated. */
+  local!receivedDate: if(local!found, local!draw[{d("receivedDate")}], null),
+  local!decided: and(local!found, or(local!statusText = "Approved", local!statusText = "Rejected")),
+  local!decidedRows: if(
+    or(not(local!decided), a!isNullOrEmpty(local!approvals)),
+    {{}},
+    index(
+      local!approvals,
+      wherecontains(
+        true,
+        a!forEach(
+          items: local!approvals,
+          expression: and(
+            or(tostring(a!defaultValue(index(fv!item, "status", ""), "")) = "Approved", tostring(a!defaultValue(index(fv!item, "status", ""), "")) = "Rejected"),
+            not(a!isNullOrEmpty(index(fv!item, "decisionDate", null)))
+          )
+        )
+      ),
+      {{}}
+    )
+  ),
+  local!decidedOrders: if(a!isNullOrEmpty(local!decidedRows), {{}}, a!forEach(items: local!decidedRows, expression: tointeger(index(fv!item, "approvalOrder", 0)))),
+  local!decidedAt: if(
+    a!isNullOrEmpty(local!decidedOrders),
+    null,
+    /* max() over integers returns a decimal, which wherecontains refuses (supplemental §4): tointeger() it */
+    index(index(index(local!decidedRows, wherecontains(tointeger(max(local!decidedOrders)), local!decidedOrders), {{}}), 1, null), "decisionDate", null)
+  ),
   local!activatedAt: if(a!isNullOrEmpty(local!current), null, index(local!current, "activatedAt", null)),
   /* counted with wherecontains: an a!forEach that returns {{}} for skipped items yields N nulls when every item is skipped */
   local!approvedCount: if(
@@ -103,6 +144,17 @@ a!localVariables(
     viewerIsAssignee: local!viewerIsAssignee,
     openTaskId: local!openTaskId,
     awaitingViewer: and(local!viewerIsAssignee, not(a!isNullOrEmpty(local!openTaskId))),
+    viewerIsSpecialist: local!viewerIsSpecialist,
+    exceptionOpen: local!exceptionOpen,
+    exception: local!exception,
+    exceptionTaskId: local!exceptionTaskId,
+    exceptionForViewer: local!exceptionForViewer,
+    /* what the Draws list and its KPI mean by "yours" (6c): a step or reconciliation task, or an email reply to review */
+    actionForViewer: or(and(local!viewerIsAssignee, not(a!isNullOrEmpty(local!openTaskId))), local!exceptionForViewer),
+    decidedAt: local!decidedAt,
+    daysToDecide: if(or(a!isNullOrEmpty(local!decidedAt), a!isNullOrEmpty(local!receivedDate)), null, max(0, tointeger(todate(local!decidedAt) - todate(local!receivedDate)))),
+    daysInApproval: if(or(local!decided, a!isNullOrEmpty(local!receivedDate)), null, max(0, tointeger(today() - todate(local!receivedDate)))),
+    daysReceivedToFunding: if(or(a!isNullOrEmpty(local!fundingDate), a!isNullOrEmpty(local!receivedDate)), null, tointeger(todate(local!fundingDate) - todate(local!receivedDate))),
     daysToFunding: if(a!isNullOrEmpty(local!fundingDate), null, tointeger(todate(local!fundingDate) - today())),
     daysAtStep: if(
       local!ingesting,

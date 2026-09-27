@@ -21,7 +21,8 @@ a!localVariables(
         local!d,
         {{"bucket", "sortAll"}},
         a!localVariables(
-          local!bucket: if(a!defaultValue(index(local!d, "awaitingViewer", false), false), 1, if(local!status = "In Progress", 2, 3)),
+          /* 6c: actionForViewer = a step or reconciliation task, or an email-exception review, open for the viewer */
+          local!bucket: if(a!defaultValue(index(local!d, "actionForViewer", false), false), 1, if(local!status = "In Progress", 2, 3)),
           /* days since 2000-01-01; negated for completed draws so ascending order puts the latest funding first */
           local!key: if(
             a!isNullOrEmpty(local!fd),

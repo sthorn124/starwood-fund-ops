@@ -103,6 +103,23 @@ a!localVariables(
         rowHeader: 2,
         emptyGridMessage: "No approval chain on this draw"
       ),
+      /* Phase 6c: the draw's cycle, from dates it already holds */
+      a!richTextDisplayField(
+        labelPosition: "COLLAPSED",
+        value: {
+          a!richTextIcon(icon: "clock-o", color: "#6B7280", size: "SMALL"),
+          a!richTextItem(
+            text: " Cycle: received " & if(a!isNullOrEmpty(index(local!d, "receivedDate", null)), "—", text(todate(index(local!d, "receivedDate", null)), "MMM D")) & if(
+              not(a!isNullOrEmpty(index(local!d, "daysToDecide", null))),
+              " · decided in " & index(local!d, "daysToDecide", 0) & if(index(local!d, "daysToDecide", 0) = 1, " day", " days"),
+              if(a!isNullOrEmpty(index(local!d, "daysInApproval", null)), "", " · in approval " & index(local!d, "daysInApproval", 0) & if(index(local!d, "daysInApproval", 0) = 1, " day", " days") & " so far")
+            ) & " · Time at Step runs from a step's activation to its decision",
+            color: "#6B7280",
+            size: "SMALL"
+          )
+        },
+        marginBelow: "EVEN_LESS"
+      ),
       rule!SD_cmp_sourceLine(text: "The CEO approves by email reply. All decisions are recorded with actor, source (task, email, or system), and timestamp. On final approval, Treasury is notified to execute the cash payment.")
     },
     style: "NONE",

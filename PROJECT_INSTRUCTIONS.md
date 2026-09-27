@@ -82,11 +82,11 @@ Field vocabulary follows the new approval email sample exactly.
 - Approvals are strictly sequential by order; Approve advances, Reject terminates the draw, final approval sets the draw Approved and triggers the treasury notification.
 - Email approval accepts conversational replies; AI classifies intent as Approve, Reject, or Ambiguous. Ambiguous generates a clarification reply, never a state change.
   - **How a reply is matched (Phase 6a, 2026-09-26).** Every step email's subject ends with the token `[SD-DRAW-<drawId>-S<step>]`. A reply is matched by that token, which survives Re:/Fwd:.
-  - **Checks, in order, before any AI call:**
+  - **Checks, in order, before any AI call (the guardrail moved after the reading in Phase 6c):**
     1. Draw and step found.
     2. Sender authorized for the step's role, through the constant role→address mapping (for the demo every role maps to scott.thorn@appian.com).
-    3. Dollar guardrail (below).
-    4. The step is the one awaiting a decision.
+    3. The step is the one awaiting a decision.
+    4. Dollar guardrail (below): since Phase 6c a flag, applied after the reading and only to a decision.
   - **When a check fails,** nothing changes and the reply is logged on the draw. This covers an unauthorized sender and a step not awaiting a decision; the log is visible in the Approvals tab.
   - **Reading the reply.** One Generative AI skill call reads the reply's own words (quoted history cut first) as APPROVE, REJECT or AMBIGUOUS, with the reply's own comment. A deterministic gate turns any malformed answer into an unclassified AMBIGUOUS.
   - **APPROVE or REJECT** goes through the one decision transition with source EMAIL. The approval row's comments carry the reply text and the reading, and final approval triggers treasury as usual.
@@ -106,6 +106,9 @@ Field vocabulary follows the new approval email sample exactly.
   - A reply on such a draw changes nothing.
   - The sender is told on the thread to decide in the system, and the attempt is logged on the draw.
   - THSV draws ($2.6M) are approvable by email; Gateway #12 ($8.94M) is refused.
+  - **The guardrail blocks email decisions, not email conversation (ruled 2026-09-26, Phase 6c).** Interpretation runs before the limit check. On an over-limit draw a QUESTION or an AMBIGUOUS reply flows normally (the question reaches the team, the hedge gets a clarification that also says the decision must be made in the system); only a reply read as APPROVE or REJECT gets the refusal, and the refusal row carries the reading.
+- **Nothing in the draw approval flow requires Tempo (ruled 2026-09-26, Phase 6c; standing rule).** Every task and every action is reachable from the site: the Summary's action area (step decision, reconciliation, email-reply review) or the Draws list (YOUR ACTION rows, the KPI, the Needs chasing view). A new task type is not done until the site links it for its assignees and shows its state to everyone else.
+- **Tie-out non-tie colour is amber everywhere (ruled 2026-09-26, Phase 6c).** A figure that does not tie is a warning to resolve, not an error: the reconciliation verdict, the pinned total's off-by line, the document chips and the Summary's "Does not tie" all use the amber tone. Red is kept for failures (ingestion failed, rejected, text failed).
 - **Thread continuity (Phase 6a, ruled 2026-09-26).** Every outbound message in the approval flow is sent as one thread:
   - **Messages covered:** the step email, the clarification and the guardrail refusal.
   - **Sender:** each carries the same display name, "Starwood Draw Approvals".

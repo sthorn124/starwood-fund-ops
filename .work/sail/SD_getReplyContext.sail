@@ -3,9 +3,12 @@
      UNMATCHED     no token, or the token names a draw or step that does not exist
      UNAUTHORIZED  the sender is not the authorized reply address for the step's role (SD_EMAIL_REPLY_ROLES /
                    SD_EMAIL_REPLY_ADDRESSES); no reply is ever sent to an unauthorized sender
-     GUARDRAIL     the draw amount is above SD_EMAIL_APPROVAL_MAX: email cannot decide it at any step
      NOT_AWAITING  the draw is not In Progress at this step, or the step's row is not In Progress
      OK            the reply may be interpreted
+   Phase 6c (ruled 2026-09-26): the dollar guardrail blocks email DECISIONS, not email conversation. The amount check no
+   longer gives a verdict here; overLimit is returned as a flag (with guardrailReason), the reply is interpreted like any
+   other, and the handler refuses only an APPROVE or REJECT reading on an over-limit draw. A question or an unclear reply
+   on such a draw flows normally (Q&A, clarification, exception).
    Also returns the approval row id, role, approver name, draw number, investment, amount, the number of earlier
    ambiguous replies on this approval row (a second one goes to the exception queue) and the step email's subject
    (for "Re:" on anything sent back). */
@@ -57,7 +60,7 @@ a!localVariables(
   local!verdict: if(
     or(not(local!found), a!isNullOrEmpty(local!row)),
     "UNMATCHED",
-    if(not(local!authorized), "UNAUTHORIZED", if(local!overLimit, "GUARDRAIL", if(not(local!awaiting), "NOT_AWAITING", "OK")))
+    if(not(local!authorized), "UNAUTHORIZED", if(not(local!awaiting), "NOT_AWAITING", "OK"))
   ),
   a!map(
     verdict: local!verdict,
@@ -65,7 +68,6 @@ a!localVariables(
       value: local!verdict,
       equals: "UNMATCHED", then: if(a!isNullOrEmpty(ri!drawId), "No draw reference token in the subject.", "The subject names draw " & ri!drawId & " step " & a!defaultValue(ri!stepOrder, "?") & ", which does not exist."),
       equals: "UNAUTHORIZED", then: "Sender " & a!defaultValue(ri!fromAddress, "(none)") & " is not the authorized reply address for the " & local!role & " step.",
-      equals: "GUARDRAIL", then: "Draw amount " & rule!SD_fmtMoney(value: local!amount, showCents: true) & " is above the email approval limit of " & rule!SD_fmtMoney(value: cons!SD_EMAIL_APPROVAL_MAX, showCents: false) & ".",
       equals: "NOT_AWAITING", then: "The draw is " & local!drawStatus & " at step " & local!currentStep & "; step " & ri!stepOrder & " (" & local!role & ") is " & if(local!rowStatus = "", "not active", local!rowStatus) & ".",
       default: "Awaiting the " & local!role & " decision."
     ),
@@ -81,6 +83,7 @@ a!localVariables(
     currentStep: local!currentStep,
     authorized: local!authorized,
     overLimit: local!overLimit,
+    guardrailReason: if(local!overLimit, "Draw amount " & rule!SD_fmtMoney(value: local!amount, showCents: true) & " is above the email approval limit of " & rule!SD_fmtMoney(value: cons!SD_EMAIL_APPROVAL_MAX, showCents: false) & ".", ""),
     awaiting: local!awaiting,
     priorAmbiguous: local!priorAmbiguous,
     stepSubject: if(or(not(local!found), a!isNullOrEmpty(ri!stepOrder)), "", index(rule!SD_buildApprovalEmail(drawId: ri!drawId, stepOrder: ri!stepOrder), "subject", ""))

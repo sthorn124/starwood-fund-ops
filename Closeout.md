@@ -1,141 +1,231 @@
-# Closeout — 2026-09-26 — Phase 6b: approver Q&A on the email thread, grounded interpretation, decision receipts
+# Closeout — 2026-09-26 — Phase 6c: velocity ladder, site-reachable exceptions, Asset Manager edit, treasury content, feed staging
+
+This is the final build phase. It covers items 0–10 of the Phase 6c brief:
+- the rulings;
+- exceptions reachable from the site;
+- cycle time;
+- reminders, the chase view and digest, and SMS;
+- the Asset Manager's budget edit;
+- the treasury email;
+- feed-arrival staging;
+- end-to-end verification;
+- the demo runbook.
 
 ## Scope and identity
-- **Build work:** Dev MCP `appian` as `scott.thorn@appian.com`, full scope. The account is in `SD Administrators`, `SD Users`, the three step groups and `SD Draw Demo Approvers`.
-- **Persona work:** sail as `sd.accountant`, a member of `SD Draw Demo Approvers`. It read the Summary pending card, drove the Emails-tab reply box, and re-read every tab fresh.
-- **Not used:** `appian-runtime` and `--from-devmcp`.
-- **Draw 66 untouched:** step 3, step process 536909994, `updatedAt` 2026-09-22 15:34:33.
+- **Design work:** Dev MCP `appian` as `scott.thorn@appian.com`. That account is in `SD Administrators`, `SD Users` and the three draw step groups, so every design read, rule test, render, process run and `completeTask` ran at administrator scope.
+- **Persona checks:** sail, as `sd.accountant` (`~/.sail-sd.accountant`, member of `SD Draw Demo Approvers`) and as `sd.assetmanager` (`~/.sail-sd.assetmanager`, member of `SD Draw Asset Managers`).
+- **Not used:** `appian-runtime`, `--from-devmcp`.
+- **Credentials:** Scott entered the Twilio Account SID and Auth Token himself in Designer; the session never saw or typed them. He gave only the two phone numbers in chat, and the repo holds neither: only the masked "+1 ••• ••• 6630" appears.
+- **Draw 66:** its chain was not touched. The live task 536876873 was rendered, never submitted.
 
-## Bookkeeping
-- **Scott's live Gmail reply passed.** Row 19 on draw 94 (#79), from scott.thorn@appian.com: "This looks good to me. Go ahead with the draw and proceed." It was read as APPROVE and completed the chain. His real address was kept, and Reply-To routed the reply to the receiver.
-- **Still owed from that check:** the exception-form Mark Reviewed click (there is no review row yet) and the email-lane geometry.
-- **Ruling recorded:** the conversational step-email copy stands. The sample's red exact-match warning is deliberately gone and is narrated, not reproduced.
-- **BUILD_PLAN rescoped:**
-  - **6b** is this conversation lane.
-  - **6c** is the velocity set: task-escalation reminders, a chase digest on a site view, cycle-time capture, and SMS staged. It also takes the Asset Manager edit, treasury content, tie-out colour and feed staging.
+## Rulings recorded (`PROJECT_INSTRUCTIONS.md`)
+1. **Nothing in the flow requires Tempo.** Every task and action is reachable from the site: the Summary's action area or the Draws list. This is a standing rule; a new task type isn't done until the site links it.
+2. **The guardrail blocks email decisions, not email conversation.**
+   - Interpretation runs before the limit check.
+   - On a draw over $5M, a question or an unclear reply flows as normal.
+   - Only a reply read as APPROVE or REJECT is refused, and the refusal now records the reading.
+3. **A figure that doesn't tie is amber everywhere.** That covers the reconciliation verdict, the pinned total's "off by", the document chips and the Summary. Red is kept for failures.
 
-## What was built
-**Questions are a first-class outcome.**
-- The AI call now returns three lines: `DECISION` (APPROVE / REJECT / QUESTION / AMBIGUOUS), the verbatim `PHRASE`, and the verbatim `COMMENT`.
-- A QUESTION changes nothing and is logged with outcome Question and the question as its phrase. Nothing is sent to the approver.
-- It is **pending**, derived from the log, until an answer follows it or the step is decided.
-- **Where it shows:**
-  - the **Summary**, to the draw approval team: amber "The CEO asked a question by email — answer it from the Emails tab", with an **Answer Question** button;
-  - the **Emails tab**, to everyone.
+## What changed, and how it works
 
-**The grounded-quote gate** (`SD_gateReplyInterpretation` v2).
-- APPROVE, REJECT and QUESTION need a phrase that appears verbatim in the reply, ignoring case and spacing. A missing or invented phrase makes the reading AMBIGUOUS, never applied.
-- On top of that, fixed rules read the phrase's sentence:
-  - **APPROVE** needs approval words, with no refusal and no condition or exception (except, if, unless, until, but, pending, for now…);
-  - **REJECT** needs rejection words;
-  - **QUESTION** must read as a question.
-- A downgraded reading follows the clarification / exception ladder. The phrase is stored on the message row, shown in the Reading, and written into the approval row's comment.
+**Guardrail order.**
+- The reply checks now run: draw and step found → sender authorized → step awaiting a decision → the AI reading.
+- Over the limit, a decision goes to the refusal path, which logs the reading and the decisive phrase. A question or a hedge goes where it would on any draw.
 
-**The specialist's answer from the record.**
-- The Emails tab's reply box (members of `SD Draw Demo Approvers` only) starts the new `SD Answer Draw Question` process.
-- It sends the answer on the same thread ("Re: <step subject>", Reply-To the receiver) to the step role's authorized address.
-- It logs the answer with the specialist's name, which clears the pending state.
-- The process's initiator role is `SD Draw Demo Approvers` only. A break-test with no pending question sent nothing.
+**Email-reply review, reachable from the site.** An unclear second reply opens a **Review email reply** task for the draw approval team.
+- **The team (`SD Draw Demo Approvers`) sees:**
+  - an amber Summary card, "An email reply needs review", with **Review Reply**;
+  - the draw marked YOUR ACTION on the Draws page, counted in Awaiting My Action;
+  - **Review this reply** on the Emails tab's exception row;
+  - a row in Needs chasing.
+- **Everyone else** sees a state line without the action.
+- **How it's found:** the open review is derived from the message log, and its task is found through the handler process id now stored on the row.
 
-**The thread has its own tab.**
-- **Emails** now sits between Approvals and Documents, as a two-sided conversation:
-  - the approver's messages on the left with a slate bar; the flow's and the team's on the right, navy on a faint tint;
-  - direction is also written on every message;
-  - each message shows sender, kind, time, step, text, the AI READING (decisive phrase plus reading) and an outcome tag;
-  - a pending question sits at the top in amber, with the reply box.
-- Approvals keeps the pointer "N approval emails on this draw · View the email exchange".
+**Cycle time**, computed from dates already on the rows; nothing new is logged.
+- Summary: "Received <date> · decided in N days" (or "in approval N days so far"), plus days from receipt to funding.
+- Approvals: Time at Step per row, and the same cycle line.
+- Draws page: a fifth KPI, **Avg Days to Decide**.
+- Accelerated chains carry generated decision dates, spread a day apart into the future, so their durations are fictional.
 
-**Decision receipts.** After an applied decision, the handler sends "Recorded as your approval of Draw #<n>, $<amount>. The chain has advanced." on the thread. Final approval adds "This was the final approval."; a rejection has its own wording. The footer reads "No reply is needed", and the receipt is logged. Treasury is unchanged: it runs before the receipt.
+**The chase ladder.**
+- **Reminder** at `SD_CHASE_AGE_DAYS` (3 days): the step email again, under an amber banner. Subject: "Reminder · Draw #n · funding in N days · awaiting your approval [token]". It goes on the same thread to the step's group and is logged as REMINDER.
+- **Text** at `SD_SMS_AGE_DAYS` (6 days): "Draw #n · $amount · funding in N days · awaiting your approval · reply by email".
+  - Sent through Twilio only when `SD_SMS_MODE` is LIVE; otherwise composed and logged as **Staged · not sent**.
+  - Every text is logged with channel SMS and the masked number. A failure is logged with Twilio's own message.
+- **How the escalation reaches the chase process:** both rungs run `SD Chase Approval Step`. The escalation's message carries nothing custom.
+  - The chase process takes the message's `OriginProcessID` (the step process that escalated) and finds the draw holding it.
+  - The step is that draw's current step.
+  - The rung is a reminder unless one is already logged for that approval row, in which case it's the text.
+  - It sends nothing if the step has moved on.
+- **Needs chasing** on the Draws page (the draw approval team only) and the **daily digest** to the team use one query. It lists steps waiting 3+ days and open reply reviews, ranked by amount then days to funding, each with who holds it, contact address, task group and the last chase.
 
-**Also:**
-- `SD_extractReplyText` now cuts Gmail's signature container and the "-- " delimiter.
-- The message table gained `decisivePhrase` and `senderName`, with widths measured by a real write (1,000 / 255; the readback said 255 for both).
+**Asset Manager edit.**
+- **The form:** at the Asset Manager's step only, the task form opens wide with an editable Adjustment and Current Draw per line, plus live tie-out and net-adjustment lines. Approve and Reject are unchanged.
+- **On submit,** the step process:
+  - writes the changed lines, recomputing proposed budget, PTD, % and balance (the roll-ups follow because they're computed from the lines);
+  - writes one record event per line, attributed to the submitter;
+  - then applies the decision.
+- **What people see afterwards:** Budget Detail marks each edited line "Edited by <name> at approval, <date>" and adds a Line History. The next step email is built from the lines, so the edits travel downstream.
+- **Guard:** an edit at any other step is refused by the planning rule, and the form shows no grid there.
 
-## Objects (read back at close-out)
-| Object | Id | State |
-|---|---|---|
-| Process `SD Handle Approval Reply` | `0000f074-9a9b-…` | 29 nodes (70 QUESTION log; 42–45 receipt; phrase and sender on every row), validator clean |
-| Process `SD Answer Draw Question` | `0000f074-ad0d-8000-2600-7f0000014e7a` | 10 nodes, validator clean, initiator `SD Draw Demo Approvers` |
-| Process `SD Draw Approval Step` | `0000f06e-a547-…` | node 13 writes the sender name; validator clean |
-| Constant `SD_ANSWER_QUESTION_PM` | `…_575728` | → `SD Answer Draw Question` |
-| Rules `SD_normalizeReplyText`, `SD_getPendingQuestion` (new) | `…_575680`, `…_575706` | identical to the repo |
-| Rules `SD_buildReplyInterpretationRequest` v2, `SD_gateReplyInterpretation` v2, `SD_buildReplyResponseEmail` v2, `SD_getDrawEmailMessages` v2, `SD_extractReplyText` v4, `SD_newEmailMessage` v2 | `…_575577`, `…_575583`, `…_575601`, `…_575589`, `…_575571`, `…_575627` | identical to the repo |
-| Interface `SD_view_drawEmails` → view **Emails** (stub `_ivHayg`) | `…_575734` | v1, `error: null` |
-| Interfaces `SD_view_drawApprovals` v4 (pointer), `SD_view_drawSummary` v10 (pending card) | `…_570853`, `…_570837` | identical to the repo |
-| Fields `decisivePhrase` (1,000), `senderName` (255) on `SD Draw Email Message` | `9a40d4fd-…`, `e014b841-…` | widths measured |
-| `SD_EMAIL_REPLY_ADDRESSES` | `…_575553` | v5: all nine roles scott.thorn@appian.com, restored after the test mapping |
+**Treasury.** On final approval, the treasury email reads:
+- subject "Approved for funding · Draw #n · <investment> · $amount · fund by <date>";
+- a green "execute payment" band and a PAYMENT box (amount, pay-by date, fund, investment, draw, cash/equity, purpose, submitter);
+- APPROVAL CHAIN 9 OF 9, with the final approver, date and channel;
+- a link to the draw, and "no bank details".
+
+The recipient is unchanged: the designer.
+
+**Feed staging.** An administrators-only card at the foot of the Draws page runs Receive Capital Call's own `a!startProcess` call with packages already on the instance:
+- **Stage Malformed Template** (`THSV_Draw67_Budget_Template_v2`) for beats 1–2;
+- **Stage Corrected Package** (the template plus pay application, invoice and lien waiver) for beat 3.
+
+Personas never see the card. It replaces the Designer-started `SD Stage Feed Arrival` I built earlier this session; that process is now deleted.
+
+### Objects
+- **New rules:**
+  - `SD_getOpenEmailException`, `SD_getEscalationMinutes`, `SD_buildStepReminderEmail` (v2), `SD_buildStepSms`, `SD_maskPhone`, `SD_getChaseRows` (v3), `SD_buildChaseDigestEmail` (v3), `SD_resolveChaseTarget` (v1);
+  - `SD_planBudgetEdit`, `SD_budgetEditLineRecords`, `SD_budgetEditEventRecords`, `SD_getBudgetLineEdits`;
+  - `SD_buildTreasuryEmail`, `SD_getDrawApprovalRowSource`.
+- **Changed rules:** `SD_getReplyContext`, `SD_buildReplyResponseEmail`, `SD_getDrawEmailMessages`, `SD_newEmailMessage` (v3), `SD_getDrawDetail` (v9), `SD_getDrawListRows` (v2).
+- **Interfaces:** `SD_form_drawApprovalDecision` (v4), `SD_form_reconcileExtraction` (v8), `SD_view_drawSummary` (v11), `SD_view_drawBudgetDetail` (v4), `SD_view_drawApprovals` (v5), `SD_view_drawEmails` (v2), `SD_page_draws` (v11).
+- **Process models:**
+  - `SD Chase Approval Step`: new; 17 nodes, with parameter `originProcessId`.
+  - `SD Send Chase Digest`: new.
+  - `SD Draw Approval Step`: nodes 14–18 (the edit writes); the task input `budgetEditsJson`.
+  - `SD Apply Draw Approval Decision`: nodes 19–20 (treasury).
+  - `SD Handle Approval Reply`: guardrail reorder; `processId` on the exception row.
+- **Data:** `SD Draw Email Message` gains `channel` and `processId`. Record events on `SD Draw Budget Line` (history type plus event type "Edited at Approval").
+- **Constants:** chase and SMS days, test minutes, SMS mode (**STAGED**), the SMS recipient and Twilio number, the edit event type, three feed-package constants, and `SD_ADMINISTRATORS_GROUP`.
+- **Twilio:** connected system `SD Twilio SMS`, integration `SD_sendTwilioSms`.
+- **Deleted, absence confirmed:** `SD Stage Feed Arrival`, and the throwaway `zz_loopTestSendReply6c`. The temporary reply mapping was restored to all nine `scott.thorn@appian.com` (v7, read back).
 
 ## Verified
-- **Gauntlet: 45/45.**
-  - Token T1–T8.
-  - Extraction X1–X11, including the signature cuts, and Scott's plain-text signature pinned as kept.
-  - Format G1–G10.
-  - **Grounding N1–N16:** clean approve, clean reject, question, hedge, conditional "except" and "if" (including trimmed phrases), enthusiasm, a fabricated phrase, a non-question, a refusal read as approval, Scott's live reply, a fabricated question, "for now", and a later sentence's "if" not tainting the decision.
-- **Live prompt probe, 8 specimens, all as stated:**
-  - **APPROVE:** clean approve, and Scott's reply with its signature.
-  - **REJECT:** reject.
-  - **QUESTION:** the contingency question.
-  - **AMBIGUOUS:** the hedge, "except line 3", "if the lender signs off", and "great work team!". The model quoted each condition inside its phrase.
-- **End to end on draw 95 (#80), without touching draw 66:**
 
-| Step | Result |
-|---|---|
-| Unauthorized "Approved." (production mapping) | UNAUTHORIZED, nothing changed |
-| Question: "what's driving the contingency spend on this draw?" | QUESTION logged, no email sent, pending. As `sd.accountant`: the Summary amber card and **Answer Question**; the Emails tab question card with **Your answer** and **Send Answer** (disabled while empty) |
-| Answer typed and sent **as `sd.accountant` via sail** | ANSWER on the thread, sender "Priya Raman", notes naming `sd.accountant`. Pending cleared; a fresh read shows the card gone and the answer on the thread |
-| "Thanks. Approved if the lender signs off on the revised budget." | AMBIGUOUS, the conditional phrase stored, clarification sent, nothing changed |
-| "Thanks, that covers it. Approved, go ahead and fund the draw." | APPROVE, phrase "Approved, go ahead and fund the draw." stored. Draw **Approved**, treasury 14:50:40. Receipt at 14:50:46: "Recorded as your approval of Draw #80, $2,604,252.23. The chain has advanced. This was the final approval." |
-| Guardrail regression on Gateway #12 | refused, refusal sent, nothing changed |
+**The guardrail, on Gateway #12 ($8.94M; run as the designer through the real receiver and handler):**
+- Row 40: "Before I sign off, what is the retainage balance being held on this draw?" was read as QUESTION with its phrase quoted, and logged for the team. No refusal.
+- Row 45: "Approved, go ahead and fund it." was read as APPROVE, then refused (GUARDRAIL, with the reading). Row 46 is the refusal on the thread.
 
-- **Emails tab of #80, as `sd.accountant`:** 8 messages. Outcome tags in order: Approval request sent, Sender not authorized, Question, Answer sent, Unclear · clarification sent, Clarification sent, Approved by email, Receipt sent.
-- **Approvals of #80:** the pointer is present, and the CEO row's comment carries the decisive phrase.
-- **Test mapping:** CAO + CEO → the loop address (v4), then restored (v5), both read back.
-- **Cleanup confirmed by absence:** the probe, the loop sender, the width probe and the gauntlet runner.
-- **Draw 86 (#73)** is staged at the CEO step for Scott's live Q&A check. Its step email reached his inbox at 10:53 AM EDT.
+**The email-reply review on draw 79 (#70), at the CEO step:**
+- **The two hedges:**
+  - "Let me think about it over the weekend." was read as AMBIGUOUS, and a clarification was sent (rows 44, 47).
+  - "I'm leaning toward yes but hold off for now." raised an EXCEPTION (row 48), and review task **268455639** opened.
+- **As `sd.accountant` (via sail):**
+  - #70 shows YOUR ACTION, and the Needs chasing row reads "Email reply to review".
+  - The Summary shows the amber card with **Review Reply** (a task link in the page data).
+  - The Emails tab shows **Review this reply**.
+- **As `sd.assetmanager` (via sail):**
+  - no Needs chasing switch;
+  - YOUR ACTION only on #66, the account's own step;
+  - #70 shows the state line with no task link on either tab.
 
-## Not verified — browser checklists (TODO)
-- **Live Q&A loop from Gmail (on draw 86, #73):**
-  1. Ask a question from your inbox.
-  2. As `sd.accountant`, see the Summary card and the Emails reply box.
-  3. As `sd.assetmanager`, see no reply box and no Summary card. This non-member branch has not been exercised yet.
-  4. Send the answer; it clears the card.
-  5. In Gmail, the answer lands **in the same thread**.
-  6. Reply "thanks, approved". #73 is Approved, and the receipt lands in the same thread.
-  7. Geometry of the amber cards.
-- **Exception review click and email-lane geometry:**
-  - task 22161: Mark Reviewed writes the first review row;
-  - the Emails tab on #77–#80 and #12, at desktop and phone width;
-  - the Approvals pointer.
+**A defect found by that persona check, now fixed.** The Draws page returned an error for `sd.accountant`: "Insufficient permission", from `group()` on a step group the persona can't view. The designer's render had been clean. Group names now come from the step-group constants, and the page loads for both personas. A staged text also read "Text sent" in the chase view; it now reads "Text staged, not sent" (or "Text failed").
 
-## Rulings needed
-- **Questions on a draw above the email limit** currently get the guardrail refusal, because the limit check runs before the AI reads the reply. Should they reach the draw approval team as questions instead? (TODO, Client validation.)
-- **Carried:**
-  - the pay-application tie against $0.00 when there is no Hard Costs line;
-  - "Does not tie" colour.
+**Cycle time (via sail, both personas):**
+- #70's Summary: "Received Sep 22 · in approval 5 days so far · 55 days from receipt to funding date".
+- #74's Approvals: Time at Step per row.
+- Fifth KPI: "AVG DAYS TO DECIDE 14.9 · 10 decided draws".
 
-## Findings
-- **A Gmail reply's signature stays in the stored text.** Gmail's plain-text part has no "-- " delimiter, so nothing marks where the signature starts. Recorded as a known data artifact; the reading is unaffected.
-- **The decisive phrase makes each email decision self-auditing on the approval row:** the reply, the reading, and the words it was read on.
+**The chase ladder (run as the designer):**
+- **Direct runs on #72:** the reminder was sent to the group and logged, and a staged text was logged.
+- **Started the way an escalation will start it**, with only the origin process id:
+  - #72's step process resolved to the text rung. It sent LIVE, and Twilio refused it (below); the failure was logged with Twilio's message.
+  - #70's resolved to the reminder rung: "REMINDER sent to SD Draw CEO", logged.
+  - An unknown id resolves to "not found".
+- **A step that has moved on gets nothing:** a chase for step 9 while draw 78 sat at step 5 was STALE.
+- **Needs chasing (as `sd.accountant`):** 8 rows, then 7 after #69 was approved, ranked by amount, with contacts.
+- **Digest:** ran once and was sent to the team.
+
+**Asset Manager edit:**
+- On #74 (draw 87), step 3 was completed with four line edits. Result: four events, the draw advanced to step 4, net adjustments $0.
+- As `sd.assetmanager`, Budget Detail shows "Edited by Scott Thorn at approval, Sep 26" on the four lines, plus the Line History. The designer submitted, hence the name.
+- Blocked at step 9: the planning rule refuses, and #70's form renders medium width with no grid.
+- Draw 66's step 3 form (render only): no error, 34 editable fields, "Ties ✓".
+
+**Treasury, live:**
+- Draw 78 (#69) was accelerated to the CEO step and approved by email reply: row 50 APPROVE, APPROVED.
+- The receipt is row 51. `treasuryNotifiedAt` is 2026-09-27 00:06:42 UTC.
+- The email renders as described above (9.8 KB).
+
+**Clean package through the feed path, draw 99:**
+- The three documents were classified correctly. The pay application was read: $2,490,296.23, Stonebridge, application 14.
+- Its reconciliation form, rendered with the real extraction, shows **Ties ✓ $2,604,252.23** and "Renumbered from #67 (on file)".
+- The pay application ties to Hard Costs, the invoice is "filed as Invoice", and the lien waiver is received.
+- The task is left open as a feed-arrived specimen.
+
+**Staging card:** it renders for the designer (no error, both buttons) and is absent for both personas (via sail).
+
+## Not verified, and why
+- **Escalations firing on their own.** The escalation levels, the chase process's message trigger and the digest's daily timer can only be set in Designer. The chase process was fired exactly as an escalation will start it. You said to defer this to TODO; the steps are simplified there, under "Designer setup owed".
+- **The live text on your phone.** Twilio accepted the credentials but refused the message: **error 572006, "Trial accounts can only use predefined SMS templates"**. It was tried twice, and both are logged on #72 › Emails as "Text failed". SMS is back to STAGED (v5). Going live needs a Twilio account that can send free-form texts.
+- **The Asset Manager's own submit on a real task.** sail can't open tasks, so the write path was proven as the designer on #74. Draw 66's live task was issued by the pre-edit process version, so it needs cycling first (the runbook's first step).
+- **Geometry, and the email and SMS surfaces:** layout of the chase grid, the five KPIs and the staging card, and the reminder, digest and treasury emails as they arrive in Gmail. These are browser checks.
+- **The staging buttons themselves.** A button that starts a process can't be driven from a render, and the personas can't see the card.
+
+## Browser checklist (full steps in `TODO.md`)
+1. **Review from the site** (as `sd.accountant`): Draws → #70 → **Review Reply** (task 268455639) → mark it reviewed → the Summary card and YOUR ACTION go away.
+2. **Needs chasing (7)** (as `sd.accountant`): layout, and #72's "Text failed" line.
+3. **Gmail:**
+   - the reminder "Reminder · Draw #70 · funding in 50 days · awaiting your approval [SD-DRAW-79-S9]", threaded with the step email;
+   - the digest;
+   - the treasury email "Approved for funding · Draw #69 · …".
+4. **Live SMS:** blocked until the Twilio account changes.
+5. **The Asset Manager edit on draw 66,** after the reset cycle: as `sd.assetmanager`, edit a line, then Approve. Expect "Edited by Elena Marchetti at approval" and the Line History.
+6. **Feed-trigger dry run** (as the designer):
+   - Stage Malformed Template: after ~90 s, "Not loaded" and the alert.
+   - Stage Corrected Package: after ~80 s, the reconciliation task for `sd.accountant`.
+   - Clean up both draws afterwards.
+
+## Demo runbook (in full in `TODO.md`)
+0. **Before the run:**
+   - reset draw 66, which also cycles its task onto the new step model;
+   - clear draw 66's message rows;
+   - read back test minutes = 0 and SMS mode = STAGED.
+1. **Package arrives.** Draws page card → **Stage Malformed Template**, narrated as the EY feed.
+2. **Ingestion fails.** The draw reads "Not loaded", and the alert with the AI comparison lands in Gmail. Specimen: draw 96 or 83.
+3. **Corrected package ingests.** **Stage Corrected Package** → about 2 min → `sd.accountant` reconciles (Ties ✓), then Confirm. Specimens: 99, 92.
+4. **#66: QIU and the pre-completed chain.**
+5. **The Asset Manager edits and approves #66.** Specimen: #74.
+6. **The chain runs on; the CEO replies in Gmail.**
+   - Run the accelerator (87 s), then the CEO replies in Gmail.
+   - Optional asides: Needs chasing, a reminder, the staged text, and a question on #12.
+   - Specimens: 92, 95, 79 (#70, review open), 12.
+7. **The treasury email.** Specimen: 78 (#69).
+
+## Rulings or actions needed from you
+- **Twilio:** upgrade the account, or register a template, to send live texts. Or accept SMS as staged for the demo.
+- **Designer setup** (B, C, D in `TODO.md`), whenever you want the ladder to run by itself. Then tell the next session, which will fire one escalation end to end.
+- **The contingency narrative:** skipped in 6c by your ruling; it's in TODO/Deferred as a stretch item.
 
 ## Promotion candidates
-- **1 promoted** into appian-supplemental §9 ("Mail an Appian Cloud instance sends is stamped from the site's system address…"): the From re-stamping, routing replies by Reply-To, testing authorized paths with a temporary mapping, and the email trigger being Designer-only. The repo copy of the skill is synced.
-- **2 resolved:** the trigger schema fact, folded into the promoted entry; and the bare-`pv!` Send E-Mail trap, already recorded.
-- **1 re-staged:** `msg!body` carries the text/plain part when there is one.
-- **2 new staged:** sail `load --fresh` after an interact; the prompt-method observation.
-- **Method trigger fired again:** the working form was applied.
-- **Checkpoint:** current through this entry.
+9 found; 0 promoted; 9 listed, staged in `BUILD_LOG.md` with triggers:
+- `group()` in persona-rendered rules;
+- script-task outputs reading the PV values from when the node started;
+- `a!urlForRecord` with one identifier returns a string;
+- map keys are case-insensitive;
+- `ToValidAddresses` is empty for group sends;
+- `max()` over integers returns a decimal;
+- escalations and triggers are Designer-only;
+- a form-urlencoded body via an explicit header;
+- a task keeps its process version while its form doesn't.
+
+Checkpoint: current through this entry.
 
 ## TODO changes
 - **Added:**
-  - Browser checks owed: "Live Q&A loop from Gmail (Phase 6b)" and "Exception review click and email-lane geometry".
-  - Client validation: "Questions on a draw above the email limit".
-  - Before demo: 6b additions to the email beat.
-- **Moved to Done:** Phase 6b; Scott's live Gmail reply (6a steps 1–4).
-- **Struck through (ruled):** "The step email's reply copy".
-- **Replaced:** the 6a browser item, by the two browser items above.
-- **Deferred, amended:** "Email paths proven by rule tests only" now also names the non-member view.
+  - the Demo runbook (beats 1–7 with specimens);
+  - "Designer setup owed" (B, C, D, with the verification that follows);
+  - "Phase 6c browser checks" (7 items);
+  - Deferred: live SMS (Twilio trial, error 572006) and the contingency narrative stretch.
+- **Replaced:** the 6a exception-click step (22161, done by you) with the site-reachable click on #70.
+- **Struck, with rulings:**
+  - the over-limit question;
+  - the tie-out colour item;
+  - the stale #79 specimen line.
+- **Updated:** the reconciliation and chip checks now expect amber.
+- **Done:** Phase 6c.
 
 ## BUILD_PLAN changes
-- **6a:** the live-reply and copy-ruling items are marked ✅ 2026-09-26.
-- **6b:** rescoped to the conversation lane; all six items are marked ✅ 2026-09-26. Added: Scott's live Q&A loop, and the ruling on questions for over-limit draws.
-- **New Phase 6c:** the velocity set, plus the former 6b carry-overs.
+- **Phase 6c marked built and verified.** Reminders, digest, cycle time, SMS (staged; live blocked), the Asset Manager edit, treasury content, amber tie-out, feed simulation, the site-reachable review and the guardrail reorder are all ✅ 2026-09-26.
+- **Still open:** Designer setup, live SMS, polish and rehearsal (the runbook is written).
+- **Struck:** the stretch item.

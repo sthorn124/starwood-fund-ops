@@ -3,7 +3,11 @@
    rule!SD_getDrawListRows (one read per draw, viewer-aware), so "Awaiting My Action", the YOUR ACTION tag and
    the row highlight all mean the same thing: the viewer holds the current step and a task is open for it.
    Rows are already sorted by that rule: awaiting the viewer first, in approval by funding date ascending, then
-   completed by funding date descending. Filters and search narrow the rows without changing the order. */
+   completed by funding date descending. Filters and search narrow the rows without changing the order.
+   Phase 6c: "yours" also covers an email reply waiting for the draw approval team's review (actionForViewer), a fifth
+   KPI shows the average days from receipt to decision over decided draws, and the draw approval team (the oversight role)
+   can switch to "Needs chasing": rule!SD_getChaseRows over the same rows — steps waiting SD_CHASE_AGE_DAYS or more and
+   replies to review, ranked by amount then days to funding, with who holds each and how to reach them. */
 a!localVariables(
   local!rows: rule!SD_getDrawListRows(),
   local!search,
@@ -38,7 +42,20 @@ a!localVariables(
     {}
   )),
   /* KPIs, computed from the full (unfiltered) row set */
-  local!awaiting: if(a!isNullOrEmpty(local!rows), {}, index(local!rows, wherecontains(true, a!forEach(items: local!rows, expression: a!defaultValue(fv!item.awaitingViewer, false))), {})),
+  local!awaiting: if(a!isNullOrEmpty(local!rows), {}, index(local!rows, wherecontains(true, a!forEach(items: local!rows, expression: a!defaultValue(fv!item.actionForViewer, false))), {})),
+  /* Phase 6c: cycle time over decided draws (received to terminal decision; accelerated chains carry generated dates) */
+  local!decided: if(a!isNullOrEmpty(local!rows), {}, index(local!rows, wherecontains(false, a!forEach(items: local!rows, expression: a!isNullOrEmpty(fv!item.daysToDecide))), {})),
+  local!avgDays: if(a!isNullOrEmpty(local!decided), null, round(sum(a!forEach(items: local!decided, expression: fv!item.daysToDecide)) / count(local!decided), 1)),
+  /* Phase 6c: the Needs chasing view, for the draw approval team (SD Draw Demo Approvers, the oversight role) */
+  local!isOversight: a!defaultValue(a!isUserMemberOfGroup(username: loggedInUser(), groups: cons!SD_DRAW_DEMO_APPROVERS_GROUP), false),
+  local!view: "ALL",
+  local!chase: if(local!isOversight, rule!SD_getChaseRows(rows: local!rows), {}),
+  /* Phase 6c: demo staging for administrators only — the EY feed arrival, run through the same a!startProcess call the
+     Receive Capital Call page makes, with the prepared package already on the instance (SD_FEED_PACKAGE_*) */
+  local!isAdmin: a!defaultValue(a!isUserMemberOfGroup(username: loggedInUser(), groups: cons!SD_ADMINISTRATORS_GROUP), false),
+  local!feedState,
+  local!feedAt,
+  local!chaseRanked: if(a!isNullOrEmpty(local!chase), {}, a!forEach(items: local!chase, expression: a!update(fv!item, "rank", fv!index))),
   local!inApproval: if(a!isNullOrEmpty(local!rows), {}, index(local!rows, wherecontains("In Progress", a!forEach(items: local!rows, expression: tostring(a!defaultValue(fv!item.status, "")))), {})),
   local!next30: if(a!isNullOrEmpty(local!rows), {}, index(
     local!rows,
@@ -122,7 +139,11 @@ a!localVariables(
                 a!richTextItem(text: if(
                   a!isNullOrEmpty(local!firstAwaiting),
                   "Nothing waiting on you",
-                  if(a!isNullOrEmpty(local!firstAwaiting.drawNumber), "New draw (ingesting)", "Draw #" & local!firstAwaiting.drawNumber) & " · " & a!defaultValue(local!firstAwaiting.currentRole, "") & if(a!defaultValue(local!firstAwaiting.ingesting, false), " · ", " step · ") & if(a!defaultValue(local!firstAwaiting.daysAtStep, 0) = 0, "today", local!firstAwaiting.daysAtStep & if(local!firstAwaiting.daysAtStep = 1, " day", " days"))
+                  if(
+                    and(a!defaultValue(local!firstAwaiting.exceptionForViewer, false), not(a!defaultValue(local!firstAwaiting.awaitingViewer, false))),
+                    "Draw #" & a!defaultValue(local!firstAwaiting.drawNumber, "") & " · email reply to review",
+                    if(a!isNullOrEmpty(local!firstAwaiting.drawNumber), "New draw (ingesting)", "Draw #" & local!firstAwaiting.drawNumber) & " · " & a!defaultValue(local!firstAwaiting.currentRole, "") & if(a!defaultValue(local!firstAwaiting.ingesting, false), " · ", " step · ") & if(a!defaultValue(local!firstAwaiting.daysAtStep, 0) = 0, "today", local!firstAwaiting.daysAtStep & if(local!firstAwaiting.daysAtStep = 1, " day", " days"))
+                  )
                 ), color: "#6B7280", size: "SMALL")
               },
               marginBelow: "NONE"
@@ -205,10 +226,142 @@ a!localVariables(
           showBorder: true,
           showShadow: false,
           marginBelow: "NONE"
+        ),
+          a!cardLayout(
+          contents: {
+            a!richTextDisplayField(
+              labelPosition: "COLLAPSED",
+              value: {
+                a!richTextItem(text: upper("Avg Days to Decide"), color: "#6B7280", size: "SMALL"),
+                char(10),
+                a!richTextItem(text: if(a!isNullOrEmpty(local!avgDays), "—", text(local!avgDays, "0.0")), size: "LARGE", style: "STRONG", color: "#16294D"),
+                char(10),
+                a!richTextItem(text: if(a!isNullOrEmpty(local!decided), "No decided draws yet", count(local!decided) & if(count(local!decided) = 1, " decided draw", " decided draws") & " · receipt to decision"), color: "#6B7280", size: "SMALL")
+              },
+              marginBelow: "NONE"
+            )
+          },
+          decorativeBarPosition: if(false, "START", "NONE"),
+          decorativeBarColor: "#1D5BBF",
+          style: "NONE",
+          shape: "SEMI_ROUNDED",
+          padding: "STANDARD",
+          showBorder: true,
+          showShadow: false,
+          marginBelow: "NONE"
         )
         },
-        cardWidth: "NARROW",
+        cardWidth: "EXTRA_NARROW",
         spacing: "STANDARD",
+        marginBelow: "STANDARD"
+      ),
+      /* Phase 6c: the oversight view switch (draw approval team only) */
+      a!radioButtonField(
+        labelPosition: "COLLAPSED",
+        choiceLabels: {"All draws", "Needs chasing (" & count(local!chase) & ")"},
+        choiceValues: {"ALL", "CHASE"},
+        value: local!view,
+        saveInto: local!view,
+        choiceLayout: "COMPACT",
+        choiceStyle: "CARDS",
+        showWhen: local!isOversight,
+        marginBelow: "STANDARD"
+      ),
+      a!cardLayout(
+        contents: {
+          a!richTextDisplayField(
+            labelPosition: "COLLAPSED",
+            value: a!richTextItem(text: "Needs Chasing", size: "MEDIUM", style: "STRONG", color: "#16294D"),
+            marginBelow: "EVEN_LESS"
+          ),
+          rule!SD_cmp_sourceLine(
+            text: "Approval steps waiting " & cons!SD_CHASE_AGE_DAYS & " days or more, and email replies waiting for the team's review · ranked by amount, then days to funding · the same list goes to the team by email every morning · amber: waiting " & cons!SD_SMS_AGE_DAYS & " days or more, when the escalation texts the approver"
+          ),
+          a!gridField(
+            labelPosition: "COLLAPSED",
+            data: local!chaseRanked,
+            columns: {
+              a!gridColumn(label: "#", value: fv!row.rank, align: "CENTER", width: "ICON_PLUS"),
+              a!gridColumn(
+                label: "Draw",
+                value: a!richTextDisplayField(
+                  value: {
+                    a!richTextItem(
+                      text: "#" & a!defaultValue(fv!row.drawNumber, fv!row.drawId),
+                      link: a!recordLink(recordType: 'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw', identifier: fv!row.drawId),
+                      linkStyle: "STANDALONE",
+                      style: "STRONG"
+                    ),
+                    char(10),
+                    a!richTextItem(text: fv!row.investmentName, color: "#6B7280", size: "SMALL")
+                  }
+                ),
+                width: "MEDIUM"
+              ),
+              a!gridColumn(label: "Amount", value: rule!SD_fmtMoney(value: fv!row.amount, showCents: false), align: "END", width: "NARROW_PLUS"),
+              a!gridColumn(
+                label: "Funding",
+                value: a!richTextDisplayField(
+                  value: {
+                    a!richTextItem(text: if(a!isNullOrEmpty(fv!row.fundingDate), "—", text(todate(fv!row.fundingDate), "MM/DD/YYYY"))),
+                    char(10),
+                    a!richTextItem(text: rule!SD_fmtRelativeDays(days: fv!row.daysToFunding), color: "#6B7280", size: "SMALL")
+                  }
+                ),
+                width: "NARROW_PLUS"
+              ),
+              a!gridColumn(
+                label: "Waiting On",
+                value: a!richTextDisplayField(
+                  value: if(
+                    fv!row.role = "",
+                    a!richTextItem(text: "The draw approval team"),
+                    {
+                      a!richTextItem(text: fv!row.approverName, style: "STRONG"),
+                      char(10),
+                      a!richTextItem(text: fv!row.role & " · step " & fv!row.currentStep & " of " & fv!row.totalSteps, color: "#6B7280", size: "SMALL")
+                    }
+                  )
+                ),
+                width: "MEDIUM"
+              ),
+              a!gridColumn(
+                label: "Why",
+                value: a!richTextDisplayField(
+                  value: {
+                    a!richTextItem(text: fv!row.reason, color: if(fv!row.smsDue, "#92600A", "#1F2937"), style: if(fv!row.smsDue, "STRONG", "PLAIN")),
+                    if(
+                      fv!row.lastChaseLabel = "",
+                      "",
+                      {char(10), a!richTextItem(text: fv!row.lastChaseLabel & " " & text(fv!row.lastChaseAt, "MMM D, h:mm a"), color: "#6B7280", size: "SMALL")}
+                    )
+                  }
+                ),
+                width: "MEDIUM"
+              ),
+              a!gridColumn(
+                label: "Contact",
+                value: a!richTextDisplayField(
+                  value: {
+                    a!richTextItem(text: if(fv!row.contact = "", "—", fv!row.contact)),
+                    if(fv!row.groupName = "", "", {char(10), a!richTextItem(text: "task: " & fv!row.groupName, color: "#6B7280", size: "SMALL")})
+                  }
+                )
+              )
+            },
+            pageSize: 25,
+            spacing: "STANDARD",
+            borderStyle: "LIGHT",
+            rowHeader: 2,
+            emptyGridMessage: "Nothing needs chasing: no step has waited " & cons!SD_CHASE_AGE_DAYS & " days, and no email reply is waiting for review"
+          )
+        },
+        showWhen: and(local!isOversight, local!view = "CHASE"),
+        style: "NONE",
+        shape: "SEMI_ROUNDED",
+        padding: "STANDARD",
+        showBorder: true,
+        showShadow: false,
         marginBelow: "STANDARD"
       ),
       a!cardLayout(
@@ -281,6 +434,7 @@ a!localVariables(
             marginBelow: "NONE"
           )
         },
+        showWhen: local!view <> "CHASE",
         style: "NONE",
         shape: "SEMI_ROUNDED",
         padding: "STANDARD",
@@ -309,14 +463,14 @@ a!localVariables(
                       style: "STRONG"
                     ),
                     if(
-                      a!defaultValue(fv!row.awaitingViewer, false),
+                      a!defaultValue(fv!row.actionForViewer, false),
                       {char(10), a!richTextItem(text: "YOUR ACTION", color: "#1D5BBF", size: "SMALL", style: "STRONG")},
                       ""
                     )
                   }
                 ),
                 width: "NARROW_PLUS",
-                backgroundColor: if(a!defaultValue(fv!row.awaitingViewer, false), "#E8F0FC", "NONE")
+                backgroundColor: if(a!defaultValue(fv!row.actionForViewer, false), "#E8F0FC", "NONE")
               ),
               a!gridColumn(
                 label: "Investment",
@@ -328,10 +482,10 @@ a!localVariables(
                   )
                 ),
                 width: "MEDIUM_PLUS",
-                backgroundColor: if(a!defaultValue(fv!row.awaitingViewer, false), "#E8F0FC", "NONE")
+                backgroundColor: if(a!defaultValue(fv!row.actionForViewer, false), "#E8F0FC", "NONE")
               ),
-              a!gridColumn(label: "Type", value: a!defaultValue(fv!row.drawType, "—"), width: "NARROW_PLUS", backgroundColor: if(a!defaultValue(fv!row.awaitingViewer, false), "#E8F0FC", "NONE")),
-              a!gridColumn(label: "Amount", value: rule!SD_fmtMoney(value: fv!row.amount, showCents: true), align: "END", width: "NARROW_PLUS", backgroundColor: if(a!defaultValue(fv!row.awaitingViewer, false), "#E8F0FC", "NONE")),
+              a!gridColumn(label: "Type", value: a!defaultValue(fv!row.drawType, "—"), width: "NARROW_PLUS", backgroundColor: if(a!defaultValue(fv!row.actionForViewer, false), "#E8F0FC", "NONE")),
+              a!gridColumn(label: "Amount", value: rule!SD_fmtMoney(value: fv!row.amount, showCents: true), align: "END", width: "NARROW_PLUS", backgroundColor: if(a!defaultValue(fv!row.actionForViewer, false), "#E8F0FC", "NONE")),
               a!gridColumn(
                 label: "Funding Date",
                 value: a!richTextDisplayField(
@@ -345,7 +499,7 @@ a!localVariables(
                   }
                 ),
                 width: "NARROW_PLUS",
-                backgroundColor: if(a!defaultValue(fv!row.awaitingViewer, false), "#E8F0FC", "NONE")
+                backgroundColor: if(a!defaultValue(fv!row.actionForViewer, false), "#E8F0FC", "NONE")
               ),
               a!gridColumn(
                 label: "Current Step",
@@ -396,9 +550,9 @@ a!localVariables(
                   )
                 ),
                 width: "MEDIUM",
-                backgroundColor: if(a!defaultValue(fv!row.awaitingViewer, false), "#E8F0FC", "NONE")
+                backgroundColor: if(a!defaultValue(fv!row.actionForViewer, false), "#E8F0FC", "NONE")
               ),
-              a!gridColumn(label: "Status", value: rule!SD_cmp_statusTag(status: fv!row.status), width: "NARROW_PLUS", backgroundColor: if(a!defaultValue(fv!row.awaitingViewer, false), "#E8F0FC", "NONE"))
+              a!gridColumn(label: "Status", value: rule!SD_cmp_statusTag(status: fv!row.status), width: "NARROW_PLUS", backgroundColor: if(a!defaultValue(fv!row.actionForViewer, false), "#E8F0FC", "NONE"))
             },
             pageSize: 25,
             spacing: "STANDARD",
@@ -406,11 +560,91 @@ a!localVariables(
             rowHeader: 1,
             emptyGridMessage: "No draws match these filters"
           ),
-          rule!SD_cmp_sourceLine(text: "Rows render from SD Draw records. Sort: rows awaiting the viewer first, then in-approval by funding date ascending, then completed by funding date descending. The highlighted row and the YOUR ACTION tag appear when the viewer holds the current approval step and a task is open for it.")
+          rule!SD_cmp_sourceLine(text: "Rows render from SD Draw records. Sort: rows awaiting the viewer first, then in-approval by funding date ascending, then completed by funding date descending. The highlighted row and the YOUR ACTION tag appear when the viewer holds the current approval step and a task is open for it, or when an email reply on the draw is waiting for the viewer's team to review.")
         },
+        showWhen: local!view <> "CHASE",
         style: "NONE",
         shape: "SEMI_ROUNDED",
         padding: "STANDARD",
+        showBorder: true,
+        showShadow: false,
+        marginBelow: "STANDARD"
+      )
+      ,
+      /* Phase 6c: demo staging (SD Administrators only). The presenter stages the EY API/SFTP drop before beat 1: the
+         prepared template and supporting PDFs go through a!startProcess(cons!SD_RECEIVE_CAPITAL_CALL_PM, …) exactly as the
+         Receive Capital Call page sends them, so the pipeline, the Ingesting row and the reconciliation task are the real ones. */
+      a!cardLayout(
+        contents: {
+          a!columnsLayout(
+            columns: {
+              a!columnLayout(
+                contents: {
+                  a!richTextDisplayField(
+                    labelPosition: "COLLAPSED",
+                    value: {
+                      a!richTextItem(text: "DEMO STAGING · ADMINISTRATORS ONLY", color: "#6B7280", size: "SMALL", style: "STRONG"),
+                      char(10),
+                      a!richTextItem(
+                        text: if(
+                          local!feedState = "ERROR",
+                          "The feed arrival could not be started. Check that the package documents in SD_FEED_PACKAGE_FAILING_TEMPLATE, SD_FEED_PACKAGE_TEMPLATE and SD_FEED_PACKAGE_SUPPORTING still exist.",
+                          if(
+                            a!isNullOrEmpty(local!feedState),
+                            "Stage the EY feed arrival through the same intake path as Receive Capital Call. Beats 1–2: the malformed template (" & document(cons!SD_FEED_PACKAGE_FAILING_TEMPLATE, "name") & ") fails validation and sends the alert. Beat 3: the corrected package (" & document(cons!SD_FEED_PACKAGE_TEMPLATE, "name") & " and " & count(cons!SD_FEED_PACKAGE_SUPPORTING) & " supporting PDFs) ingests.",
+                            if(local!feedState = "FAILING", "Malformed template", "Corrected package") & " staged at " & text(local!feedAt, "h:mm a") & ". The new draw appears within about 10 seconds (reload this page); " &
+                            if(local!feedState = "FAILING", "the ingestion failure alert follows in about 90 seconds.", "the accountant's reconciliation task follows in about 90 seconds.")
+                          )
+                        ),
+                        color: if(local!feedState = "ERROR", "#B42318", "#1F2937"),
+                        size: "SMALL"
+                      )
+                    },
+                    marginBelow: "NONE"
+                  )
+                }
+              ),
+              a!columnLayout(
+                contents: a!buttonArrayLayout(
+                  buttons: {
+                    a!buttonWidget(
+                      label: "Stage Malformed Template",
+                      style: "OUTLINE",
+                      size: "SMALL",
+                      saveInto: a!startProcess(
+                        processModel: cons!SD_RECEIVE_CAPITAL_CALL_PM,
+                        processParameters: a!map(document: cons!SD_FEED_PACKAGE_FAILING_TEMPLATE, supportingDocuments: {}),
+                        onSuccess: { a!save(local!feedState, "FAILING"), a!save(local!feedAt, now()) },
+                        onError: a!save(local!feedState, "ERROR")
+                      )
+                    ),
+                    a!buttonWidget(
+                      label: "Stage Corrected Package",
+                      style: "OUTLINE",
+                      size: "SMALL",
+                      saveInto: a!startProcess(
+                        processModel: cons!SD_RECEIVE_CAPITAL_CALL_PM,
+                        processParameters: a!map(document: cons!SD_FEED_PACKAGE_TEMPLATE, supportingDocuments: cons!SD_FEED_PACKAGE_SUPPORTING),
+                        onSuccess: { a!save(local!feedState, "PACKAGE"), a!save(local!feedAt, now()) },
+                        onError: a!save(local!feedState, "ERROR")
+                      )
+                    )
+                  },
+                  align: "END",
+                  marginBelow: "NONE"
+                ),
+                width: "MEDIUM"
+              )
+            },
+            alignVertical: "MIDDLE",
+            stackWhen: {"PHONE"},
+            marginBelow: "NONE"
+          )
+        },
+        showWhen: local!isAdmin,
+        style: "NONE",
+        shape: "SEMI_ROUNDED",
+        padding: "LESS",
         showBorder: true,
         showShadow: false,
         marginBelow: "STANDARD"

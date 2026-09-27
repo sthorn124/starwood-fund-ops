@@ -6,6 +6,38 @@ Open items by class. Sessions add discovered items unprompted as they surface, a
 
 ## Before demo
 
+- **Demo runbook (Phase 6c, 2026-09-26): beats 1–7, how each fires, and the specimen that carries it if the live path stalls.** Presenter: logged in as the designer (an `SD Administrators` member) in one browser for staging, as `sd.accountant` and `sd.assetmanager` in others; Gmail open on scott.thorn@appian.com.
+  - **Before the run (the session or the presenter):**
+    1. Draw 66 reset: apply `scripts/seed_draw66.py --reset-csv` (draw, then approvals), confirm no "Approve or reject draw" task is open, then start `SD Draw Approval Process` on draw 66. **This also cycles draw 66's task onto the Phase 6c step model**: the task live today (536876873) was issued before the edit nodes existed, so an edit made on it would be discarded (the form shows the grid; its process has no write nodes).
+    2. Delete draw 66's `SD Draw Email Message` rows by explicit id (a leftover AMBIGUOUS row skips the clarification).
+    3. Read back `SD_ESCALATION_TEST_MINUTES` = 0 and `SD_SMS_MODE` = STAGED (LIVE only once Twilio can send; see Deferred).
+    4. Keep one failed draw and one feed-staged draw; clear the rest with `--cleanup-ingested` (children first, explicit ids).
+  - **Beat 1 — the package arrives (EY API/SFTP feed).** As the designer, Draws page → bottom card **DEMO STAGING · ADMINISTRATORS ONLY** → **Stage Malformed Template**. It runs the same `a!startProcess` call as Receive Capital Call with `THSV_Draw67_Budget_Template_v2` (`SD_FEED_PACKAGE_FAILING_TEMPLATE`). Reload: an Ingesting row appears within ~10 s. Narrate the feed; nothing is uploaded on screen. *Specimen:* none needed (the row is live).
+  - **Beat 2 — ingestion fails, the alert explains why.** ~60–90 s later the row reads "Not loaded · Template could not be loaded"; the alert (navy bands, plain-English reason, the AI comparison against the last good template) lands in Gmail for the accountant and asset managers. *Specimen:* draw **96** (failure, rows 6649–6651) or **83**.
+  - **Beat 3 — the corrected package ingests.** Same card → **Stage Corrected Package** (template + pay application + invoice + lien waiver, `SD_FEED_PACKAGE_*`). ~80 s: as `sd.accountant` the Draws page shows the new row with YOUR ACTION; Summary → **Reconcile Extraction**. Wait ~40 s more so the pay application reads (else "Being classified" + Refresh). Expect **Ties ✓ $2,604,252.23**, the pay application tying to Hard Costs, invoice "filed as Invoice", lien waiver received, Draw Number prefilled with the next number (**Renumbered from #67 (on file)**). **Confirm & Assemble Draw** → step 1 of 9. *Specimens:* draw **99** (feed-staged 2026-09-26, reconciliation task **268455518** open, package classified, tie-out rendered TIES) and **92** (#77, reconciled, TIES).
+  - **Beat 4 — QIU and the pre-completed chain.** Open **#66**: steps 1–2 approved, Asset Manager at step 3, QIU Detail, the cycle line under the fact strip. *Specimen:* #66 is the seed.
+  - **Beat 5 — the Asset Manager edits a line and approves.** As `sd.assetmanager`: Draws shows #66 YOUR ACTION → Summary **Review & Approve** → the task form opens WIDE with the editable budget grid. Edit one Adjustment (e.g. move $10,000 from All Project Contingency to A&E - Architectural; the net-adjustments line stays $0), choose **Approve**, submit. Budget Detail then reads "Edited by Elena Marchetti at approval, <date>" on both lines with a **Line History**. *Specimen:* **#74** (draw 87): four lines edited at step 3 (attributed to Scott Thorn, the designer submitted).
+  - **Beat 6 — the chain runs on; the CEO approves by email.** Start the accelerator on draw 66 (87 s to the CEO task; narrate "the chain approves over the following days"). The step email reaches Gmail; reply in your own words ("looks good, approve"). 1–3 min later: Approved, the receipt on the thread. Optional asides: **Needs chasing** (as `sd.accountant`: the ranked list), the reminder email (#70, #72), the text rung ("Staged · not sent" on #72 › Emails), a question on an over-limit draw (Gateway #12: row 40 QUESTION; row 45–46 approval refused). *Specimens:* **92** (#77, approved by email), **95** (#80, the full conversation), **79** (#70, an exception review open: task **268455639**), **12** (guardrail).
+  - **Beat 7 — treasury is told to fund.** On final approval the treasury email "Approved for funding · Draw #n · … · fund by <date>" reaches the designer's inbox (payment box, 9 of 9 with the final approver, the chain, a link to the draw, "no bank details"). The draw reads Approved, the cycle line "decided in N days" (accelerated dates: fictional). *Specimen:* **78** (#69), treasury notified 2026-09-27 00:06 UTC.
+  - *Owner:* the presenter. *Trigger:* every rehearsal and the demo.
+- **Designer setup owed (Phase 6c): escalations, their message trigger and the digest schedule.** The Dev MCP cannot set escalations, message triggers or timer triggers. Everything else is built and was fired directly; the escalation message now carries nothing custom (the chase process resolves the draw, the step and the rung from the escalating process's id), so no mapping on the sending side is needed. Owner: Scott. Steps, in this order (Designer → application **Starwood Demo**):
+  - **B. Let `SD Chase Approval Step` be started by a message.**
+    1. Open process model **SD Chase Approval Step**.
+    2. **File → Properties → General** tab → tick **Public Events** → **OK**.
+    3. Double-click the **Start** node → **Triggers** tab → add **Receive Message** → click its **Configure** link.
+    4. **Setup** tab → message type **Process to process**. No conditions.
+    5. **Data** tab → **New Mapping**: Value `msg!properties.OriginProcessID`, operator **is stored as**, process variable **originProcessId** (a parameter the session added). That is the only mapping.
+    6. **OK**, **OK** → **File → Save & Publish**.
+  - **C. Two escalations on the step task.**
+    1. Open **SD Draw Approval Step** → double-click the user task **Approve or reject draw**.
+    2. **Escalations** tab → **Add Escalation** (Level 1) → timer **Configure** → delay = the expression `rule!SD_getEscalationMinutes(level: 1)`, unit **minutes** → **OK**.
+    3. Level 1 action → **Send Message Event** → **Setup** tab → **Directory…** → **SD Chase Approval Step** → **Select** its start event → **OK**. No Data mappings.
+    4. **Add Escalation** (Level 2) → timer `rule!SD_getEscalationMinutes(level: 2)` minutes (its clock starts when Level 1 fires) → action **Send Message Event** → the same start event → **OK**.
+    5. **OK** → **File → Save & Publish**. After this, the session does not edit `SD Draw Approval Step` over the Dev MCP (an MCP save could drop what Designer set).
+  - **D. The daily digest.** Open **SD Send Chase Digest** → **Start** node → **Triggers** → add **Timer** → **Configure** → start tomorrow 7:00 AM, repeat every 1 day → **OK** → **File → Save & Publish**.
+  - **Then the session verifies:** sets `SD_ESCALATION_TEST_MINUTES` to 2, brings a test draw (e.g. #75, draw 88) to a new step so its task comes from the new version, reads the REMINDER row (~2 min) and the SMS row (~4 min) on its Emails tab, and restores the minutes to 0 by readback. Escalations apply only to tasks issued after the publish.
+  - *Trigger:* before the demo, if the reminder ladder is to run by itself.
+
 - **Accelerator timing (demo-script fact, measured 2026-09-21).** From the presenter clicking the accelerator to the CEO task being live: **87 s** in the exact demo sequence (accelerator fired 7 s after the Asset Manager's approval; 24 s settle, then ≈12 s per step for steps 4–8, then the CEO task). 81 s when the previous task is idle. Narrate it ("the chain approves over the following days") or start it before the beat.
   - *Owner:* the presenter.
   - *Trigger:* the first rehearsal.
@@ -21,7 +53,7 @@ Open items by class. Sessions add discovered items unprompted as they surface, a
   - **Specimens now on file:**
     - **92 (#77):** Approved by email, treasury notified.
     - **93 (#78):** Rejected by email.
-    - **94 (#79):** at the CEO step with its CEO task **22116** live, one clarification sent, and a **Review email reply** task **22161** open for `SD Draw Demo Approvers`.
+    - **94 (#79):** ~~at the CEO step with its CEO task **22116** live, one clarification sent, and a **Review email reply** task **22161** open~~ Approved by Scott's live reply; review task 22161 completed by Scott (row 36). The open-exception specimen is now **79 (#70)**, task **268455639** (Phase 6c).
     - **12 (Gateway #12):** the guardrail refusal.
   - **Before rehearsing the beat on draw 66:** delete draw 66's earlier `SD Draw Email Message` rows by explicit id (`deleteRecordData`; read them with `SD_getDrawEmailMessages`). A leftover INBOUND AMBIGUOUS row makes the next unclear reply skip the clarification and go straight to the exception queue.
   - **Before a rehearsal that clears ingested draws:** pass their message rows as `msgs=` to `--cleanup-ingested`.
@@ -85,7 +117,7 @@ Open items by class. Sessions add discovered items unprompted as they surface, a
   1. Reset per "Ingestion demo reset" above, then as `sd.accountant` open `/suite/sites/subscription-agreement-analyst/receive-capital-call`, attach `THSV_Draw67_Budget_Template.xlsx`, click **Receive**. After ~80 s open the new draw's Summary → **Reconcile Extraction**.
   2. Expect the form full width with two side-by-side panes and the navy header "Reconcile extracted draw #67". Left pane, top: the verdict strip "EXTRACTION instance #<n> · 13 header fields · 16 budget lines" with the no-per-field-confidence line and the green **Ties ✓ $2,604,252.23** chip at its right; "DRAW HEADER · EXTRACTED"; the header fields in two columns of normal-width inputs, labels above, no mid-word wrapping (Draw Number / Fund / Funding Date / Cash-Equity / Over Budget Reason on the left; Investment Name / Draw Type / Draw Amount / Budget status / Submitted By on the right); a chip under Draw Number (green **Next in sequence** when the extracted number is next; while other #67s exist, the field is prefilled **68** and the chip is amber **Renumbered from #67 (on file)**; typing 67 back turns it amber **#67 already on file**; wording since the 2026-09-25 chip fix) and under Investment Name (green **Matches investment on file**); no chips anywhere else; Purpose, Budget and Contingency Explanation and General Comments as full-width paragraphs; the 16-row grid with right-aligned numbers and the pinned line "Current Draw total $2,604,252.23 vs draw amount $2,604,252.23 Ties ✓" beneath it.
   3. Right pane: "SOURCE DOCUMENT", the xlsx name as a download link, and the workbook rendered inline (DocCenter's viewer) at TALL height — cells legible, no "cannot be displayed" fallback. If the viewer shows the fallback link instead, note it: it means the persona lacks Viewer on `AIA Reconcile Connected System` (granted to `SD Draw Approvers` on 2026-09-22) or the plug-in refuses xlsx for non-designers.
-  4. Edit Hard Costs' Current Draw to 2490296.00 and tab out: the pinned total recomputes to $2,604,252.00 with red "off by ($0.23)"; the verdict strip's chip turns amber **Does not tie** with the amber line "lines $2,604,252.00 vs draw $2,604,252.23 · off by $0.23" beneath it (since the 2026-09-25 chip fix). Restore 2490296.23; both turn green. Type "abc" in Investment Name: the chip turns amber **No matching investment** and the Draw Number chip disappears; restore it.
+  4. Edit Hard Costs' Current Draw to 2490296.00 and tab out: the pinned total recomputes to $2,604,252.00 with amber "off by ($0.23)" (amber since Phase 6c); the verdict strip's chip turns amber **Does not tie** with the amber line "lines $2,604,252.00 vs draw $2,604,252.23 · off by $0.23" beneath it (since the 2026-09-25 chip fix). Restore 2490296.23; both turn green. Type "abc" in Investment Name: the chip turns amber **No matching investment** and the Draw Number chip disappears; restore it.
   5. Click **Confirm & Assemble Draw** (bottom right, the only button). Within ~15 s the draw shows #67 · In Progress · step 1 of 9 · Accountant · Priya Raman; Documents tab "Extracted & Confirmed · Doc Center extraction confirmed by **Priya Raman** MM/DD/YYYY"; Budget Detail 16 lines; QIU "model as of" today; Funding History #67, #65, #64, #63.
   6. Repeat at a laptop width (~1280 px) and a phone width: the panes stay side by side on desktop; the header columns stack on a phone.
   - *Trigger:* before the first rehearsal.
@@ -101,14 +133,14 @@ Open items by class. Sessions add discovered items unprompted as they surface, a
   4. **Draw Number.** Expect the amber **Renumbered from #67 (on file)**. Under Investment Name, expect the green **Matches investment on file**, in full.
   5. **Verdict strip.** Edit Hard Costs' Current Draw to 2490296.00 and tab out. The verdict strip should show the amber **Does not tie**, with the amber "lines $2,604,252.00 vs draw $2,604,252.23 · off by $0.23" right-aligned beneath it. Also check:
      - the grid's pay application row now reads **Does not tie** / "off by $37,500.23";
-     - the pinned total still reads "off by ($0.23)" in red (see the colour ruling in Deferred).
+     - the pinned total reads "off by ($0.23)" in **amber** (unified 2026-09-26, Phase 6c).
 
      Restore the value and **Confirm**.
   6. At a laptop width (~1280 px): no tag shows an ellipsis anywhere on the form.
   - *Trigger:* before the first rehearsal that shows the package beat.
 - ~~**Document download as a persona** (S9)~~ — Done 2026-09-25 by Scott: downloads from the Documents tab were verified as `sd.accountant` in the Phase 5.6 browser pass.
 - **Exception review click and email-lane geometry (Phase 6a, carried into 6b).** Owner: Scott. Scott's live reply (6a steps 1–4) passed on 2026-09-26; see Done. What remains:
-  1. **Exception task:**
+  1. ~~**Exception task 22161 from the task list**~~ — done by Scott 2026-09-26 (row 36, "Reviewed"). **Replaced by the site-reachable click (Phase 6c):** as `sd.accountant`, Draws → **#70** (YOUR ACTION; the Awaiting My Action sub-line may name it "email reply to review") → Summary amber card "An email reply needs review — it could not be read as a clear decision" → **Review Reply** (task **268455639**). The same task is linked as **Review this reply** on #70 › Emails. Expect the reply "I'm leaning toward yes but hold off for now." Mark it reviewed; the Summary card and the YOUR ACTION tag go away; the draw stays at step 9. As `sd.assetmanager`, #70 shows only the state line (verified via sail). The original 6a expectations, for reference:
      - As `sd.accountant`, open **Review email reply** (task 22161) from the task list.
      - Expect the navy header "Email reply needs a person", with "Draw #79 · Tamarack Hotel & Spa Vail · Step 9 · CEO" legible on the navy; WHY IT IS HERE "A second reply on this step that is not a clear approval or rejection."; THE REPLY "Can we talk about the contingency on Monday first?".
      - Type a note and click **Mark Reviewed**.
@@ -141,6 +173,15 @@ Open items by class. Sessions add discovered items unprompted as they surface, a
      - the Approvals CEO row reads "email · scott.thorn@appian.com".
   7. **Geometry of the new pieces:** the amber Summary card (the button at the right; stacks on a phone), and the reply box full width inside the amber card.
   - *Trigger:* before the first rehearsal of the email beat.
+- **Phase 6c browser checks.** Owner: Scott. Content and state were read through sail as the personas (see `BUILD_LOG.md`); these are what sail cannot see.
+  1. **Needs chasing view** (as `sd.accountant`, Draws → **Needs chasing (7)**): the radio cards sit left above the list; the grid shows #, Draw (link + investment), Amount, Funding (date + "in N days"), Waiting On (name + role · step), Why (#72 reads "Step 2 waiting 5 days" with "Text failed Sep 26, 8:37 PM" beneath — the last chase), Contact (address + "task: <group>"); no horizontal scroll at ~1280 px; the five KPI cards fit one row on desktop (`EXTRA_NARROW`) and wrap on a phone.
+  2. **Reminder email in Gmail**: "Reminder · Draw #70 · funding in 50 days · awaiting your approval [SD-DRAW-79-S9]" (sent 2026-09-27 ~00:38 UTC) — amber banner above the navy header, then the full step email; it threads with the step email; replying still reaches the receiver.
+  3. **Digest email in Gmail**: "Draw approvals needing a chase · N draws · $… · <date>" — navy bands, the ranked table, draw links open the site record.
+  4. **Treasury email in Gmail**: "Approved for funding · Draw #69 · Tamarack Hotel & Spa Vail · $2,604,252.23 · fund by Nov 16" — green "execute payment" band, PAYMENT box, APPROVAL CHAIN 9 of 9, the link opens #69.
+  5. **Live SMS on your phone** — blocked: Twilio trial accounts reject free-form text (error 572006); see Deferred. Until then the rung logs "Staged · not sent".
+  6. **Asset Manager edit on a real task** (after the draw 66 cycle in the runbook): as `sd.assetmanager`, open #66's task from the Summary; the form is WIDE with an editable Adjustment and Current Draw per line; change one line, watch the tie-out and net-adjustments lines recompute, Approve. Expect Budget Detail "Edited by Elena Marchetti at approval, <date>" and the Line History naming Elena. (sail cannot open tasks; the write path was proven on #74 as the designer.)
+  7. **Feed-trigger dry run** (as the designer): Draws → bottom card → **Stage Malformed Template**, reload after 10 s (Ingesting row), after ~90 s "Not loaded" and the alert in Gmail; then **Stage Corrected Package** → Ingesting row → reconciliation task for `sd.accountant` after ~80 s. Clean up both draws afterwards (explicit ids).
+  - *Trigger:* before the first rehearsal of the Phase 6c beats.
 - **Geometry of the two Phase 3 forms** (start form drop zone; the rebuilt reconciliation form's pane split — the left pane's nine-column DENSE grid must not wrap its numbers at desktop width, and the right pane's viewer should fill the pane height). Owner: Scott. *Trigger:* with the check above.
 
 ## Client validation questions
@@ -155,7 +196,7 @@ Open items by class. Sessions add discovered items unprompted as they surface, a
 
   ~~Does the client accept this wording, or want the sample's back with the conversational rule narrated?~~
 
-- **Questions on a draw above the email limit (Phase 6b).** The guardrail check runs before the AI reads a reply, so an approver's question on a draw over $5,000,000 (e.g. Gateway #12) gets the "email approval is not available" refusal rather than being logged as a question for the team. Should a question on an over-limit draw still reach the draw approval team (the decision would still have to be made in the system)? *Owner:* Scott with the client. *Trigger:* the next review of the email lane.
+- ~~**Questions on a draw above the email limit (Phase 6b).** The guardrail check runs before the AI reads a reply, so an approver's question on a draw over $5,000,000 (e.g. Gateway #12) gets the "email approval is not available" refusal rather than being logged as a question for the team. Should a question on an over-limit draw still reach the draw approval team (the decision would still have to be made in the system)?~~ **Ruled 2026-09-26 (Phase 6c):** the guardrail blocks decisions, not conversation; interpretation runs first and only APPROVE/REJECT is refused. Built and verified on Gateway #12 (message rows 40 QUESTION, 45 GUARDRAIL with the reading, 46 refusal). `PROJECT_INSTRUCTIONS.md` Business rules.
 
 ## Deferred
 
@@ -176,14 +217,12 @@ Open items by class. Sessions add discovered items unprompted as they surface, a
   - Ruling needed: should a missing Hard Costs line read "No line to tie to"?
   - *Owner:* Scott (ruling), then the build session.
   - *Trigger:* a template variant without a Hard Costs line, or the next change to the corroboration rule.
-- **Tie-out colours now differ by place (2026-09-25).** Three "does not tie" states use different colours:
+- ~~**Tie-out colours now differ by place (2026-09-25).** Three "does not tie" states use different colours:~~ **Ruled and built 2026-09-26 (Phase 6c): amber everywhere** (`SD_form_reconcileExtraction` v8, `SD_view_drawSummary` v11). `PROJECT_INSTRUCTIONS.md` Business rules.
   - the reconciliation form's verdict chip is **amber**, per the chip-fix brief;
   - the pinned total's "off by" beneath the grid is **red**;
   - the Summary's AMOUNT VERIFICATION "Does not tie" is **red**.
 
-  The last two were not chips in scope. Ruling needed: one colour for an amount that does not tie.
-  - *Owner:* Scott.
-  - *Trigger:* the chip-layout browser check.
+  ~~The last two were not chips in scope. Ruling needed: one colour for an amount that does not tie.~~
 - **5.5-era draws keep 5.5 statuses and summaries.** Draws 86–91 carry supporting-document rows with status Read / Not read and stored summaries that say "invoice ties"; the rules still handle them (Read rows are treated by type), but the wording is 5.5's. Clear them at the next ingestion reset rather than rewrite them. *Owner:* the presenter or the session. *Trigger:* the next ingestion demo reset.
 - **Doc Center `generalComments` field** removed from model 85 — re-add only when a template carries a filled General Comments cell (ruled 2026-09-22; `PROJECT_INSTRUCTIONS.md` Business rules). *Trigger:* that template.
 - **`SD Draw Approvers` holds Viewer on DocCenter's `AIA Reconcile Connected System`** (granted 2026-09-22 for the reconciliation form's inline xlsx viewer; the `updateObjectSecurity` readback also flipped `inheritSecurity` to `true` with no inherited groups). *Status 2026-09-22:* Scott has messaged DocCenter's owners; no objection has been raised, so this is a note, not an open check. If a reply objects, revert with `updateObjectSecurity` to the original role map (administrator `14a675fc-…`, viewer `AIA All Users` only) and route the accountant to the download link. *Owner:* Scott. *Trigger:* an objection from the DocCenter owners.
@@ -198,6 +237,8 @@ Open items by class. Sessions add discovered items unprompted as they surface, a
 - **"Save for Later" on the task form** (in `mockups/task-approval.html`) is not built: a task form has no draft save without a process change (a "save draft" path in `SD Draw Approval Step`).
   - *Owner:* the build session.
   - *Trigger:* a ruling that the demo needs it.
+- **Live SMS needs a Twilio account that can send free-form text (found 2026-09-26).** The connected system authenticates (Scott entered the SID and token); the first live send reached Twilio and was refused: HTTP 400, error **572006** "Invalid template name. Trial accounts can only use predefined SMS templates." Two attempts, both logged on #72 › Emails as **Text failed** with Twilio's message. `SD_SMS_MODE` is back to **STAGED** (read back v5). To go live: upgrade the Twilio account (or register a template and adapt `SD_sendTwilioSms`), then set `SD_SMS_MODE` to LIVE and fire `SD Chase Approval Step` once with `originProcessId` of a test draw's step process. *Owner:* Scott (the account), then the session. *Trigger:* the Twilio account change.
+- **Stretch: AI-drafted contingency narrative** (BUILD_PLAN 6c) — skipped in 6c by Scott's ruling (2026-09-26). *Owner:* Scott. *Trigger:* a ruling that the demo needs it.
 - **"Advance draw (demo)" related action** (BUILD_PLAN Phase 2) is still open; the accelerator is started through `testProcessModel` today.
   - *Owner:* the build session.
   - *Trigger:* the first rehearsal that needs a presenter-clickable accelerator.
@@ -244,6 +285,12 @@ Open items by class. Sessions add discovered items unprompted as they surface, a
   *Owner:* the build session. *Trigger:* any move of the app to another instance.
 
 ## Done
+
+- ✅ 2026-09-26 **Phase 6c: velocity ladder, site-reachable exceptions, Asset Manager edit, treasury content, feed staging** (the final build phase).
+  - **Rulings recorded** in `PROJECT_INSTRUCTIONS.md`: nothing requires Tempo; the guardrail blocks decisions, not conversation; tie-out non-tie is amber everywhere.
+  - **Verified:** guardrail order on Gateway #12 (QUESTION row 40 reaches the team; approval row 45 refused with its reading, refusal row 46); the email-reply review reachable from the site as `sd.accountant` and absent for `sd.assetmanager` (sail, draw 79 / #70); cycle time on Summary, Approvals and the fifth KPI; reminder and text rungs fired through the escalation path (`originProcessId` only); the chase view and digest; the Asset Manager edit's write path, attribution and block at other steps (#74, #70); treasury HTML on a live email approval (#69, draw 78); the clean package through the feed path (draw 99, rendered TIES); both personas' Draws page read back.
+  - **Found and fixed via sail:** the Draws page failed for `sd.accountant` ("Insufficient permission": `group()` on a step group the persona cannot see) — group names now come from the step-group constants; a staged text read "Text sent" in the chase view.
+  - **Not done:** live SMS (Twilio trial restriction, Deferred); escalation/trigger/schedule setup (Designer, Before demo); the contingency narrative stretch (skipped by ruling).
 
 - ✅ 2026-09-26 **Phase 6b: the email lane becomes a conversation.**
   - **Built:** approver questions logged and pending (Summary card for the team, Emails tab for all); the specialist's answer from the record on the same thread; the grounded-quote gate with wording checks; decision receipts; the thread on its own Emails tab, with a pointer on Approvals.

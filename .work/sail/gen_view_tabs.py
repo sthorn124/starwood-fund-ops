@@ -84,6 +84,10 @@ a!localVariables(
       local!sum
     }}
   ),
+  /* Phase 6c: the Asset Manager's edits at approval (SD Draw Budget Line Event History), newest first; a line shows its
+     latest edit under its category, and the Line History card lists every edit with its frozen sentence */
+  local!edits: if(local!found, rule!SD_getBudgetLineEdits(drawId: ri!drawId), {{}}),
+  local!editLineIds: if(a!isNullOrEmpty(local!edits), {{}}, a!forEach(items: local!edits, expression: tointeger(fv!item.lineId))),
   local!sourceDoc: a!localVariables(
     local!raw: if(
       not(local!found),
@@ -111,12 +115,31 @@ a!localVariables(
           a!gridColumn(
             label: "Budget Category",
             value: a!richTextDisplayField(
-              value: a!richTextItem(
-                text: fv!row.budgetCategory,
-                style: if(or(fv!row.kind = "section", fv!row.kind = "total"), "STRONG", "PLAIN"),
-                color: if(fv!row.kind = "section", "#6B7280", "#16294D"),
-                size: if(fv!row.kind = "section", "SMALL", "STANDARD")
-              )
+              value: {{
+                a!richTextItem(
+                  text: fv!row.budgetCategory,
+                  style: if(or(fv!row.kind = "section", fv!row.kind = "total"), "STRONG", "PLAIN"),
+                  color: if(fv!row.kind = "section", "#6B7280", "#16294D"),
+                  size: if(fv!row.kind = "section", "SMALL", "STANDARD")
+                ),
+                /* Phase 6c: the latest edit at approval on this line */
+                a!localVariables(
+                  local!pos: if(or(fv!row.kind <> "line", a!isNullOrEmpty(local!editLineIds)), {{}}, wherecontains(tointeger(fv!row.id), local!editLineIds)),
+                  local!edit: if(a!isNullOrEmpty(local!pos), null, index(local!edits, local!pos[1], null)),
+                  if(
+                    a!isNullOrEmpty(local!edit),
+                    "",
+                    {{
+                      char(10),
+                      a!richTextItem(
+                        text: "Edited by " & local!edit.userName & " at approval, " & text(local!edit.at, "MMM D"),
+                        color: "#1D5BBF",
+                        size: "SMALL"
+                      )
+                    }}
+                  )
+                )
+              }}
             ),
             width: "MEDIUM_PLUS"
           ),
@@ -138,7 +161,34 @@ a!localVariables(
       rule!SD_cmp_sourceLine(
         text: "Categories funded by Draw #" & a!defaultValue(index(local!d, "drawNumber", ""), "") & " listed first, per the approval email layout. Net proposed adjustments this draw are " & rule!SD_fmtMoney(value: local!sum.proposedAdjustmentsThisDraw, showCents: false) & ". The total row is computed from the category lines."
       )
-    {card_close}
+    {card_close},
+    /* Phase 6c: Line History — every edit the Asset Manager made at approval, with the sentence frozen when it was saved */
+    a!cardLayout(
+      contents: {{
+        {heading('"Line History"', '"Budget lines edited at the Asset Manager\'s approval step · recorded as events on each line, with the before and after values"')},
+        a!gridField(
+          labelPosition: "COLLAPSED",
+          data: local!edits,
+          columns: {{
+            a!gridColumn(label: "When", value: text(fv!row.at, "MMM D, YYYY h:mm a"), width: "NARROW_PLUS"),
+            a!gridColumn(label: "Budget Line", value: a!richTextDisplayField(value: a!richTextItem(text: fv!row.budgetCategory, style: "STRONG")), width: "MEDIUM"),
+            a!gridColumn(label: "Edited By", value: fv!row.userName, width: "NARROW_PLUS"),
+            a!gridColumn(label: "Change", value: fv!row.comment)
+          }},
+          pageSize: 20,
+          spacing: "DENSE",
+          borderStyle: "LIGHT",
+          emptyGridMessage: "No budget lines edited at approval"
+        )
+      }},
+      showWhen: not(a!isNullOrEmpty(local!edits)),
+      style: "NONE",
+      shape: "SEMI_ROUNDED",
+      padding: "STANDARD",
+      showBorder: true,
+      showShadow: false,
+      marginBelow: "STANDARD"
+    )
   }}
 )
 """
@@ -265,6 +315,23 @@ a!localVariables(
         borderStyle: "LIGHT",
         rowHeader: 2,
         emptyGridMessage: "No approval chain on this draw"
+      ),
+      /* Phase 6c: the draw's cycle, from dates it already holds */
+      a!richTextDisplayField(
+        labelPosition: "COLLAPSED",
+        value: {{
+          a!richTextIcon(icon: "clock-o", color: "#6B7280", size: "SMALL"),
+          a!richTextItem(
+            text: " Cycle: received " & if(a!isNullOrEmpty(index(local!d, "receivedDate", null)), "—", text(todate(index(local!d, "receivedDate", null)), "MMM D")) & if(
+              not(a!isNullOrEmpty(index(local!d, "daysToDecide", null))),
+              " · decided in " & index(local!d, "daysToDecide", 0) & if(index(local!d, "daysToDecide", 0) = 1, " day", " days"),
+              if(a!isNullOrEmpty(index(local!d, "daysInApproval", null)), "", " · in approval " & index(local!d, "daysInApproval", 0) & if(index(local!d, "daysInApproval", 0) = 1, " day", " days") & " so far")
+            ) & " · Time at Step runs from a step's activation to its decision",
+            color: "#6B7280",
+            size: "SMALL"
+          )
+        }},
+        marginBelow: "EVEN_LESS"
       ),
       rule!SD_cmp_sourceLine(text: "The CEO approves by email reply. All decisions are recorded with actor, source (task, email, or system), and timestamp. On final approval, Treasury is notified to execute the cash payment.")
     {card_close},

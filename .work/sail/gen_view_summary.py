@@ -219,6 +219,25 @@ a!localVariables(
   /* Phase 6b: an approver's pending email question, shown to the draw approval team, who answer it on the Emails tab */
   local!isSpecialist: a!isUserMemberOfGroup(username: loggedInUser(), groups: cons!SD_DRAW_DEMO_APPROVERS_GROUP),
   local!pending: if(and(local!found, local!isSpecialist), rule!SD_getPendingQuestion(drawId: ri!drawId), a!map(pending: false)),
+  /* Phase 6c: an email reply waiting for the draw approval team's review (the exception queue), from rule!SD_getDrawDetail */
+  local!exceptionOpen: and(local!found, a!defaultValue(index(local!d, "exceptionOpen", false), false)),
+  local!exception: if(local!exceptionOpen, index(local!d, "exception", null), null),
+  local!exceptionTaskId: if(local!exceptionOpen, index(local!d, "exceptionTaskId", null), null),
+  /* Phase 6c: cycle time from dates the draw holds (receivedDate to the terminal decision); accelerated chains carry
+     generated decision dates, so their durations are demo fiction */
+  local!cycleLine: if(
+    or(not(local!found), a!isNullOrEmpty(index(local!d, "receivedDate", null))),
+    "",
+    "Received " & text(todate(index(local!d, "receivedDate", null)), "MMM D") & " · " & if(
+      not(a!isNullOrEmpty(index(local!d, "daysToDecide", null))),
+      if(tostring(a!defaultValue(index(local!d, "status", ""), "")) = "Rejected", "rejected in ", "decided in ") & index(local!d, "daysToDecide", 0) & if(index(local!d, "daysToDecide", 0) = 1, " day", " days") & if(a!isNullOrEmpty(index(local!d, "decidedAt", null)), "", " (" & text(todate(index(local!d, "decidedAt", null)), "MMM D") & ")"),
+      if(
+        a!isNullOrEmpty(index(local!d, "daysInApproval", null)),
+        tostring(a!defaultValue(index(local!d, "status", ""), "")),
+        "in approval " & index(local!d, "daysInApproval", 0) & if(index(local!d, "daysInApproval", 0) = 1, " day", " days") & " so far"
+      )
+    ) & if(a!isNullOrEmpty(index(local!d, "daysReceivedToFunding", null)), "", " · " & index(local!d, "daysReceivedToFunding", 0) & " days from receipt to funding date")
+  ),
   {{
     a!richTextDisplayField(
       labelPosition: "COLLAPSED",
@@ -226,6 +245,16 @@ a!localVariables(
       showWhen: not(local!found)
     ),
     rule!SD_cmp_drawFactStrip(detail: local!d),
+    /* Phase 6c: the cycle line */
+    a!richTextDisplayField(
+      labelPosition: "COLLAPSED",
+      value: {{
+        a!richTextIcon(icon: "clock-o", color: "#6B7280", size: "SMALL"),
+        a!richTextItem(text: " " & local!cycleLine, color: "#6B7280", size: "SMALL")
+      }},
+      showWhen: local!cycleLine <> "",
+      marginBelow: "STANDARD"
+    ),
     /* Action strip: only the current step's assignee group sees it, and only while a task is open; the button opens that task */
     a!cardLayout(
       contents: {{
@@ -355,6 +384,85 @@ a!localVariables(
         )
       }},
       showWhen: and(local!found, local!isSpecialist, a!defaultValue(index(local!pending, "pending", false), false)),
+      style: "#FDF3E0",
+      decorativeBarPosition: "START",
+      decorativeBarColor: "#D97706",
+      shape: "SEMI_ROUNDED",
+      padding: "STANDARD",
+      showBorder: false,
+      showShadow: false,
+      marginBelow: "STANDARD"
+    ),
+    /* Phase 6c: an email reply waiting for review (the exception queue), reachable from the site — no Tempo. The draw
+       approval team (SD Draw Demo Approvers) gets the action: Review Reply opens the handler's open "Review email reply"
+       task. Everyone else sees the state without the action. */
+    a!cardLayout(
+      contents: {{
+        a!columnsLayout(
+          columns: {{
+            a!columnLayout(
+              contents: a!richTextDisplayField(
+                labelPosition: "COLLAPSED",
+                value: {{
+                  a!richTextItem(
+                    text: if(
+                      local!isSpecialist,
+                      "An email reply needs review — it could not be read as a clear decision",
+                      "An email reply on this draw is waiting for the draw approval team's review"
+                    ),
+                    style: "STRONG",
+                    color: "#92600A"
+                  ),
+                  char(10),
+                  a!richTextItem(
+                    text: "“" & left(a!defaultValue(index(local!exception, "replyText", ""), ""), 200) & "”"
+                      & if(a!defaultValue(index(local!exception, "senderName", ""), "") = "", "", " · " & index(local!exception, "senderName", ""))
+                      & if(a!isNullOrEmpty(index(local!exception, "receivedAt", null)), "", " · " & text(index(local!exception, "receivedAt", null), "MMM D, h:mm a"))
+                      & " · nothing changed on the draw",
+                    color: "#6B7280",
+                    size: "SMALL"
+                  )
+                }},
+                marginBelow: "NONE"
+              ),
+              width: "AUTO"
+            ),
+            a!columnLayout(
+              contents: {{
+                a!cardLayout(
+                  contents: a!richTextDisplayField(
+                    labelPosition: "COLLAPSED",
+                    value: a!richTextItem(text: "Review Reply", color: "#FFFFFF", style: "STRONG"),
+                    align: "CENTER",
+                    marginBelow: "NONE"
+                  ),
+                  link: a!processTaskLink(task: local!exceptionTaskId),
+                  showWhen: and(local!isSpecialist, not(a!isNullOrEmpty(local!exceptionTaskId))),
+                  style: "#B45309",
+                  shape: "SEMI_ROUNDED",
+                  padding: "LESS",
+                  showBorder: false,
+                  showShadow: false,
+                  marginBelow: "NONE"
+                ),
+                a!richTextDisplayField(
+                  labelPosition: "COLLAPSED",
+                  value: a!richTextItem(text: "Review task not found — see the Emails tab", color: "#6B7280", size: "SMALL"),
+                  align: "RIGHT",
+                  showWhen: and(local!isSpecialist, a!isNullOrEmpty(local!exceptionTaskId)),
+                  marginBelow: "NONE"
+                )
+              }},
+              width: "NARROW_PLUS",
+              showWhen: local!isSpecialist
+            )
+          }},
+          alignVertical: "MIDDLE",
+          stackWhen: {{"PHONE"}},
+          marginBelow: "NONE"
+        )
+      }},
+      showWhen: local!exceptionOpen,
       style: "#FDF3E0",
       decorativeBarPosition: "START",
       decorativeBarColor: "#D97706",
@@ -632,8 +740,9 @@ a!localVariables(
                       labelPosition: "COLLAPSED",
                       tags: a!tagItem(
                         text: if(local!noLines, "No budget lines", if(local!ties, "Ties ✓", "Does not tie")),
-                        backgroundColor: if(local!noLines, "#EEF1F5", if(local!ties, "#E6F4EC", "#FDECEC")),
-                        textColor: if(local!noLines, "#64748B", if(local!ties, "#1E7E46", "#B42318"))
+                        /* Phase 6c ruling: a non-tie is amber everywhere (the reconciliation chips' tokens), never red */
+                        backgroundColor: if(local!noLines, "#EEF1F5", if(local!ties, "#E6F4EC", "#FDF3E0")),
+                        textColor: if(local!noLines, "#64748B", if(local!ties, "#1E7E46", "#92600A"))
                       ),
                       size: "SMALL"
                     ),

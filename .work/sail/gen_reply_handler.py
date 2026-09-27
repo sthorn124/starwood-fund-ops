@@ -4,6 +4,10 @@ node 13). No f-strings.
 
 Phase 6b: QUESTION route, decision receipts, the decisive phrase and the sender's name on every row.
 
+Phase 6c: the guardrail moved after the reading. Checks 5/6 no longer refuse an over-limit draw; node 14 routes a decision
+(APPROVE / REJECT) on it to GUARDRAIL (20-23, the reply logged with its reading), while a question or an unclear reply
+flows as usual. The exception row (60) carries the handler's process id so the site can link the open review task.
+
 Handler flow (every node as the designer):
   3 read the reply (token, reply text)  ->  5 checks (SD_getReplyContext)  ->  4 XOR on the verdict
      OK          -> 10 AI request -> 11 AI (DocCenter Text Input skill, Runtime Prompt) -> 12 gate -> 14 route -> 13 XOR
@@ -78,11 +82,12 @@ SENDER = ("if(a!defaultValue(index(pv!context, \"authorized\", false), false), i
 PHRASE = "tostring(index(pv!reading, \"phrase\", \"\"))"
 
 
-def inbound(outcome_expr, interp_expr, notes_expr, phrase_expr="\"\""):
+def inbound(outcome_expr, interp_expr, notes_expr, phrase_expr="\"\"", extra=""):
+    # extra (6c): further SD_newEmailMessage arguments, e.g. ", processId: pp!id" on the exception row
     return ("={ rule!SD_newEmailMessage(" + CTX + ", direction: \"INBOUND\", kind: \"REPLY\", fromAddress: pv!fromAddress, "
             "toAddress: cons!SD_EMAIL_REPLY_ADDRESS, subject: pv!subject, body: pv!replyText, messageAt: pv!receivedAt, "
             "outcome: " + outcome_expr + ", interpretation: " + interp_expr + ", source: \"EMAIL\", notes: " + notes_expr + ", "
-            "decisivePhrase: " + phrase_expr + ", senderName: " + SENDER + ") }")
+            "decisivePhrase: " + phrase_expr + ", senderName: " + SENDER + extra + ") }")
 
 
 # one outbound row: what the flow sent back on the thread
@@ -130,19 +135,21 @@ nodes = [
         ("rule!SD_getReplyContext(drawId: index(pv!token, \"drawId\", null), stepOrder: index(pv!token, \"stepOrder\", null), fromAddress: pv!fromAddress)",
          "pv!context")], 6),
     # node 6, not 4: stage 0 had a Write Records node as 4, and a node's type cannot change on update (measured)
+    # 6c: the guardrail no longer stops a reply here; the reply is read first and only a decision is refused (node 14)
     xor(6, "Checks pass?", [390, 300], [
-        ("=" + VERDICT + " = \"OK\"", 10, "ok"),
-        ("=" + VERDICT + " = \"GUARDRAIL\"", 20, "over the email limit")], 30),
+        ("=" + VERDICT + " = \"OK\"", 10, "ok")], 30),
     # refused: logged on the draw, nothing sent, nothing changed
     write(30, "Log reply (not acted on)", [390, 520],
           inbound(VERDICT, "\"\"", "index(pv!context, \"reason\", \"\") & \" Nothing changed.\""), 2),
-    # guardrail: logged, refusal on the thread
-    script(20, "Guardrail refusal (rules)", [520, 440], [
+    # guardrail (6c: reached from node 13 when the reply was READ as a decision on a draw above the email limit):
+    # logged with its reading, refusal on the thread, nothing changed
+    script(20, "Guardrail refusal (rules)", [1120, 560], [
         ("rule!SD_buildReplyResponseEmail(kind: \"GUARDRAIL\", context: pv!context, replyText: pv!replyText)", "pv!response")], 21),
-    write(21, "Log reply (guardrail)", [640, 440],
-          inbound("\"GUARDRAIL\"", "\"\"", "index(pv!context, \"reason\", \"\") & \" Email approval refused; nothing changed.\""), 22),
-    send(22, "Send guardrail refusal on the thread", [760, 440], "=toemailaddress(pv!fromAddress)", 23),
-    write(23, "Log refusal sent", [880, 440], outbound("GUARDRAIL_REFUSAL"), 2),
+    write(21, "Log reply (guardrail)", [1240, 560],
+          inbound("\"GUARDRAIL\"", "pv!interpretationText",
+                  "index(pv!context, \"guardrailReason\", \"\") & \" Read as \" & index(pv!reading, \"decision\", \"\") & \"; decisions by email are refused above the limit. Nothing changed.\"", PHRASE), 22),
+    send(22, "Send guardrail refusal on the thread", [1360, 560], "=toemailaddress(pv!fromAddress)", 23),
+    write(23, "Log refusal sent", [1480, 560], outbound("GUARDRAIL_REFUSAL"), 2),
     # interpretation
     script(10, "Prepare the AI request (rules)", [520, 300], [
         ("rule!SD_buildReplyInterpretationRequest(replyText: pv!replyText, context: pv!context)", "pv!aiRequest"),
@@ -165,7 +172,7 @@ nodes = [
          "pv!reading")], 14),
     script(14, "Route (rules)", [880, 300], [
         ("a!localVariables(local!r: pv!reading, local!c: a!defaultValue(index(local!r, \"classified\", false), false), local!d: index(local!r, \"decision\", \"AMBIGUOUS\"), "
-         "if(and(local!c, or(local!d = \"APPROVE\", local!d = \"REJECT\")), \"APPLY\", if(and(local!c, local!d = \"QUESTION\"), \"QUESTION\", "
+         "if(and(local!c, or(local!d = \"APPROVE\", local!d = \"REJECT\")), if(a!defaultValue(index(pv!context, \"overLimit\", false), false), \"GUARDRAIL\", \"APPLY\"), if(and(local!c, local!d = \"QUESTION\"), \"QUESTION\", "
          "if(and(local!c, local!d = \"AMBIGUOUS\", a!defaultValue(index(pv!context, \"priorAmbiguous\", 0), 0) = 0), \"CLARIFY\", \"EXCEPTION\"))))",
          "pv!route"),
         ("if(a!defaultValue(index(pv!reading, \"classified\", false), false), \"A second reply on this step that is not a clear approval or rejection.\", "
@@ -183,6 +190,7 @@ nodes = [
         ("pv!receivedAt", "pv!applyDate"),
         ("\"Step \" & index(pv!context, \"stepOrder\", \"?\") & \" · \" & index(pv!context, \"role\", \"\")", "pv!stepLabel")], 13),
     xor(13, "Route?", [1000, 300], [
+        ("=pv!route = \"GUARDRAIL\"", 20, "a decision above the email limit"),
         ("=pv!route = \"APPLY\"", 40, "approve or reject"),
         ("=pv!route = \"QUESTION\"", 70, "a question"),
         ("=pv!route = \"CLARIFY\"", 50, "first ambiguous")], 60),
@@ -224,7 +232,8 @@ nodes = [
     write(53, "Log clarification sent", [1480, 300], outbound("CLARIFICATION"), 2),
     # exception queue: a person reviews; nothing changes until a human decides in the UI
     write(60, "Log reply (to the exception queue)", [1120, 440],
-          inbound("\"EXCEPTION\"", "pv!interpretationText", "pv!exceptionReason & \" Sent to the exception queue (SD Draw Demo Approvers). Nothing changed.\"", PHRASE), 61),
+          inbound("\"EXCEPTION\"", "pv!interpretationText", "pv!exceptionReason & \" Sent to the exception queue (SD Draw Demo Approvers). Nothing changed.\"", PHRASE,
+                  ", processId: pp!id"), 61),
     {"id": 61, "type": "internal.17", "name": "Review email reply", "coordinates": [1240, 440], "connections": conn(62),
      "data": {"customInputs": [
          {"name": "drawId", "type": "INTEGER", "expression": "=pv!applyDrawId"},

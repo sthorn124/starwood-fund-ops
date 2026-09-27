@@ -1,4 +1,5 @@
-/* Draw approval (Phase 6a; Phase 6b adds decisivePhrase and senderName): one SD Draw Email Message row, for a Write
+/* Draw approval (Phase 6a; Phase 6b adds decisivePhrase and senderName; Phase 6c adds channel (EMAIL when blank, or
+   SMS) and processId (the writing process, pp!id)): one SD Draw Email Message row, for a Write
    Records node. Lengths are cut to the columns (from 255, subject/to/interpretation/notes/decisivePhrase 1,000,
    body 4,000, senderName 255; measured through a real Write Records node) so a long email never fails the write. */
 'recordType!{3686a81f-86e2-498e-a4d1-ce40236c824a}SD Draw Email Message'(
@@ -17,5 +18,7 @@
   'recordType!{3686a81f-86e2-498e-a4d1-ce40236c824a}SD Draw Email Message.fields.{4c41085b-ca45-480a-bb74-ebc8e9b58299}source': a!defaultValue(ri!source, "EMAIL"),
   'recordType!{3686a81f-86e2-498e-a4d1-ce40236c824a}SD Draw Email Message.fields.{26ebc1a1-f628-4e0f-8e50-67a18fdd3fa4}notes': left(a!defaultValue(ri!notes, ""), 1000),
   'recordType!{3686a81f-86e2-498e-a4d1-ce40236c824a}SD Draw Email Message.fields.{9a40d4fd-6882-49ff-acf3-cf887b1bc545}decisivePhrase': left(a!defaultValue(ri!decisivePhrase, ""), 1000),
-  'recordType!{3686a81f-86e2-498e-a4d1-ce40236c824a}SD Draw Email Message.fields.{e014b841-d300-4065-859e-25eabb721ec7}senderName': left(a!defaultValue(ri!senderName, ""), 255)
+  'recordType!{3686a81f-86e2-498e-a4d1-ce40236c824a}SD Draw Email Message.fields.{e014b841-d300-4065-859e-25eabb721ec7}senderName': left(a!defaultValue(ri!senderName, ""), 255),
+  'recordType!{3686a81f-86e2-498e-a4d1-ce40236c824a}SD Draw Email Message.fields.{03ae1c46-b6a0-4501-b065-2b90a3f47ebf}channel': a!defaultValue(ri!channel, "EMAIL"),
+  'recordType!{3686a81f-86e2-498e-a4d1-ce40236c824a}SD Draw Email Message.fields.{e9c9c4c7-9917-4689-bbd9-834dfeed71d4}processId': ri!processId
 )

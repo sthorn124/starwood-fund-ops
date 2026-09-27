@@ -1,7 +1,8 @@
 /* Draw approval (Phase 6b): the Emails view of a draw record — the approval email thread as one conversation.
    Oldest first. The approver's messages sit left (slate bar), what the flow and the draw approval team send sits right
    (navy bar, faint navy tint); the direction is also written on every message ("Received from …" / "Sent to …"), so the
-   bar never carries meaning alone. Each message shows sender, kind, time, step and source, the text, the AI reading
+   bar never carries meaning alone. Phase 6c: the log also carries the escalation ladder — REMINDER emails and SMS texts
+   (channel SMS; a staged text shows "Staged · not sent") — and the open exception's row links its review task. Each message shows sender, kind, time, step and source, the text, the AI reading
    (the decisive phrase and the reading line) where there is one, and an outcome tag (40 characters or fewer).
    A pending approver question (SD_getPendingQuestion) is lifted to the top in amber; members of SD Draw Demo Approvers
    answer it there: the reply box starts SD Answer Draw Question synchronously (a!startProcess, isSynchronous: the view
@@ -36,6 +37,9 @@ a!localVariables(
     )
   ),
   local!isSpecialist: a!isUserMemberOfGroup(username: loggedInUser(), groups: cons!SD_DRAW_DEMO_APPROVERS_GROUP),
+  /* Phase 6c: the open email-exception review (rule!SD_getDrawDetail → SD_getOpenEmailException); its row links the task */
+  local!exceptionMsgId: tointeger(a!defaultValue(index(index(local!d, "exception", null), "messageId", null), -3)),
+  local!exceptionTaskId: index(local!d, "exceptionTaskId", null),
   local!answer: null,
   local!sentTo: null,
   local!sendError: null,
@@ -203,13 +207,18 @@ a!localVariables(
               equals: "ANSWER", then: "ANSWER",
               equals: "RECEIPT", then: "DECISION RECEIPT",
               equals: "EXCEPTION_REVIEW", then: "EXCEPTION REVIEW",
+              equals: "REMINDER", then: "REMINDER",
+              equals: "SMS", then: "TEXT MESSAGE",
               default: upper(local!kind)
             ),
+            /* Phase 6c: the unified exchange log carries SMS as well as email */
+            local!isSms: a!defaultValue(fv!item.channel, "EMAIL") = "SMS",
+            local!isOpenException: and(local!isIn, a!defaultValue(fv!item.outcome, "") = "EXCEPTION", tointeger(a!defaultValue(fv!item.id, -1)) = local!exceptionMsgId),
             local!meta: if(
               local!isIn,
               "Received from " & a!defaultValue(fv!item.fromAddress, ""),
-              if(local!isOut, "Sent to " & a!defaultValue(fv!item.toAddress, ""), "Internal")
-            ) & if(a!isNullOrEmpty(fv!item.stepOrder), "", " · step " & fv!item.stepOrder) & " · source " & lower(a!defaultValue(fv!item.source, "")),
+              if(local!isOut, if(local!isSms, "Texted to ", "Sent to ") & a!defaultValue(fv!item.toAddress, ""), "Internal")
+            ) & if(a!isNullOrEmpty(fv!item.stepOrder), "", " · step " & fv!item.stepOrder) & " · source " & lower(a!defaultValue(fv!item.source, "")) & if(local!isSms, " · channel SMS", ""),
             local!body: trim(a!defaultValue(fv!item.body, "")),
             local!o: a!defaultValue(fv!item.outcome, ""),
             local!tag: a!match(
@@ -230,8 +239,12 @@ a!localVariables(
                 equals: "GUARDRAIL_REFUSAL", then: "Refusal sent",
                 equals: "ANSWER", then: "Answer sent",
                 equals: "RECEIPT", then: "Receipt sent",
+                equals: "REMINDER", then: "Reminder sent",
+                equals: "SMS", then: "Text sent",
                 default: "Sent"
               ),
+              equals: "STAGED", then: "Staged · not sent",
+              equals: "FAILED", then: if(local!isSms, "Text failed", "Send failed"),
               equals: "REVIEWED", then: "Reviewed",
               equals: "RECEIVED", then: "Received",
               default: if(local!o = "", "—", left(local!o, 40))
@@ -244,6 +257,7 @@ a!localVariables(
               equals: "SENT", then: "N",
               equals: "REVIEWED", then: "N",
               equals: "RECEIVED", then: "N",
+              equals: "FAILED", then: "R",
               default: "A"
             ),
             a!columnsLayout(
@@ -339,7 +353,18 @@ a!localVariables(
                           a!sideBySideItem(
                             item: a!richTextDisplayField(
                               labelPosition: "COLLAPSED",
-                              value: a!richTextItem(text: a!defaultValue(fv!item.notes, ""), size: "SMALL", color: "#6B7280"),
+                              value: {
+                                a!richTextItem(text: a!defaultValue(fv!item.notes, ""), size: "SMALL", color: "#6B7280"),
+                                /* Phase 6c: the open review, reachable from here for the draw approval team */
+                                if(
+                                  and(local!isOpenException, local!isSpecialist, not(a!isNullOrEmpty(local!exceptionTaskId))),
+                                  {
+                                    a!richTextItem(text: "  ·  ", size: "SMALL", color: "#6B7280"),
+                                    a!richTextItem(text: "Review this reply", link: a!processTaskLink(task: local!exceptionTaskId), linkStyle: "STANDALONE", size: "SMALL", style: "STRONG")
+                                  },
+                                  if(local!isOpenException, a!richTextItem(text: "  ·  awaiting the draw approval team's review", size: "SMALL", color: "#92600A", style: "STRONG"), "")
+                                )
+                              },
                               marginBelow: "NONE"
                             )
                           )
