@@ -5,7 +5,8 @@
      columns       — the table's heading row, left to right, blank cells dropped
      rows          — column A below the heading row, down to the first blank or TOTAL row
      totalLabel    — the TOTAL row's label, if any
-     investmentName, drawNumber — column B beside those labels (as text)
+     investmentName — column B beside that label (as text). The draw number is not read (ruled 2026-09-28: it is
+                     system-assigned; the template's number is document content only)
      rowCount      — rows read from the sheet
    Labels only: no values from the budget table are returned, so a comparison built on this cannot talk about amounts. */
 a!localVariables(
@@ -76,7 +77,6 @@ a!localVariables(
     index(local!headerSlice, where(len(local!headerSlice) > 0), {})
   ),
   local!investmentRow: if(local!n = 0, 0, index(wherecontains("investment name", local!colALower), 1, 0)),
-  local!drawNumberRow: if(local!n = 0, 0, index(wherecontains("draw number", local!colALower), 1, 0)),
   a!map(
     ok: local!tableRow > 0,
     readOk: a!defaultValue(index(local!read, "success", false), false),
@@ -86,7 +86,6 @@ a!localVariables(
     columns: local!columns,
     rows: local!rows,
     totalLabel: local!totalLabel,
-    investmentName: index(local!colB, local!investmentRow, ""),
-    drawNumber: index(local!colB, local!drawNumberRow, "")
+    investmentName: index(local!colB, local!investmentRow, "")
   )
 )

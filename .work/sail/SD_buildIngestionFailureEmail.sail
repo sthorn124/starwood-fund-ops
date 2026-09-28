@@ -1,6 +1,6 @@
 /* Draw approval (Phase 5): the ingestion failure alert — subject and HTML body — for a draw whose budget template could
    not be loaded, built from the draw's records at send time (the reason and the comparison the failure branch stored,
-   the Budget Template document row). Inputs from the workbook itself (fileInvestmentName, fileDrawNumber) name the draw
+   the Budget Template document row). The input from the workbook itself (fileInvestmentName) names the investment; a failed draw has no number (ruled 2026-09-28: draw numbers are system-assigned, the template's is never read), so it is labelled "New draw (not loaded)"; it names the draw
    while it has no draw number of its own. Phase 4 visual language: navy bands, table layout, every style inline, no
    stylesheet, no images, no links — Gmail is the target. Returns a!map(subject, html, bytes). */
 a!localVariables(
@@ -40,7 +40,7 @@ a!localVariables(
   local!drawLabel: if(
     not(a!isNullOrEmpty(index(local!d, "drawNumber", null))),
     "Draw #" & index(local!d, "drawNumber", null),
-    if(a!isNullOrEmpty(ri!fileDrawNumber), "Draw (number not read)", "Draw #" & ri!fileDrawNumber & " (as submitted)")
+    "New draw (not loaded)"
   ),
   local!reason: rule!SD_splitIngestionText(text: index(local!d, "ingestionFailureReason", "")),
   local!comparison: rule!SD_splitIngestionText(text: index(local!d, "ingestionComparison", "")),
@@ -66,7 +66,7 @@ a!localVariables(
       a!map(label: "File received", value: local!fileName),
       a!map(label: "Received", value: local!receivedText),
       a!map(label: "Investment (from the file)", value: local!investment),
-      a!map(label: "Draw (from the file)", value: local!drawLabel),
+      a!map(label: "Draw", value: local!drawLabel),
       a!map(label: "Sent by", value: a!defaultValue(index(local!d, "submittedBy", null), "—")),
       a!map(label: "Status on the Draws list", value: "Ingestion Failed")
     },

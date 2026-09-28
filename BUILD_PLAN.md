@@ -15,7 +15,7 @@ Industry: real estate private equity, fund operations. Use case: **draw approval
 Beat by beat, as ruled 2026-09-27 (`PROJECT_INSTRUCTIONS.md`, "Demo order and demo prep"; success before failure; no beat depends on a record id or business number):
 1. The corrected package arrives from the feed and ingests through Doc Center.
 2. The accountant reconciles and confirms it.
-3. A malformed template arrives and fails, and an AI comparison explains why.
+3. A malformed template arrives and fails, and an AI comparison explains why. (Optionally, since 2026-09-28, the mismatch package arrives and the tie-out catches the pay application.)
 4. QIU data and the chain on a draw staged for approval.
 5. The Asset Manager edits and approves in the UI.
 6. The CEO approves by a conversational email reply.
@@ -370,6 +370,11 @@ Rescoped 2026-09-26: 6b is the conversation lane on the 6a receiver and message 
 - ✅ 2026-09-27 **Stage for Approval** (fix session): the staging card advances a chosen ingested draw from step 1–2 to the Asset Manager's step with the accelerator's own mechanics (orders 1–2 attributed to the seed personas) and a fresh step-3 task from the current model; refuses seeded, kept, past-step-2 and task-less draws. Verified on #82 (draw 98) through the Asset Manager edit, the accelerator and the CEO step email.
 - ✅ 2026-09-27 **Clean Up Old Runs** (fix session, optional): children-first deletes of ingested draws outside the seed and keep-list constants, open processes cancelled, the draw delete gated on the children; ran once against 14 draws, report matched the plan.
 - ✅ 2026-09-27 **Runbook without resets** (fix session): specimen plus live, success before failure, beats 0–7 in `TODO.md`; every reset, message-row deletion and cleanup-as-requirement struck.
+- ✅ 2026-09-28 **System-assigned draw numbers** (fix session, ruled): the next number in the investment's sequence, shown read-only at reconciliation and assigned at commit; the template's number is document content only; every sequence and collision chip removed, and `drawNumber` removed from Doc Center model 85, the payload, the validation and the failure email. Regression as `sd.accountant`: the corrected package ingested end to end as #82 (draw 105), Funding History intact.
+- ✅ 2026-09-28 **Tie-out rendering** (fix session): the reconciliation form's corroboration grid shows the tag and the "off by" text in two columns (a side-by-side in a grid cell printed component internals on 26.6).
+- ✅ 2026-09-28 **Stage Mismatch Package** (fix session): a third feed button on the staging card; beat 3's mismatch option runs live.
+- ✅ 2026-09-28 **Review clears the banner** (fix session): the Summary's email-reply review card only while its task is open; Mark Reviewed clears it; no "task not found" state.
+- ✅ 2026-09-28 **Gateway #12 specimen** (fix session): the stray test answer row removed; the chase ladder's reminder and staged text on the thread; #12 is the Needs chasing row.
 - ✅ 2026-09-26 **Site-reachable email-reply review** (Summary card, Draws YOUR ACTION and KPI, Emails tab link; standing rule: nothing requires Tempo).
 - ✅ 2026-09-26 **Guardrail reorder**: interpretation before the limit check; questions and hedges flow on over-limit draws, decisions are refused.
 - [ ] **Designer setup** for the escalations, the chase trigger and the digest schedule (TODO; Scott), then one escalation fired end to end by the session.

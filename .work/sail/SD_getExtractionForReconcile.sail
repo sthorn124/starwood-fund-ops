@@ -63,8 +63,9 @@ a!localVariables(
     items: local!instFields,
     expression: tostring(a!defaultValue(fv!item['recordType!{7c86b423-dc7a-4a37-980a-5600d4d9e298}AIA Extraction Instance Field.relationships.{c0e1e855-dc32-4468-ba94-97b027839510}modelVersionField.fields.{ed32edda-9ac0-476c-b19c-ec552b6452c4}key'], ""))
   ),
+  /* No "drawNumber" (ruled 2026-09-28): the draw number is system-assigned, never read from the template. */
   local!headerKeys: {
-    "drawNumber", "investmentName", "fund", "drawType", "fundingDate", "drawAmount", "cashEquityNeeded",
+    "investmentName", "fund", "drawType", "fundingDate", "drawAmount", "cashEquityNeeded",
     "budgetStatus", "overBudgetReason", "purpose", "contingencyExplanation", "generalComments", "submittedBy"
   },
   local!lineKeys: {

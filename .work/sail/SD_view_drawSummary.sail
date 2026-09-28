@@ -382,7 +382,8 @@ a!localVariables(
     ),
     /* Phase 6c: an email reply waiting for review (the exception queue), reachable from the site — no Tempo. The draw
        approval team (SD Draw Demo Approvers) gets the action: Review Reply opens the handler's open "Review email reply"
-       task. Everyone else sees the state without the action. */
+       task. Everyone else sees the state without the action. Fix 2026-09-28: shown only while that task is open for the
+       viewer to find; a needs-review message with no open task shows nothing here (the Emails tab keeps the history). */
     a!cardLayout(
       contents: {
         a!columnsLayout(
@@ -431,13 +432,6 @@ a!localVariables(
                   showBorder: false,
                   showShadow: false,
                   marginBelow: "NONE"
-                ),
-                a!richTextDisplayField(
-                  labelPosition: "COLLAPSED",
-                  value: a!richTextItem(text: "Review task not found — see the Emails tab", color: "#6B7280", size: "SMALL"),
-                  align: "RIGHT",
-                  showWhen: and(local!isSpecialist, a!isNullOrEmpty(local!exceptionTaskId)),
-                  marginBelow: "NONE"
                 )
               },
               width: "NARROW_PLUS",
@@ -449,7 +443,9 @@ a!localVariables(
           marginBelow: "NONE"
         )
       },
-      showWhen: local!exceptionOpen,
+      /* fix 2026-09-28: the banner renders only while an open review task exists; Mark Reviewed (or a task that is gone)
+         clears it. The Emails tab keeps the full history. */
+      showWhen: and(local!exceptionOpen, not(a!isNullOrEmpty(local!exceptionTaskId))),
       style: "#FDF3E0",
       decorativeBarPosition: "START",
       decorativeBarColor: "#D97706",

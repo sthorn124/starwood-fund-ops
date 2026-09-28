@@ -3,9 +3,10 @@
      - Doc Center returned no extraction instance (the workbook could not be read), or
      - the budget table cannot be found, or is missing any standard column (SD_DRAW_TEMPLATE_COLUMNS) or any standard
        budget category row (SD_DRAW_TEMPLATE_CATEGORIES) — read from the workbook itself, not from the AI extraction, or
-     - a required header value (Investment Name, Draw Number, Funding Date, Draw Amount) came back blank from extraction.
+     - a required header value (Investment Name, Funding Date, Draw Amount) came back blank from extraction. The draw
+       number is not among them (ruled 2026-09-28: system-assigned; the template's number is never extracted or checked).
    Returns a map: ok, problems (plain-English lines), reason (the text stored on the draw), structure (the workbook's
-   structure, for the comparison), investmentName and drawNumber (from the workbook), documentName.
+   structure, for the comparison), investmentName (from the workbook), documentName.
    Never throws: every check returns a value. */
 a!localVariables(
   local!structure: rule!SD_readTemplateStructure(document: ri!document),
@@ -25,8 +26,8 @@ a!localVariables(
     {},
     a!forEach(items: local!header, expression: tostring(index(fv!item, "key", "")))
   ),
-  local!requiredKeys: {"investmentName", "drawNumber", "fundingDate", "drawAmount"},
-  local!requiredLabels: {"Investment Name", "Draw Number", "Funding Date", "Draw Amount"},
+  local!requiredKeys: {"investmentName", "fundingDate", "drawAmount"},
+  local!requiredLabels: {"Investment Name", "Funding Date", "Draw Amount"},
   local!blankFlags: a!forEach(
     items: local!requiredKeys,
     expression: a!localVariables(
@@ -55,7 +56,6 @@ a!localVariables(
     {}
   ),
   local!investmentName: trim(tostring(a!defaultValue(index(local!structure, "investmentName", ""), ""))),
-  local!drawNumber: trim(tostring(a!defaultValue(index(local!structure, "drawNumber", ""), ""))),
   local!problems: {
     if(local!extracted, {}, "Doc Center could not read the workbook, so none of its values were extracted."),
     if(
@@ -83,8 +83,7 @@ a!localVariables(
   },
   local!ok: length(local!problems) = 0,
   local!subject: "The budget template " & local!documentName
-    & if(local!investmentName = "", "", " for " & local!investmentName)
-    & if(local!drawNumber = "", "", " (Draw #" & local!drawNumber & ")"),
+    & if(local!investmentName = "", "", " for " & local!investmentName),
   a!map(
     ok: local!ok,
     problems: local!problems,
@@ -106,7 +105,6 @@ a!localVariables(
     missingRows: local!missingRows,
     missingHeader: local!missingHeader,
     investmentName: local!investmentName,
-    drawNumber: local!drawNumber,
     documentName: local!documentName
   )
 )

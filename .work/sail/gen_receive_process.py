@@ -120,7 +120,8 @@ task = dict(id=14, type="internal.17", name="Reconcile extracted draw", coordina
 parse_header = script(15, "Parse confirmed header", [1930,200],
   [('if(or(a!isNullOrEmpty(pv!confirmedHeaderJson), pv!confirmedHeaderJson = "-"), a!map(), a!fromJson(pv!confirmedHeaderJson))', "pv!confirmedHeader")], [16], run_as="DESIGNER")
 parse_fields = script(16, "Read header fields", [2080,200], [
-  ('a!localVariables(local!v: %s, if(local!v = "", null, tointeger(local!v)))' % hv("drawNumber"), "pv!drawNumber"),
+  # ruled 2026-09-28: the draw number is system-assigned at commit, never read from the template
+  ('rule!SD_getNextDrawNumber(investmentId: a!localVariables(local!v: %s, if(local!v = "", null, tointeger(local!v))), excludeDrawId: pv!drawId)' % hv("investmentId"), "pv!drawNumber"),
   ('a!localVariables(local!v: %s, if(local!v = "", null, tointeger(local!v)))' % hv("investmentId"), "pv!investmentId"),
   ('a!localVariables(local!v: %s, if(local!v = "", null, todecimal(local!v)))' % hv("drawAmount"), "pv!amount"),
   ('rule!SD_parseExtractedDate(text: %s)' % hv("fundingDate"), "pv!fundingDate"),

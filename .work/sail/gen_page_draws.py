@@ -569,7 +569,7 @@ a!localVariables(
       ,
       /* Demo staging (SD Administrators only; fix session 2026-09-27). Demo prep is clickable only: this card stages what the
          beats need and nothing is reset, reused or cleaned by requirement. Row 1 — the feed arrives: the corrected package
-         (beat 1) or the malformed template (beat 3) goes through a!startProcess(cons!SD_RECEIVE_CAPITAL_CALL_PM, …) exactly as
+         (beat 1), the malformed template or the mismatch package (beat 3) goes through a!startProcess(cons!SD_RECEIVE_CAPITAL_CALL_PM, …) exactly as
          Receive Capital Call sends it. Row 2 — Stage for Approval (the one pre-demo click): approves steps 1–2 of an ingested
          draw as its named approvers and issues a fresh Asset Manager task (SD Stage Draw for Approval; eligibility is
          rule!SD_isStageForApprovalEligible, re-checked by the process). Row 3 — Clean Up Old Runs, optional: removes every
@@ -597,12 +597,12 @@ a!localVariables(
                     a!richTextItem(
                       text: if(
                         local!feedState = "ERROR",
-                        "The feed arrival could not be started. Check that the package documents in SD_FEED_PACKAGE_TEMPLATE, SD_FEED_PACKAGE_SUPPORTING and SD_FEED_PACKAGE_FAILING_TEMPLATE still exist.",
+                        "The feed arrival could not be started. Check that the package documents in SD_FEED_PACKAGE_TEMPLATE, SD_FEED_PACKAGE_SUPPORTING, SD_FEED_PACKAGE_MISMATCH_SUPPORTING and SD_FEED_PACKAGE_FAILING_TEMPLATE still exist.",
                         if(
                           a!isNullOrEmpty(local!feedState),
-                          "Beat 1: the corrected package (" & document(cons!SD_FEED_PACKAGE_TEMPLATE, "name") & " and " & count(cons!SD_FEED_PACKAGE_SUPPORTING) & " supporting PDFs) ingests. Beat 3: the malformed template (" & document(cons!SD_FEED_PACKAGE_FAILING_TEMPLATE, "name") & ") fails validation and sends the alert. Both go through the same intake path as Receive Capital Call.",
-                          if(local!feedState = "FAILING", "Malformed template", "Corrected package") & " staged at " & text(local!feedAt, "h:mm a") & ". The new draw appears within about 10 seconds (reload this page); " &
-                          if(local!feedState = "FAILING", "the ingestion failure alert follows in about 90 seconds.", "the accountant's reconciliation task follows in about 90 seconds.")
+                          "Beat 1: the corrected package (" & document(cons!SD_FEED_PACKAGE_TEMPLATE, "name") & " and " & count(cons!SD_FEED_PACKAGE_SUPPORTING) & " supporting PDFs) ingests. Beat 3: the malformed template (" & document(cons!SD_FEED_PACKAGE_FAILING_TEMPLATE, "name") & ") fails validation and sends the alert; the mismatch package (the same template with a pay application that does not tie to Hard Costs, no lien waiver) shows the tie-out catching it. All three go through the same intake path as Receive Capital Call.",
+                          a!match(value: local!feedState, equals: "FAILING", then: "Malformed template", equals: "MISMATCH", then: "Mismatch package", default: "Corrected package") & " staged at " & text(local!feedAt, "h:mm a") & ". The new draw appears within about 10 seconds (reload this page); " &
+                          a!match(value: local!feedState, equals: "FAILING", then: "the ingestion failure alert follows in about 90 seconds.", equals: "MISMATCH", then: "the accountant's reconciliation task follows in about 90 seconds, with the pay application reading Does not tie.", default: "the accountant's reconciliation task follows in about 90 seconds.")
                         )
                       ),
                       color: if(local!feedState = "ERROR", "#B42318", "#1F2937"),
@@ -627,6 +627,17 @@ a!localVariables(
                       )
                     ),
                     a!buttonWidget(
+                      label: "Stage Mismatch Package",
+                      style: "OUTLINE",
+                      size: "SMALL",
+                      saveInto: a!startProcess(
+                        processModel: cons!SD_RECEIVE_CAPITAL_CALL_PM,
+                        processParameters: a!map(document: cons!SD_FEED_PACKAGE_TEMPLATE, supportingDocuments: cons!SD_FEED_PACKAGE_MISMATCH_SUPPORTING),
+                        onSuccess: {{ a!save(local!feedState, "MISMATCH"), a!save(local!feedAt, now()) }},
+                        onError: a!save(local!feedState, "ERROR")
+                      )
+                    ),
+                    a!buttonWidget(
                       label: "Stage Malformed Template",
                       style: "OUTLINE",
                       size: "SMALL",
@@ -641,7 +652,7 @@ a!localVariables(
                   align: "END",
                   marginBelow: "NONE"
                 ),
-                width: "MEDIUM"
+                width: "WIDE"
               )
             }},
             alignVertical: "MIDDLE",

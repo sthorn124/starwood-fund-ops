@@ -87,7 +87,7 @@ nodes = [
   xor(38, "Failure recorded?", [2530, Y],
     [("=a!defaultValue(pv!writeError, false)", 20, "no")], 39),
   script(39, "Build alert email", [2680, Y],
-    [("rule!SD_buildIngestionFailureEmail(drawId: pv!drawId, fileInvestmentName: index(pv!templateCheck, \"investmentName\", null), fileDrawNumber: index(pv!templateCheck, \"drawNumber\", null))", "pv!alertEmail")], 40),
+    [("rule!SD_buildIngestionFailureEmail(drawId: pv!drawId, fileInvestmentName: index(pv!templateCheck, \"investmentName\", null))", "pv!alertEmail")], 40),
   {"id": 40, "type": "internal3.sendemail3", "name": "Ingestion failure alert (email)", "coordinates": [2830, Y],
    "connections": [{"targetNodeId": 41, "activityChained": False}],
    "data": {"inputs": [{"name": "From", "value": "Process Model"},

@@ -9,18 +9,17 @@
    Layout (fix session 2026-09-22, a rendering fix with no mockup): one a!paneLayout inside the form, so the form is full
    width. Left pane: verdict strip, header facts in two columns, the three paragraph fields full width, the editable
    16-line grid with its tie-out total pinned beneath. Right pane: the workbook name as a download link above the inline
-   viewer. Chips on exactly two fields — Investment Name (matches a record on file?) and Draw Number (next in the
-   investment's sequence?).
-   Draw-number collision (ruled 2026-09-22): the draw number is business data extracted from the template and is never
-   replaced silently; a collision is resolved here, at reconciliation. When the extracted number already exists for the
-   extracted investment, the field is prefilled with the next available number for that investment and an amber chip
-   says so ("Renumbered from #<extracted> (on file)"); the accountant can override, and whatever is confirmed commits.
-   When the extracted number is genuinely next in sequence the chip is green.
+   viewer. One chip on the header — Investment Name (matches a record on file?).
+   Draw number (ruled 2026-09-28, supersedes the 2026-09-22 collision ruling): the draw number is system-assigned, the
+   next number in the investment's sequence, like any case number (rule!SD_getNextDrawNumber). The template's draw number
+   is document content only: never extracted, never validated, never shown as a control. The form shows the assigned
+   number read-only; the process assigns it again at commit (node 16), so the stored number is authoritative.
    Chips (fix session 2026-09-25): a tag displays at most 40 characters and truncates the rest, so no chip carries a
    figure or a name. Phase 6c (ruled 2026-09-26): an amount that does not tie is amber everywhere, the pinned total's
    "off by" included (it was red). Figures go in wrapping text beside or below the chip: the verdict strip's "Does not tie" has the
    lines-vs-draw line under it; a document's "Does not tie" has "off by $X" beside it in the Tie-out cell (a side by
-   side layout inside a read-only grid cell — accepted by the object validator and rendered on this instance).
+   side layout inside a read-only grid cell until 2026-09-28: unsupported on 26.6 — a browser printed the tag's
+   internals as text — so the chip and its "off by" detail now sit in two adjacent columns, one component per cell).
    Corroboration (Phase 5.5, 2026-09-25; Phase 5.6 document handling): beneath the budget lines, every supporting document that came with the package
    (rule!SD_getSupportingDocuments, re-read every 30 s and on Refresh while any is still being classified) is shown with
    its Doc Center type and tied out against the lines on this form as edited (rule!SD_corroborateDocuments, no model):
@@ -41,7 +40,6 @@ a!localVariables(
   ),
   local!confidences: a!forEach(items: local!headerIn, expression: fv!item.confidence),
   local!hasConfidence: if(a!isNullOrEmpty(local!confidences), false, not(a!isNullOrEmpty(reject(fn!isnull, local!confidences)))),
-  local!extractedDrawNumber: a!localVariables(local!n: rule!SD_parseExtractedNumber(text: index(local!hmap, "drawNumber", "")), if(local!n = 0, null, tointeger(local!n))),
   local!investmentName: trim(index(local!hmap, "investmentName", "")),
   local!fund: trim(index(local!hmap, "fund", "")),
   local!drawType: trim(index(local!hmap, "drawType", "")),
@@ -86,56 +84,8 @@ a!localVariables(
   local!matchIdx: if(or(a!isNullOrEmpty(local!investmentNames), local!investmentName = ""), {}, wherecontains(lower(local!investmentName), local!investmentNames)),
   local!matchedInvestment: if(a!isNullOrEmpty(local!matchIdx), null, index(local!investments, local!matchIdx[1], null)),
   local!matchedInvestmentId: if(a!isNullOrEmpty(local!matchedInvestment), null, local!matchedInvestment['recordType!{f285a98c-746c-40e7-899e-65d8d20f766b}SD Investment.fields.{5739486c-cd04-4774-a878-17ca0b9933c4}id']),
-  /* Draw sequence: the highest draw number already on file for the matched investment, this draw's own row excluded. */
-  local!priorDrawNumbers: if(
-    a!isNullOrEmpty(local!matchedInvestmentId),
-    {},
-    a!forEach(
-      items: a!queryRecordType(
-        recordType: 'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw',
-        fields: {'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{9aa1030b-f76b-49aa-bef6-99eb90327804}drawNumber'},
-        filters: a!queryLogicalExpression(
-          operator: "AND",
-          filters: {
-            a!queryFilter(field: 'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{09edf0b2-28a3-4a7f-b9dc-ae2afefa24d0}investmentId', operator: "=", value: local!matchedInvestmentId),
-            a!queryFilter(field: 'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{443829ca-5971-4d31-8fac-ab7a317e509b}id', operator: "<>", value: ri!drawId, applyWhen: not(a!isNullOrEmpty(ri!drawId)))
-          },
-          ignoreFiltersWithEmptyValues: true
-        ),
-        pagingInfo: a!pagingInfo(startIndex: 1, batchSize: 500)
-      ).data,
-      expression: a!defaultValue(fv!item['recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{9aa1030b-f76b-49aa-bef6-99eb90327804}drawNumber'], 0)
-    )
-  ),
-  local!lastDrawNumber: if(a!isNullOrEmpty(local!priorDrawNumbers), 0, max(local!priorDrawNumbers)),
-  local!nextAvailable: local!lastDrawNumber + 1,
-  /* Collision: the extracted number is already on file for the matched investment. */
-  local!collision: and(
-    not(a!isNullOrEmpty(local!extractedDrawNumber)),
-    not(a!isNullOrEmpty(local!priorDrawNumbers)),
-    contains(tointeger(local!priorDrawNumbers), tointeger(local!extractedDrawNumber))
-  ),
-  /* The editable draw number: prefilled once, at load, with the next available number on a collision, else the
-     extracted number. Refresh on referenced-variable change is off so the accountant's override survives edits to
-     the other fields (a dependent local would otherwise be recomputed and overwrite it). */
-  local!drawNumber: a!refreshVariable(
-    value: if(local!collision, local!nextAvailable, local!extractedDrawNumber),
-    refreshOnReferencedVarChange: false
-  ),
-  local!drawNumberOnFile: and(
-    not(a!isNullOrEmpty(local!drawNumber)),
-    not(a!isNullOrEmpty(local!priorDrawNumbers)),
-    contains(tointeger(local!priorDrawNumbers), tointeger(local!drawNumber))
-  ),
-  local!nextInSequence: and(not(a!isNullOrEmpty(local!drawNumber)), local!drawNumber = local!nextAvailable),
-  /* Chip state for the Draw Number field, from the current value: RENUMBERED (collision resolved by the prefill and
-     still on the next available number), NEXT (genuinely next in sequence), ON_FILE (the current value collides — an
-     override back onto a used number), else GAP (neither; kept as typed). */
-  local!drawNumberChip: if(
-    and(local!collision, local!nextInSequence),
-    "RENUMBERED",
-    if(local!nextInSequence, "NEXT", if(local!drawNumberOnFile, "ON_FILE", "GAP"))
-  ),
+  /* The system-assigned draw number (ruled 2026-09-28): next in the matched investment's sequence, this draw excluded. */
+  local!assignedDrawNumber: rule!SD_getNextDrawNumber(investmentId: local!matchedInvestmentId, excludeDrawId: ri!drawId),
   /* Tie-out: the current-draw lines against the header's draw amount, recomputed on every edit. */
   local!linesTotal: if(a!isNullOrEmpty(local!lines), 0, sum(a!forEach(items: local!lines, expression: a!defaultValue(fv!item.currentDraw, 0)))),
   local!difference: local!linesTotal - a!defaultValue(local!drawAmount, 0),
@@ -157,7 +107,7 @@ a!localVariables(
   local!supportingCount: a!defaultValue(index(local!corroboration, "count", 0), 0),
   a!formLayout(
     titleBar: a!headerTemplateFull(
-      title: "Reconcile extracted draw" & if(a!isNullOrEmpty(local!extractedDrawNumber), "", " #" & local!extractedDrawNumber),
+      title: "Reconcile extracted draw" & if(a!isNullOrEmpty(local!assignedDrawNumber), "", " #" & local!assignedDrawNumber),
       secondaryText: "Doc Center extraction of " & a!defaultValue(ri!documentName, "the budget template") & " · confirm or correct against the workbook on the right, then the draw is assembled",
       backgroundColor: "#16294D"
     ),
@@ -229,23 +179,11 @@ a!localVariables(
                 columns: {
                   a!columnLayout(
                     contents: {
-                      a!integerField(label: "Draw Number", value: local!drawNumber, saveInto: local!drawNumber, required: true, requiredMessage: "The draw number is required.", marginBelow: "EVEN_LESS"),
-                      a!tagField(
-                        labelPosition: "COLLAPSED",
-                        tags: a!tagItem(
-                          text: a!match(
-                            value: local!drawNumberChip,
-                            equals: "RENUMBERED", then: "Renumbered from #" & local!extractedDrawNumber & " (on file)",
-                            equals: "NEXT", then: "Next in sequence",
-                            equals: "ON_FILE", then: "#" & local!drawNumber & " already on file",
-                            default: "Out of sequence (" & if(local!lastDrawNumber = 0, "none on file", "last #" & local!lastDrawNumber) & ")"
-                          ),
-                          backgroundColor: if(local!drawNumberChip = "NEXT", local!green.bg, local!amber.bg),
-                          textColor: if(local!drawNumberChip = "NEXT", local!green.fg, local!amber.fg)
-                        ),
-                        size: "SMALL",
-                        showWhen: not(a!isNullOrEmpty(local!matchedInvestmentId)),
-                        marginBelow: "STANDARD"
+                      a!textField(
+                        label: "Draw Number",
+                        value: if(a!isNullOrEmpty(local!assignedDrawNumber), "", "#" & local!assignedDrawNumber),
+                        readOnly: true,
+                        instructions: "Assigned by the system: the next draw number for this investment."
                       ),
                       a!textField(label: "Fund", value: local!fund, saveInto: local!fund),
                       a!dateField(label: "Funding Date", value: local!fundingDate, saveInto: local!fundingDate, required: true, requiredMessage: "The funding date is required."),
@@ -448,29 +386,22 @@ a!localVariables(
                       ),
                       a!gridColumn(
                         label: "Tie-out",
-                        value: a!sideBySideLayout(
-                          items: {
-                            a!sideBySideItem(
-                              item: a!tagField(
-                                labelPosition: "COLLAPSED",
-                                tags: a!tagItem(text: fv!row.chip, backgroundColor: fv!row.chipBg, textColor: fv!row.chipFg),
-                                size: "SMALL"
-                              ),
-                              width: "MINIMIZE"
-                            ),
-                            /* the figures behind the chip ("off by $X"), wrapping beside it */
-                            a!sideBySideItem(
-                              item: a!richTextDisplayField(
-                                labelPosition: "COLLAPSED",
-                                value: a!richTextItem(text: fv!row.detail, color: fv!row.chipFg, size: "SMALL")
-                              ),
-                              showWhen: a!defaultValue(fv!row.detail, "") <> ""
-                            )
-                          },
-                          alignVertical: "MIDDLE",
-                          spacing: "DENSE"
+                        value: a!tagField(
+                          labelPosition: "COLLAPSED",
+                          tags: a!tagItem(text: fv!row.chip, backgroundColor: fv!row.chipBg, textColor: fv!row.chipFg),
+                          size: "SMALL"
                         ),
-                        width: "3X"
+                        width: "2X"
+                      ),
+                      /* the figures behind the chip ("off by $X"), wrapping in the next cell: a read-only grid cell
+                         holds one component on 26.6, so a side by side layout cannot carry both */
+                      a!gridColumn(
+                        label: "Difference",
+                        value: a!richTextDisplayField(
+                          labelPosition: "COLLAPSED",
+                          value: a!richTextItem(text: a!defaultValue(fv!row.detail, ""), color: fv!row.chipFg, size: "SMALL")
+                        ),
+                        width: "2X"
                       )
                     },
                     pageSize: 20,
@@ -544,7 +475,6 @@ a!localVariables(
             ri!confirmedHeaderJson,
             a!toJson(
               a!map(
-                drawNumber: tostring(a!defaultValue(local!drawNumber, "")),
                 investmentName: a!defaultValue(local!investmentName, ""),
                 investmentId: tostring(a!defaultValue(local!matchedInvestmentId, "")),
                 fund: a!defaultValue(local!fund, ""),

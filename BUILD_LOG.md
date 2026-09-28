@@ -72,7 +72,7 @@ What has actually been built in the environment, with object identifiers and the
 - **[TRIGGER FIRED 2026-09-25, Phase 5.5 — reproduced]** "sail does not follow a task link" (2026-09-22): the Reconcile Extraction card on an Ingesting draw's Summary is again listed as `<display>`; the task was completed over the Dev MCP with the form's own serialisation. Still gate 1 (one platform behaviour, two observations, no control). *New trigger:* the next sail release.
 - **STAGED (gate 1, 2026-09-25, Phase 5.5) — an upload that replaces a file field's value discards the temporary file it replaced; sail's upload sends only the new file.** Measured: three PDFs uploaded through sail into one multi-file `a!fileUploadField` (`maxSelections: 10`) left the field holding only the last (plain `saveInto`); with a `saveInto` that appended, the field showed all three, but after `a!submitUploadedFiles` only the last existed — `document()` on the first two: "Document Does Not Exist or has been Deleted" — and `a!startProcess` passed the dead ids on (the process read nothing and ran on). The docs say missing documents are ignored by the submit, so nothing errors. Working form: one file per field (upload slots: a new empty field after each upload), so no upload ever leaves a field's value unless the user clears it. The browser's multi-file behaviour (it reports the whole list) was not measured here. *Trigger:* the next multi-file upload driven through sail, or a browser test of one.
 - **STAGED (gate 1, 2026-09-25, Phase 5.5) — an `a!forEach` whose every item returns `{}` yields `[[]]`, and inside a list that empty element is counted by `count()` but skipped by `len()`, so `where(len(list) > 0)` indexes the wrong items.** Measured in the corroboration gauntlet (C5/C6 lost their trailing summary parts; fixed with per-item lengths `where(a!forEach(items: list, expression: len(tostring(fv!item)) > 0))`, and the gauntlet then passed). Extends the Phase 5 `length()`/`count()` candidate. *Trigger:* the next list assembled from conditionally skipped `a!forEach` items.
-- **STAGED (gate 1, 2026-09-25, Phase 5.5) — sail cannot address repeated link labels:** a grid whose rows share a link label ("New draw" ×4) is refused ("names 4 different destinations and cannot be told apart; nothing on the page distinguishes them"). Working form: make the target unique (here: clear the stale rows) before a persona check. *Trigger:* the next persona navigation into a list with repeated labels.
+- **[TRIGGER FIRED 2026-09-28, fix session — reproduced ("New draw" ×2), held at gate 1; see below]** **STAGED (gate 1, 2026-09-25, Phase 5.5) — sail cannot address repeated link labels:** a grid whose rows share a link label ("New draw" ×4) is refused ("names 4 different destinations and cannot be told apart; nothing on the page distinguishes them"). Working form: make the target unique (here: clear the stale rows) before a persona check. *Trigger:* the next persona navigation into a list with repeated labels.
 - **[TRIGGER FIRED 2026-09-25, Phase 5.6 — reproduced, held at gate 1]** "`tostring()` of a Decimal keeps 7 significant digits" (2026-09-22) fired in the classification gates' own gauntlet: 3 false failures (`tostring(2490296.23)`), fixed with `fixed(x, 2, true)`. Still gate 1: two accidental recurrences, no deliberate re-test. *New trigger:* the next Decimal compared as text.
 - **[TRIGGER FIRED 2026-09-25, Phase 5.6 — reproduced, held at gate 1]** The `[[]]` candidate (Phase 5.5) fired in the corroboration gauntlet: an invoice-figure check built as "the list of offending items is non-empty" read true on every case, because `a!forEach` returned `{}` per item. Working form, extended: count with `sum(a!forEach(…, if(cond, 1, 0)))` rather than testing the emptiness of a filtered `a!forEach`. *New trigger:* the next emptiness test on a filtered `a!forEach`.
 - **[TRIGGER FIRED 2026-09-25, Phase 5.6 — reproduced]** "sail does not follow a task link": the Reconcile Extraction card was again `<display>` (draw 92). Unchanged at gate 1. *New trigger:* the next sail release.
@@ -81,7 +81,7 @@ What has actually been built in the environment, with object identifiers and the
 - **STAGED (gate 1, 2026-09-25, Phase 5.6) — Doc Center's reconcile process for test instances takes a full instance record as its input, which a Dev MCP process test cannot pass.** Working form used: write the fields a correct, override-free reconciliation sets (status 4, accuracy 1, reconciled by/on) with `updateRecordData`, with explicit ids; the model version's accuracy readback then reports the set (24/24). This bypasses Doc Center's reconcile logic, which is safe only with self-learning off. *Trigger:* the next Doc Center model trained over the Dev MCP.
 - **STAGED (gate 1, 2026-09-25, Phase 5.6) — pure-ASCII PDFs survive `uploadDocument`.** The known corruption (bytes above 0x7F doubled) comes only from the optional binary-marker comment in generated PDFs. Dropping it made 24/24 training files store at their exact local size, and Doc Center read them. Working form: generate test PDFs ASCII-only and verify the stored size. Extends `reference/mcp-capability-boundaries.md`'s upload entry. *Trigger:* the next generated document uploaded over the Dev MCP.
 - **[TRIGGER FIRED 2026-09-25, chip fix — working form applied; held at gate 1, see the fix-session entry]** **STAGED (gate 1, 2026-09-25, Phase 5.6; method, not platform) — a reading gate is skipped silently when edits are batched.** The docs-search gate was not run before four interface edits made in one batch; the transcript showed it, not memory. Run afterwards, it surfaced a real finding (tag text truncates at 40 characters). Working form: before claiming a gate in a log, check that the call is in the transcript; run the gate before the batch, not per edit. Home: the project `CLAUDE.md` if promoted. *Trigger:* the next batch of interface edits.
-- **STAGED (gate 1, 2026-09-25, chip fix) — a side-by-side layout inside a read-only grid cell passes the object validator and renders on this instance**, though the 26.6 docs and the vendor pack (`components/grid-field-instructions.md`: "NOT ALLOWED IN GRID COLUMNS") say a cell takes a single component. The 26.9 release notes document it. Measured: `createInterface` accepted it and `testInterface` rendered it with `error: null`. Working form: a tag (`MINIMIZE`) beside a wrapping rich-text detail in one cell. Platform-version-dependent; re-verify per instance. *Trigger:* the browser check of the Tie-out cell.
+- **[REVERSED 2026-09-28, fix session — the browser check printed the cell's component internals as text; see the ruling below]** **STAGED (gate 1, 2026-09-25, chip fix) — a side-by-side layout inside a read-only grid cell passes the object validator and renders on this instance**, though the 26.6 docs and the vendor pack (`components/grid-field-instructions.md`: "NOT ALLOWED IN GRID COLUMNS") say a cell takes a single component. The 26.9 release notes document it. Measured: `createInterface` accepted it and `testInterface` rendered it with `error: null`. Working form: a tag (`MINIMIZE`) beside a wrapping rich-text detail in one cell. Platform-version-dependent; re-verify per instance. *Trigger:* the browser check of the Tie-out cell.
 - **STAGED (gate 1, 2026-09-25, chip fix) — `joinarray` drops empty strings** (`joinarray({"","",""}, ";")` returned "", not ";;"). Working form: map empties to a visible marker before joining when positions matter. *Trigger:* the next `joinarray` over items that can be empty.
 
 - **[RESOLVED 2026-09-26, Phase 6b: folded into the promoted appian-supplemental §9 entry below — a schema read (the start-event schemas expose no inputs), not a behavioural sample]** - **STAGED (gate 1, 2026-09-26, Phase 6a) — a process model's email trigger and Public Events cannot be set over the Dev MCP.** The `core.0` and `event.receiveMessage` node schemas expose no inputs, and `getProcessModel` / `updateProcessModel` carry no trigger or Public Events field. Working form: a human sets both in Designer; keep that model minimal (a hand-off node only) so it never needs MCP edits. One observation: `updateProcessModelNode` on another node preserved the Designer-set trigger. *Trigger:* the next MCP edit to an email-started model — re-check the trigger after it.
@@ -98,7 +98,7 @@ What has actually been built in the environment, with object identifiers and the
 - **STAGED (gate 1, 2026-09-26, Phase 6b; prompt method, fails the noun test → project home) — asking the model to quote the decisive phrase *including any condition* made it mark its own hedges.** In an 8-specimen probe it returned AMBIGUOUS for a hedge, "except line 3", "if the lender signs off" and "great work team!", and quoted the condition inside the phrase, so the deterministic wording check had the condition in hand. *Trigger:* the next change to the interpretation prompt or model — re-run the probe set.
 
 - **STAGED (gate 1, 2026-09-26, Phase 6c; sail) — `group()` in an expression a persona renders throws "Insufficient permission" when the persona cannot view that group; the designer's render passes.** Measured: the Draws page returned 500 for `sd.accountant` from `group(<step group>, "groupName")` inside a chase rule; the designer's `testInterface` was clean. Working form: never call `group()` / `user()` for display in persona-rendered rules; take names from constants (`displayvalue()` over the group constants) or store them. Portable shape: "a design-account render proves nothing about group and user lookups a persona evaluates" (extends §4/§6). *Trigger:* the next persona-rendered rule that looks up a group or user.
-- **STAGED (gate 1, 2026-09-26, Phase 6c) — the custom outputs of one script task are all evaluated against the process variables as they stood when the node started**; an output that reads a PV set by another output in the same node sees the old value. Measured with a control: read-and-derive in one node returned STALE on a current step; split into two nodes it ran. Working form: one node per dependency level, or each output calls the rule itself. *Trigger:* the next script task whose outputs depend on each other.
+- **[TRIGGER FIRED 2026-09-28, fix session — working form applied at pipeline node 16, held at gate 1; see below]** **STAGED (gate 1, 2026-09-26, Phase 6c) — the custom outputs of one script task are all evaluated against the process variables as they stood when the node started**; an output that reads a PV set by another output in the same node sees the old value. Measured with a control: read-and-derive in one node returned STALE on a current step; split into two nodes it ran. Working form: one node per dependency level, or each output calls the rule itself. *Trigger:* the next script task whose outputs depend on each other.
 - **STAGED (gate 1, 2026-09-26, Phase 6c) — `a!urlForRecord` with a single identifier returns one Text, not a list; `index(…, 1)` returns its first character** (an email link rendered `href="h"`). Working form: `tostring(a!urlForRecord(…))`. *Trigger:* the next record URL built for an email or an integration.
 - **STAGED (gate 1, 2026-09-26, Phase 6c) — map keys are case-insensitive**: `a!map(username: …, userName: …)` fails "Keys must be unique". *Trigger:* the next map that carries two keys differing only in case.
 - **STAGED (gate 1, 2026-09-26, Phase 6c) — Send E-Mail's `ToValidAddresses` output is empty when To is a group** (the mail is delivered). Working form: do not report recipients from that output for group sends; name the group. *Trigger:* the next Send E-Mail node whose outputs are read.
@@ -111,6 +111,17 @@ What has actually been built in the environment, with object identifiers and the
 - **STAGED (gate 1, 2026-09-27, fix session) — a rule whose fields depend on the viewer answers differently inside a process than in a designer's rule test.** `SD_getDrawDetail.openTaskId` is computed only when `viewerIsAssignee`. As the designer, `testRule` returned the open task, but inside `SD Stage Draw for Approval`, running as DESIGNER through `testProcessModel`, it read null, so the eligibility check refused every draw. Calling `SD_getOpenTaskId` directly on `activeStepProcessId` fixed it: draw 98 then staged, and draw 75 was still refused. The cause is not isolated (who `loggedInUser()` is inside that process was not read). Working form: process-side decisions never read viewer-aware fields; they call the underlying lookup. Portable shape: "a render or a rule test proves nothing about the same rule evaluated in a process" (extends §4). *Trigger:* the next process that reuses a UI detail rule for a decision — read `loggedInUser()` inside it.
 - **STAGED (gate 1, 2026-09-27, fix session) — the Delete Records smart service (`internal3.delete_records_from_source_23r4`) builds and runs over the Dev MCP.** The inputs were `Records` (a list of record constructors by primary key, one record type per node) and `PauseOnError`; the hidden `Version` input was set to 6 on its own. `CountOfRecordsDeleted` matched the plan on all seven types (2, 7, 28, 90, 81, 144, 14), and absence was read back afterwards. Working form: one guarded node per type, children first, with the parent's delete gated on every child's `Error` being null. *Trigger:* the next Delete Records node built on any build — check the `Version` readback and the count against absence.
 - **STAGED (gate 1, 2026-09-27, fix session; cause not isolated) — Cancel Process reported `alreadyClosed` for 6 of 15 processes that the live-status task report had just listed as holding a task.** The list put each draw's ingestion pipeline ahead of its step process, and the pipeline starts the approval chain. The likely reading, not measured, is that cancelling the pipeline also closed its descendant step process, and that the "Current Tasks for Process" report returns a descendant's task for the parent. Working form: count "already closed" separately and report it (the fixed report does). *Trigger:* the next cancel of a process that started a subprocess — read the child's state before and after cancelling the parent.
+
+- **Ruling, 2026-09-28 (fix session), on the side-by-side-in-a-grid-cell candidate: REVERSED.** Scott's browser pass on this 26.6 site showed the pay application's Tie-out cell as component internals ("backgroundColor=#E6F4EC … text=Ties"). The 26.6 docs list what a read-only grid column accepts (text, image, link, rich text, button array, tag, record action, progress bar). The side-by-side is a 26.9 feature, so the vendor pack's "NOT ALLOWED IN GRID COLUMNS" was right for this version. The object validator and `testInterface` both accepted it; that was structure, not proof. The cell is now two columns.
+- **STAGED (gate 1, 2026-09-28, fix session) — the object validator and `testInterface` accept a layout in a grid cell that the running version does not support, and the browser prints its internals as text.** This extends supplemental §2.4 ("the tree will let you report a layout that does not exist"). Measured once, in the browser; the docs agree. Working form: one documented component per read-only cell, with a second column for anything beside it. Where a feature is documented only for a later version, the tree is no evidence. *Trigger:* the next component placed in a grid cell outside the documented list, or a release-notes feature used on an older site.
+- **Ruling, 2026-09-28, on "sail cannot address repeated link labels": reproduced, held at gate 1.** Two Ingesting draws (Scott's 104 and the session's 106) gave two "New draw" links, and `sail navigate` refused them ("names 2 different destinations and cannot be told apart"). The UI JSON does carry each link's `recordIdentifier`, but sail does not address by it. The message is sail's designed behaviour, so this is a tool fact rather than a platform trap. Working form unchanged; a distinguishing label is in `TODO.md` Deferred. *New trigger:* the next sail release.
+- **Ruling, 2026-09-28, on the script-task custom-outputs candidate: trigger fired, working form applied, held at gate 1.** Pipeline node 16 computes `investmentId` and `drawNumber` in one script task. `drawNumber` was built from the parsed header, not from `pv!investmentId`, and draw 105 committed as #82, the right number. The failure itself was not re-measured. *New trigger:* the next script task whose outputs depend on each other, run with a control.
+- **STAGED (gate 1, 2026-09-28, fix session; DocCenter-specific) — deleting a field row from a published extraction model version breaks neither new nor cached extractions.** Field 3613 (`drawNumber`) was deleted from model 85 v142. Two runs followed:
+  - a fresh document (56327, instance 889) extracted without the field;
+  - a document previously extracted with the field (55855, instance 891, the cached-response path) completed with status 2 and the header without `drawNumber`, and the pipeline went on to reconciliation.
+
+  The 2026-09-22 `generalComments` removal cured a stall and was never measured on the cached path; this was. Re-verify per instance. *Trigger:* the next change to a Doc Center model's fields.
+- **STAGED (gate 1, 2026-09-28, fix session) — a process whose start event carries an email trigger can be started directly with `testProcessModel`, passing the parameters the trigger maps** (`emailFrom`, `emailSubject`, `emailBody`). The handler ran exactly as for a mailed reply, with the sender as passed (rows 64 and 66 on draw 79, both from the authorized address). This replaces the throwaway loop-test sender, and it is the only way to test an authorized reply without a real mailbox. Only the model's administrators can do it (`SD Administrators`; the initiator role is empty, read back 2026-09-28). *Trigger:* the next loop test of the reply path.
 
 ## Entries
 
@@ -1916,3 +1927,108 @@ Promotion checkpoint: current through 2026-09-27 — Fix session: stage-for-appr
 **Promotion candidates.** 0 found. The staged `addGroupMembers` candidate was resolved: it was carried into appian-supplemental §3 at the owner's direction, tagged re-verify per instance. The 2026-09-26 §9 promotion reached the template copy.
 
 Promotion checkpoint: current through 2026-09-27 — Housekeeping: demo-practices skill created from the build record; supplemental §3 corrected.
+
+## 2026-09-28 — Fix session: system-assigned draw numbers, docs tie rendering, mismatch staging button, review banner, #12 specimen
+
+**Scope.**
+- **Design work and readbacks:** Dev MCP (`appian`) as `scott.thorn@appian.com`, a member of `SD Administrators`, `SD Users` and the three draw step groups. Every designer read is full scope.
+- **sail:** `~/.sail-sd.accountant` (`sd.accountant`, Priya Raman, `SD Draw Demo Approvers`).
+- **Runtime MCP:** `appian-runtime` was not called.
+- **Brief:** Scott's five items from his browser pass, plus the ruling (item 0), TODO (item 6) and the close-out (item 7).
+
+**Found on the instance before any change (Scott's own activity on 2026-09-28, left as is):**
+- draw **103** (22:03, Ingestion Failed) and draw **104** (22:07, Ingesting, reconciliation task open) from the staging card;
+- #81 (draw 101) advanced to step 4 (rows 59, 60);
+- #70's exception reviewed (row 61, "talked ti him");
+- a test answer on #12 (row 62, "23423", 22:17:40).
+
+**What changed, by object.**
+- **Item 0 — ruling** (`PROJECT_INSTRUCTIONS.md`): the draw number is system-assigned, the next in the investment's sequence. The template's number is document content only. The 2026-09-22 collision ruling and the 2026-09-27 "type the next number" line are struck with pointers.
+- **Item 1 — system-assigned numbers:**
+  - **New rule `SD_getNextDrawNumber(investmentId, excludeDrawId)`** (`…_577561`): MAX of `drawNumber` over the investment's draws, plus 1; 1 when none; a null investment takes the sequence of the draws with none. Tests as the designer: investment 1 → 82 (before draw 105), excluding draw 101 → 81, investment 2 → 13, null → 1.
+  - **`SD_form_reconcileExtraction` v9:**
+    - Draw Number is a read-only text field ("#n", "Assigned by the system: the next draw number for this investment.").
+    - The title is "Reconcile extracted draw #<assigned>".
+    - The extracted-number, prior-numbers and collision locals, the refresh variable and all four sequence chips are removed.
+    - `drawNumber` is out of `confirmedHeaderJson`.
+  - **Rules:**
+    - `SD_getExtractionForReconcile` v2: no `drawNumber` header key.
+    - `SD_readTemplateStructure` v4: no draw-number row.
+    - `SD_validateIngestedTemplate` v3: requires Investment Name, Funding Date and Draw Amount; the subject line prints no number.
+    - `SD_buildIngestionFailureEmail` v4: inputs `drawId` and `fileInvestmentName`; "New draw (not loaded)".
+  - **Pipeline `SD Receive Capital Call`:**
+    - Node 16's `drawNumber` output is `rule!SD_getNextDrawNumber(<the header's parsed investmentId>, pv!drawId)`. It reads the header, not `pv!investmentId`, because script-task outputs see the PVs as of node start.
+    - Node 39 no longer passes `fileDrawNumber`.
+    - Both were read back.
+  - **Doc Center:** field row **3613** (`drawNumber`, model 85 v142) deleted from `AIA Extraction Model Version Field`. Absence read back (3612 → 3614). The row's CSV backup was kept in the session scratchpad only.
+- **Item 2 — tie-out rendering.** The Documents tab (`SD_view_drawDocuments` v1) has no tie-out, and sail as `sd.accountant` read #77's and #82's Documents tabs clean. The raw internals came from the reconciliation form's SUPPORTING DOCUMENTS grid: its Tie-out cell was an `a!sideBySideLayout` (tag plus rich text). A 26.6 read-only grid column accepts text, image, link, rich text, button array, tag, record action and progress bar (docs-search); the side-by-side in a cell is 26.9. The cell is now two columns: **Tie-out** (the `a!tagField`) and **Difference** (the "off by" rich text in the chip's colour). The docs gate was run first (grid column content and widths); the pack's `components/grid-field-instructions.md` rule stands.
+- **Item 3 — Stage Mismatch Package:**
+  - Constant **`SD_FEED_PACKAGE_MISMATCH_SUPPORTING`** (`…_577670`, DOCUMENT, multiple): `THSV_Draw67_PayApp_G702_mismatch.pdf`, uploaded 2026-09-25, id 55877.
+  - `SD_page_draws` **v13** (generator `gen_page_draws.py`): a third button, with the same `a!startProcess(cons!SD_RECEIVE_CAPITAL_CALL_PM, …)` call as Stage Corrected Package, fed the template plus the mismatch list. The card text names all three packages, the status line reads the MISMATCH state, the error text names the new constant, and the button column is WIDE (docs gate on column widths).
+  - Runbook beat 3 in `TODO.md` gives the two options.
+- **Item 4 — the review banner:**
+  - `SD_view_drawSummary` **v12**: the card shows only when `exceptionOpen` and `exceptionTaskId` is set, and the "Review task not found — see the Emails tab" line is deleted.
+  - `SD_getChaseRows` **v4**: a review counts as a chase row only while its task is open. It was regenerated from `gen_velocity.py`; the other six rules came out unchanged.
+- **Item 5 — Gateway #12:**
+  - `SD Draw Email Message` row **62** deleted by explicit id. Absence read back: the thread reads 11, 12, 23, 24, 40, 45, 46, 67, 68.
+  - `SD Chase Approval Step` was fired twice directly (`testProcessModel`, `drawId` 12, `stepOrder` 6):
+    - REMINDER, process 39485 → row **67**, "REMINDER sent to SD Draw Demo Approvers", a real email to the group;
+    - SMS, process 39490 → row **68**, "SMS STAGED", `+1 ••• ••• 6630`.
+  - The chain and dates are untouched: approval row 1206 is still In Progress, activated 2026-09-19 10:30.
+- **Throwaways:**
+  - `zz_cancelProcess28` (`0000f077-c1d5-…`, Cancel Process on handler 39484).
+  - `zz_stageMismatch28` (`0000f077-c238-…`, the button's `a!startProcess` call as a subprocess launcher).
+  - Both were created, run and deleted, with absence confirmed ("Does not exist").
+
+**Verified.**
+- **Item 1:**
+  - **Designer render of draw 105's form** on the live payload: `error: null`, Draw Number "#82" with `readOnly: true`, title "Reconcile extracted draw #82", no sequence chip. Tags: Ties ✓, Matches investment on file, and the three document tags.
+  - **Regression:** the corrected package was received through the Receive Capital Call page **as `sd.accountant` via sail** (template 56327, PDFs 56328–56330). The extraction ran on the fresh document without the field (instance 889, 12 header keys). The reconciliation task (14868) was completed as the designer, because sail cannot open tasks.
+  - **Result:** draw **105 = #82**, In Progress at step 1, TIES.
+  - **As `sd.accountant` via sail:** the Draws page shows #82 with YOUR ACTION, and Funding History on #82 lists #82, #80, #79, #77.
+- **Item 2:**
+  - The designer render shows the Tie-out and Difference columns.
+  - The Documents tabs of #77 and #82 were read clean as `sd.accountant` via sail.
+- **Item 3:**
+  - The designer render of `SD_page_draws` shows the card text and three buttons: Stage Corrected Package, Stage Mismatch Package, Stage Malformed Template.
+  - The throwaway launcher started the pipeline with 55855 + [55877] (process 536910757 → pipeline 536910758) → draw **106**, Ingesting, reconciliation task **536883728**.
+  - The pay application (row 6676) was classified and read: $2,527,796.23, 52.9 s + 64.5 s.
+  - **Designer render of draw 106's form** (instance 891): `error: null`; Draw Number "#83"; tags "Ties ✓ $2,604,252.23" (verdict), "Matches investment on file", amber **"Does not tie"** (Tie-out) with **"off by $37,500.00"** (Difference), amber **"No lien waiver received"**; no draw-number tag.
+  - **As `sd.accountant` via sail:** two "New draw YOUR ACTION" rows (104 and 106), AWAITING MY ACTION 5. The persona sees no staging card.
+- **Item 4, as `sd.accountant` via sail on #70 (draw 79):**
+  - **Open review:** reply row 64 (received as a second unclear reply) → task 268440584. The Summary showed the amber card with the Review Reply task link.
+  - **After `completeTask`** (Mark Reviewed as the designer on behalf of the team; row 65): the card is gone, and the Emails tab shows "Scott Thorn · EXCEPTION REVIEW".
+  - **Stale review:** reply row 66 → handler 39484 → task 15405, then the handler was cancelled through `zz_cancelProcess28`. `SD_getOpenEmailException` reads open with `taskId` null. The Summary shows no card and no task link. The Emails tab still shows the reply, and the KPI does not count #70.
+- **Item 5, as `sd.accountant` via sail:**
+  - #12 › Emails reads the Sep 26 guardrail exchanges (11, 12, 23, 24), the question (40), the approval attempt (45), the refusal (46), then REMINDER (67) and TEXT MESSAGE "Texted to +1 ••• ••• 6630 … Staged".
+  - Draws › **Needs chasing (1)**: #12, Robert Chen, step 6 of 9, "Step 6 waiting 9 days · Text staged, not sent Sep 28, 6:46 PM", scott.thorn@appian.com, task: SD Draw Demo Approvers.
+  - Because row 62 is gone, #12's question (row 40) is **pending again**. The Summary shows the amber question card with Answer Question, and the Emails tab shows the reply box, as before Scott's test answer.
+
+**Not verified.**
+- **Browser only:**
+  - the Stage Mismatch Package **click** itself (the session ran the same call through a throwaway launcher);
+  - the geometry of the Tie-out and Difference columns (tag whole, "off by" wrapping, nothing clipped, no horizontal scroll);
+  - the persona **submit** of the reconciliation form;
+  - the review card's geometry.
+
+  Checklists are in `TODO.md`.
+- **Draw 106's Summary as `sd.accountant`:** unreachable through sail while two "New draw" rows exist (Deferred item).
+- **The "abc" investment case** (Draw Number #1): rule-tested only.
+- **The reminder email in Gmail:** not checked.
+- **Draw 106** is left at reconciliation (task 536883728 open) as the browser-check specimen.
+
+**Known artifacts recorded** (`CLAUDE.md`):
+- The Purpose line keeps "Draw #67 for THSV…".
+- Draw 96's stored failure reason still says "(Draw #67)".
+- #12's directly fired chase rows read "Escalation level N on the step task".
+
+**Findings.** Five, all in the staging section:
+- the side-by-side candidate is **REVERSED**, and a new candidate replaces it;
+- the repeated-labels candidate is reproduced;
+- the script-task candidate's working form was applied;
+- the Doc Center field deletion is safe on the cached path;
+- a receiver can be started directly.
+
+**Promotion candidates:** 3 newly staged at gate 1 (a grid-cell layout the validator accepts but the browser prints; the Doc Center field deletion on the cached path; starting an email receiver directly). 1 reversal ruled (side-by-side in a grid cell). 2 triggers fired and held at gate 1 (sail repeated labels; script-task outputs). None promoted. The repo and user-level `appian-supplemental` are unchanged.
+
+Promotion checkpoint: current through 2026-09-28 — Fix session: system-assigned draw numbers, docs tie rendering, mismatch staging button, review banner, #12 specimen.

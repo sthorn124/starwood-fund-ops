@@ -1,7 +1,7 @@
 /* Draw approval (Phase 6c): the "Needs chasing" rows — the one query behind the Draws page's Needs chasing view and the
    daily chase digest. A draw is listed when its current approval step has waited SD_CHASE_AGE_DAYS or more (days since
    the step was activated, from today), or when an email reply on it is waiting for the draw approval team's review
-   (an open exception). Ranked by amount, largest first, then by days to funding, soonest first: the money at stake
+   (an open exception with its review task still open; fix 2026-09-28). Ranked by amount, largest first, then by days to funding, soonest first: the money at stake
    before the calendar. Each row says who is sitting on what: the step's role and named approver, the group the task
    is assigned to, the role's authorized email address (SD_EMAIL_REPLY_ADDRESSES) and when the step was last chased
    (the latest REMINDER or SMS logged at that step). ri!rows takes the Draws page's rows (rule!SD_getDrawListRows) so
@@ -16,7 +16,8 @@ a!localVariables(
       items: local!all,
       expression: or(
         and(a!defaultValue(fv!item.inProgress, false), a!defaultValue(fv!item.daysAtStep, 0) >= local!threshold),
-        a!defaultValue(fv!item.exceptionOpen, false)
+        /* fix 2026-09-28: an email reply counts only while its review task is open (as on the Summary) */
+        and(a!defaultValue(fv!item.exceptionOpen, false), not(a!isNullOrEmpty(fv!item.exceptionTaskId)))
       )
     )
   ),
@@ -32,7 +33,7 @@ a!localVariables(
         local!roleIdx: if(local!role = "", {}, wherecontains(local!role, cons!SD_EMAIL_REPLY_ROLES)),
         local!group: if(local!role = "", null, rule!SD_getDrawApprovalGroup(role: local!role)),
         local!aging: and(local!inProgress, a!defaultValue(fv!item.daysAtStep, 0) >= local!threshold),
-        local!exception: a!defaultValue(fv!item.exceptionOpen, false),
+        local!exception: and(a!defaultValue(fv!item.exceptionOpen, false), not(a!isNullOrEmpty(fv!item.exceptionTaskId))),
         local!step: tointeger(a!defaultValue(fv!item.currentStep, 0)),
         local!chases: a!localVariables(
           local!msgs: rule!SD_getDrawEmailMessages(drawId: fv!item.id),

@@ -596,7 +596,7 @@
    "data": {
     "customOutputs": [
      {
-      "expression": "rule!SD_buildIngestionFailureEmail(drawId: pv!drawId, fileInvestmentName: index(pv!templateCheck, \"investmentName\", null), fileDrawNumber: index(pv!templateCheck, \"drawNumber\", null))",
+      "expression": "rule!SD_buildIngestionFailureEmail(drawId: pv!drawId, fileInvestmentName: index(pv!templateCheck, \"investmentName\", null))",
       "saveInto": "pv!alertEmail"
      }
     ]
