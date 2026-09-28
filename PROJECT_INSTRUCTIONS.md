@@ -34,6 +34,7 @@ Continuation of the subscription intake story on one platform: Blue Granite's ca
 - **Draw 66 stays as seeded list history.** No beat requires it; it is never reset for a demo.
 - **Twilio stays STAGED** (ruled): texts are composed and logged as "Staged · not sent" until an account that can send free-form messages exists.
 - **Intake pages stay visible to the draw personas** (ruled): `SD Draw Approvers` keeps its viewer role on the whole site.
+- **Draw numbers and record ids carry no demo significance** (ruled from 2026-09-27; closes the beat-2 ruling). No beat, specimen, staging step, prompt or plan may depend on a specific record id or business number. The sequence chips ("Next in sequence", "Out of sequence", "Renumbered … (on file)") are narrated as a control, not scripted around. Beat 2's "Out of sequence → type the next number" stands. The keep-list of nine specimens (`SD_DEMO_KEEP_DRAW_IDS`) is confirmed.
 
 The 9-step approval chain (contiguous orders 1–9, as in the current email sample) exists as data and renders in the status table; live interactions are the asset manager (UI) and the CEO (email) only. Chain steps between the asset manager and the CEO are advanced by a demo accelerator, narrated as the chain approving over subsequent days.
 

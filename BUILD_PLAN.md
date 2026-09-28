@@ -12,14 +12,16 @@ This file is the build's high-level checklist and its state of record for what i
 
 Industry: real estate private equity, fund operations. Use case: **draw approval**, the funding of capital call draws for renovation and development projects at properties the fund holds. It continues the subscription-intake story on the same platform: Blue Granite's capital entered Harborline Real Assets Fund II through intake, and this flow deploys it.
 
-Beat by beat, in `PROJECT_INSTRUCTIONS.md` § Demo narrative:
-1. Draw #66 arrives.
-2. Ingestion fails, and an AI diff explains why.
-3. The corrected template ingests through Doc Center.
-4. QIU data is aggregated to the draw.
+Beat by beat, as ruled 2026-09-27 (`PROJECT_INSTRUCTIONS.md`, "Demo order and demo prep"; success before failure; no beat depends on a record id or business number):
+1. The corrected package arrives from the feed and ingests through Doc Center.
+2. The accountant reconciles and confirms it.
+3. A malformed template arrives and fails, and an AI comparison explains why.
+4. QIU data and the chain on a draw staged for approval.
 5. The Asset Manager edits and approves in the UI.
 6. The CEO approves by a conversational email reply.
 7. Treasury is notified.
+
+~~Phase 0 order: 1. Draw #66 arrives. 2. Ingestion fails, and an AI diff explains why. 3. The corrected template ingests through Doc Center.~~ Superseded 2026-09-27.
 
 Only two approvers act live: the Asset Manager in the UI and the CEO by email. A demo accelerator advances the steps between them.
 

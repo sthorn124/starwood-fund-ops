@@ -2,7 +2,7 @@
 
 What has actually been built in the environment, with object identifiers and the decisions behind them. Append after every build step; never rewrite a closed entry — a correction is a new entry that names what it corrects. Entry shape: date and title; scope line (the identity and group memberships every readback ran under); what changed, by object; decisions and why; verified (how, with counts and scope); not verified (and the browser checklist that covers it); promotion checkpoint. The contract is `CLAUDE.md` §7; the promotion loop is §9.
 
-**Promotion checkpoint: current through 2026-09-27 — Fix session: stage-for-approval and optional cleanup buttons; runbook without resets — level with the log tail.** A session touching promotion refuses to call itself complete if this checkpoint lags the log tail by more than one session.
+**Promotion checkpoint: current through 2026-09-27 — Housekeeping: demo-practices skill created from the build record; supplemental §3 corrected — level with the log tail.** A session touching promotion refuses to call itself complete if this checkpoint lags the log tail by more than one session.
 
 ## Promotion candidates (staging)
 
@@ -21,7 +21,7 @@ What has actually been built in the environment, with object identifiers and the
   - *Membership writes:* `addGroupMembers` stays unverified. Its trigger remains the first session that adds a member to a draw approval group.
 
 - **[RESOLVED 2026-09-21: measured through the production path; promoted to `reference/mcp-capability-boundaries.md` §7-class entry, not to the supplemental until a second instance confirms it.]** **STAGED (gate 1) — TEXT column widths under-report on readback at create time.** Fields created with `length` 1000 or 20 read back as `VARCHAR(255)`, while a 289-character `insertRecordData` write to a "1000" column succeeded and read back intact. Working form: treat the readback as a claim and prove width by a real-length write through the production path. *Trigger:* the first Write Records node write longer than 255 characters to a draw approval column (the `comments` or `contingencyExplanation` fields).
-- **STAGED (gate 1) — `addGroupMembers` works on DevMCP 26.6.95.** Three user adds returned `status: success` and each read back with `listGroupMembers(directOnly)`. This closes the "writing unverified" gap in `reference/mcp-capability-boundaries.md` (updated in this session) and further dates supplemental §3. *Trigger:* the next group-membership write on another instance, to tag it "re-verify per instance" or general.
+- **[RESOLVED 2026-09-27, housekeeping — carried into appian-supplemental §3 at the skill owner's direction, stated as measured on one Cloud site and tagged re-verify per instance; the trigger below stays open to generalise it]** **STAGED (gate 1) — `addGroupMembers` works on DevMCP 26.6.95.** Three user adds returned `status: success` and each read back with `listGroupMembers(directOnly)`. This closes the "writing unverified" gap in `reference/mcp-capability-boundaries.md` (updated in this session) and further dates supplemental §3. *Trigger:* the next group-membership write on another instance, to tag it "re-verify per instance" or general.
 - **[TRIGGER FIRED 2026-09-22 — promoted to `reference/mcp-capability-boundaries.md` §4 (measured a second time, both directions: `customInputs` mapping left the child's parameter null; `inputs: [{name, expression: "pv!x"}]` worked; a bare `"x"` in `inputs` stored the literal). Held out of the supplemental until a third instance, because the supplemental's own text ("`myVar` stores `pv!myVar`") describes a rewrite that did not happen on `updateProcessModel`/`updateProcessModelNode` — the two entries must be reconciled by the skill owner.]** **STAGED (gate 1) — a subprocess node maps the child's parameter PVs back out through `outputs[].saveInto`.** With `referenceUuid` set, the schema lists every parameter PV as an output; `{"name": "outcome", "saveInto": "pv!decisionOutcome"}` carried the child's result to the parent on a synchronous call. Input mappings were bare `pv!x` strings in `inputs` with no `customInputs` block, and they worked. *Trigger:* the next subprocess node built on any build.
 - **STAGED (gate 1) — `completeTask(taskId, inputs: [{name, value}])` completes a user input task with ACP values, including ACPs the node reads back as `required: true`.** The form's own button logic does not run on this path, so every ACP must be supplied. *Trigger:* the next MCP-driven task completion.
 - **STAGED (gate 1) — `testProcessModel` with `timeoutSeconds: 60` returned a client `Network error: ReadTimeout` at roughly 60 s while the process kept running to completion.** The error is transport, not the process; verify by reading the data. *Trigger:* the next run expected to exceed 45 s.
@@ -1833,3 +1833,86 @@ Promotion checkpoint: current through 2026-09-26 — Phase 6c: velocity ladder, 
 **Promotion candidates.** 3 found; 0 promoted; 3 staged. One earlier trigger was ruled: the task-version candidate fired on a substitute, its working form was confirmed, and it was held at gate 1.
 
 Promotion checkpoint: current through 2026-09-27 — Fix session: stage-for-approval and optional cleanup buttons; runbook without resets.
+
+## 2026-09-27 — Housekeeping: demo-practices skill created from the build record; supplemental §3 corrected
+
+**Scope.** No Appian instance work. Nothing was called on the Dev MCP, the runtime connector or sail. The work was documents, the two repositories (this build repo and the template repo `~/appian-devmcp-method`, origin `appian-fs-sc/appian-devmcp-method`) and the user-level skills under `~/.claude/skills/`.
+
+**Preflight §2 step 6 (skill comparison), before any edit.**
+- The build repo's and the user-level `appian-supplemental` were identical (2026-09-26).
+- The template copy (2026-09-24) lacked one line: the 2026-09-26 §9 promotion "Mail an Appian Cloud instance sends is stamped from the site's system address".
+- The build copy was a strict superset, so it was taken as the base. The brief's "keep them identical" settles the direction.
+
+**What changed.**
+- **Ruling** (`PROJECT_INSTRUCTIONS.md`, in the 2026-09-27 demo-prep block):
+  - Draw numbers and record ids carry no demo significance. No beat, specimen, staging step, prompt or plan may depend on one.
+  - The sequence chips are narrated as a control.
+  - Beat 2's "Out of sequence → type the next number" stands.
+  - The keep list of nine specimens is confirmed.
+  - Applied at once:
+    - Beat 2 in the `TODO.md` runbook no longer scripts numbers.
+    - The `BUILD_PLAN.md` narrative's superseded Phase 0 order ("Draw #66 arrives", failure first) is struck and replaced by the ruled, id-free order.
+- **`skills/demo-practices/SKILL.md`** (new).
+  - The authoritative copy is in the template repo. Synced copies are in this repo and at `~/.claude/skills/demo-practices/SKILL.md`; all three are byte-identical (sha256 prefix `03a8a5d3`).
+  - Frontmatter (`name`, `description`) was added so it loads as a user-level skill. It registered in the session as soon as it was installed.
+- **appian-supplemental §3.**
+  - The 403 entry is replaced by the measured behaviour, citing `reference/mcp-capability-boundaries.md` §6:
+    - reads work from 26.6.90 (UUID-addressed);
+    - `addGroupMembers` works on 26.6.95 (three adds, read back; one Cloud site; re-verify per instance);
+    - `removeGroupMember` is unexercised;
+    - membership is proven by `listGroupMembers(directOnly)`, never by the add's status;
+    - the wall still stands on servers older than 26.6.90.
+  - The version is now 2026-09-27.
+  - The template, the build repo and the user level are identical (sha256 prefix `e3fc6262`). The template also gained the 2026-09-26 §9 promotion it lacked.
+- **`reference/mcp-capability-boundaries.md` §6, in both repos.** The heading "Group membership: reading now works, writing unverified" contradicted its own body (the 26.6.95 writes). It is now "reads work from 26.6.90, writes from 26.6.95". Only the heading line changed.
+- **`CLAUDE.md`, template and this repo.** One line after "Skill precedence" points sessions at `skills/demo-practices/SKILL.md` during planning as well as building.
+- **Template only.**
+  - `GETTING_STARTED.md` step 4 installs three skills; the demo-practices bullet was added.
+  - `README.md` gains the skill's row in the file table.
+  - Without these, a new build would not install the skill the new CLAUDE.md line assumes.
+
+**Verification of the skill's evidence** (against `BUILD_LOG.md`, the git history and `TODO.md`). There are 10 evidence-bearing rules: 1 confirmed, 9 corrected, and 2 added.
+- **No precious specimens — corrected.**
+  - "Five sessions" was wrong. The draw-66 reset was a live TODO item in every build commit from Phase 1 (`f263949`, 2026-09-21) through Phase 6c (`92400d8`, 2026-09-26): fifteen build sessions. It was struck in `f708b8b`.
+  - The four deleted browser-pass draws (90, 91, 97, 98) carried "not deleted without Scott's word" in a struck TODO block. The citation now says so.
+- **Ids are demo-insignificant — corrected.** Nothing was explicitly preserved as a duplicate. What the record shows:
+  - Browser check 4, the chip gauntlet's collision specimen ("every live payload (duplicate #67s on file)") and beat 2 all expected "Renumbered from #67 (on file)".
+  - That expectation held only while duplicate #67s (74, 75) stayed on file.
+  - Keeping a #67 was then proposed (2026-09-27 closeout) and ruled out.
+- **Accumulation is the default — corrected.**
+  - The record holds two reset rulings: 2026-09-21 (the reset script is interim tooling; "no generator or reset mechanism becomes a demo feature") and 2026-09-27 (demo prep clickable only).
+  - The cited 2026-09-22 and 2026-09-25 are when ingestion *reset instructions were added* to TODO, not rulings against them.
+- **Verify as the persona — corrected, labels only.** Every fact is confirmed:
+  - the 500 from `group()` (Phase 6c);
+  - the List-of-Document error on the first persona Receive click (intake fix, 2026-09-22);
+  - the Aborted task the designer read as `awaitingViewer: true` while `sd.assetmanager` saw no action.
+  - "Task-restart fix" was renamed to the record's "approver-action fix", and dates were added.
+- **Demo-plausible — corrected.** Accelerated dates are recorded as "fictional; say so if asked" (Phase 6c cycle-time rule, known data artifacts), not "narration-consistent".
+- **The ladder — corrected.**
+  - "Nothing is faked" was wrong. Each ingested draw copies the previous draw's QIU set, re-dated, "narrated as the QIU model feed" (`SD_buildIngestedQiu`). That is rung 3 by the ladder's own definition.
+  - The Twilio reason in the record is the trial account's refusal (572006) and the 2026-09-27 ruling. No cost reasoning is recorded.
+- **Mockup-first — corrected.**
+  - Only three mockups exist (draw list, draw summary, task approval). The intake page, the Emails tab, the exception form and the staging card also had none, so "the one screen" was wrong.
+  - The record never calls the reconciliation form unusable. It was rebuilt full width the same day from a prose brief, with its inputs and the nine ACP bindings unchanged.
+- **Success before failure — confirmed.** The Phase 0 order (`4b937cf`) was: arrives, fails, corrected template ingests.
+- **Live where possible — corrected.**
+  - There are three staged elements, not two: the accelerator, Stage for Approval and the feed arrival.
+  - Order 1's Accountant *is* a persona account (`sd.accountant`), so Stage for Approval's order 1 departs from the rule. This is flagged for a ruling, and the rule is not softened.
+- **AI authority — corrected.**
+  - The fabrication specimens are N8 and N14 in `gauntlet_SD_emailReply.sail`.
+  - The "by AI (Claude Sonnet 4.6)" attribution is confirmed in the stored comparison and the rendered alert (`.work/email/draw83_ingestion_failure.html`).
+  - The comparison is written to `SD Draw.ingestionComparison` with no human review, a departure from tier 3. It is flagged for a ruling, and the rule is not softened.
+- **Added: "Every action is reachable from the demo surface."**
+  - The Summary action strip for the step decision (2026-09-22).
+  - The reconciliation card (Phase 3).
+  - The email-reply review, which the 6b runbook opened "from the task list" until the 2026-09-26 "nothing requires Tempo" ruling.
+- **Added: "Measure every wait on stage and script it."** Each of these became a narration line:
+  - the accelerator's 87 s (2026-09-21);
+  - the reconciliation task's ~80 s plus the pay application's ~40 s (2026-09-25);
+  - the email reply's 1–3 min (2026-09-26).
+
+**Not verified.** Not applicable to the instance: nothing was built there. The skill's own claims were checked only against the repo record, not against Scott's claude.ai Project history. A claim resting only on Project conversations would not appear here.
+
+**Promotion candidates.** 0 found. The staged `addGroupMembers` candidate was resolved: it was carried into appian-supplemental §3 at the owner's direction, tagged re-verify per instance. The 2026-09-26 §9 promotion reached the template copy.
+
+Promotion checkpoint: current through 2026-09-27 — Housekeeping: demo-practices skill created from the build record; supplemental §3 corrected.

@@ -11,7 +11,7 @@ Open items by class. Sessions add discovered items unprompted as they surface, a
     1. Read back `SD_ESCALATION_TEST_MINUTES` = 0 and `SD_SMS_MODE` = STAGED (Twilio stays staged, ruled).
     2. As the designer: Draws → staging card → **Stage for approval** → the picker defaults to the most recent eligible draw (an ingested draw at step 1 or 2 with a live task — usually the draw the last run's beat 2 confirmed) → **Stage for Approval**. About 45 s later the line reads "Draw #n is staged for approval: step 3 of 9 · Asset Manager (Elena Marchetti) · the task is live for SD Draw Asset Managers." That draw carries beats 4–7.
   - **Beat 1 — the corrected package arrives from the feed (live).** Staging card → **Stage Corrected Package** (template + pay application + invoice + lien waiver; narrate the EY API/SFTP drop). Reload: a "New draw · Ingesting" row within ~10 s.
-  - **Beat 2 — the accountant reconciles and confirms (live, as `sd.accountant`).** ~80 s after beat 1 the Draws page shows the new row with YOUR ACTION; Summary → **Reconcile Extraction**. Wait ~40 s more for the pay application to read (else "Being classified" + Refresh). Expect **Ties ✓ $2,604,252.23**, the pay application tying to Hard Costs, invoice "filed as Invoice", lien waiver received. **Draw Number:** the template says #67. With no #67 on file (the state since the 2026-09-27 Clean Up Old Runs), the field keeps 67 and the amber chip reads **"Out of sequence (last #N)"**; type N+1 and it turns green **"Next in sequence"** (measured on draw 101: "Out of sequence (last #80)", confirmed as #81). If a #67 is on file, the field is prefilled with N+1 and reads "Renumbered from #67 (on file)" instead. **Confirm & Assemble Draw** → step 1 of 9. That draw's on-stage story ends here (it becomes the next demo's Stage for Approval candidate).
+  - **Beat 2 — the accountant reconciles and confirms (live, as `sd.accountant`).** ~80 s after beat 1 the Draws page shows the new row with YOUR ACTION; Summary → **Reconcile Extraction**. Wait ~40 s more for the pay application to read (else "Being classified" + Refresh). Expect **Ties ✓ $2,604,252.23**, the pay application tying to Hard Costs, invoice "filed as Invoice", lien waiver received. **Draw Number:** a sequence chip sits under the field — green "Next in sequence", amber "Out of sequence (last #N)", or amber "Renumbered from #X (on file)" — depending on what is already on file. Narrate it as the control it is (the template's number is checked against the investment's history); when it reads out of sequence, type the next number and it turns green. No number is scripted (ruled 2026-09-27, `PROJECT_INSTRUCTIONS.md`). **Confirm & Assemble Draw** → step 1 of 9. That draw's on-stage story ends here (it becomes the next demo's Stage for Approval candidate).
   - **Beat 3 — the malformed template fails (live).** Staging card → **Stage Malformed Template**. ~60–90 s later the row reads "Not loaded · Template could not be loaded", and the alert (plain-English reason, the AI comparison against the last good template) lands in Gmail. The mismatch package is shown from the saved specimen **#78** (draw 93; ATTENTION, rejected by email) — or staged live through Receive Capital Call with `THSV_Draw67_PayApp_G702_mismatch.pdf` if time allows. *Fallback specimen:* the kept failed ingest (draw 96).
   - **Beat 4 — QIU and the chain (the staged draw).** Open the draw staged in beat 0: steps 1–2 approved (Priya Raman, Daniel Osei, a day apart), the Asset Manager at step 3, QIU Detail, the cycle line.
   - **Beat 5 — Elena edits a line and approves (live, as `sd.assetmanager`).** Draws → the staged draw (YOUR ACTION) → Summary **Review & Approve** → the task form opens WIDE with the editable budget grid. Move $10,000 from All Project Contingency to A&E - Architectural (net adjustments stay $0), **Approve**. Budget Detail then reads "Edited by Elena Marchetti at approval, <date>" on both lines, with a Line History. *Fallback specimen:* **#74** (draw 87; four lines edited at step 3).
@@ -107,6 +107,13 @@ Open items by class. Sessions add discovered items unprompted as they surface, a
   - *Owner:* Scott.
   - *Trigger:* whenever convenient (they show in Process Monitoring and the designer's task list only; no demo beat needs this).
 
+- **Ruling owed: order 1 is staged though it has a live persona (demo-practices, "Live where live is possible").** Stage for Approval approves orders 1–2 pre-demo; order 2 (Accounting Controller) has no persona, but order 1's Accountant is `sd.accountant`, whose on-stage beat is reconciliation on a different draw. Either accept it by ruling (the step-1 approval is not a beat) or have `sd.accountant` approve step 1 live and stage only order 2.
+  - *Owner:* Scott.
+  - *Trigger:* before the demo (the presenter must be able to say which steps are staged and why).
+- **Ruling owed: the failure comparison becomes record content with no human review (demo-practices, AI tier 3).** Node 37 writes the gated AI comparison to `SD Draw.ingestionComparison` at failure time, and the alert email carries it. It is grounded (each line checked against the rule-computed diff) and labelled "by AI", but tier 3 requires human review before AI text becomes record content. Either add a review (for example, the accountant acknowledges the comparison) or rule the stored comparison an alert artefact rather than record content.
+  - *Owner:* Scott.
+  - *Trigger:* before the demo, or the next session that touches the failure path.
+
 ## Browser checks owed
 
 *(Owner: a named human. Each item lists the steps, the persona to log in as, and the expected strings — a checklist the human can run, not an open question. Content, state, and behaviour that a session can check through sail as the persona are not browser checks: geometry, document access, and what sail cannot reach are (`CLAUDE.md` §4).)*
@@ -200,6 +207,8 @@ Open items by class. Sessions add discovered items unprompted as they surface, a
 
 ## Deferred
 
+- **State the rung of every demo piece and the tier of every AI touch in the build record** (demo-practices: the ladder and AI authority rules require it). Today the record has them scattered: the staging card and accelerator as staged, the QIU feed as "narrated as the QIU model feed" (rung 3, faked), SMS as staged; the reply interpretation (tier 1), supporting-document classification and the pay application read (tier 2), the failure comparison (tier 3). Add one short "Demo rungs and AI tiers" block to `CLAUDE.md`'s business rules. *Owner:* the build session. *Trigger:* the next build session.
+- **The preflight does not check demo-practices drift.** `CLAUDE.md` §2 step 6 compares only `skills/appian-supplemental/SKILL.md` with the user-level copy; `skills/demo-practices/SKILL.md` can drift silently. Extend step 6 to both skills in the template. *Owner:* Scott (template owner). *Trigger:* the next template change to `CLAUDE.md` §2.
 - **Three constant descriptions are stale** (read 2026-09-27): `SD_FEED_PACKAGE_FAILING_TEMPLATE` says "for demo beats 1–2" (it is beat 3 since the 2026-09-27 ruling), and `SD_FEED_PACKAGE_TEMPLATE` and `SD_ADMINISTRATORS_GROUP` name the deleted `SD Stage Feed Arrival`. Descriptions only; values are right. *Owner:* the build session. *Trigger:* the next edit of any of the three constants.
 - **`SD_planCleanup` labels an id that no longer exists as refused ("Not removed (seeded or a named specimen)").** Measured 2026-09-27 by calling it with 15 deleted ids: all 15 came back under `refused`. The page only passes live candidates, so the report is accurate on the button's path; a direct `testProcessModel` call with a stale id gets a misleading line. Fix: split `refused` into excluded and not found. *Owner:* the build session. *Trigger:* the next change to `SD_planCleanup` or the cleanup report.
 - **The comparison with no earlier template** (the standard-template baseline in `SD_buildTemplateComparisonRequest`) and **with no layout difference** (the AI call skipped, rules text) are proven only by rule tests and the gauntlet, not by a live run. *Owner:* the build session. *Trigger:* the first malformed template for an investment with no loaded template, or a failure caused only by blank header values.
@@ -257,7 +266,7 @@ Open items by class. Sessions add discovered items unprompted as they surface, a
   - *Owner:* the build session.
   - *Trigger:* a ruling that personas should see fewer draws than they do.
 
-- **Correct appian-supplemental §3 on group membership.** It still states that `addGroupMembers`, `getGroup` and `listGroupMembers` return 403. That is the pre-26.6.90 behaviour. Reads work on 26.6.90 and 26.6.95, and **membership writes work on 26.6.95** (three adds measured 2026-09-21); `reference/mcp-capability-boundaries.md` records both.
+- ~~**Correct appian-supplemental §3 on group membership.**~~ **Done 2026-09-27** (see Done): corrected in the template repo, the user-level copy and this repo's copy, identical. It still states that `addGroupMembers`, `getGroup` and `listGroupMembers` return 403. That is the pre-26.6.90 behaviour. Reads work on 26.6.90 and 26.6.95, and **membership writes work on 26.6.95** (three adds measured 2026-09-21); `reference/mcp-capability-boundaries.md` records both.
   - *Owner:* Scott (the skill's owner).
   - *Change:* edit the skill in the template repo, then re-sync the user-level copy and this repo's `skills/appian-supplemental/SKILL.md`, keeping the two identical (`CLAUDE.md` §2 step 6).
   - *Trigger:* the next template sync, or earlier if a session is misled by the stale text.
@@ -287,6 +296,13 @@ Open items by class. Sessions add discovered items unprompted as they surface, a
   *Owner:* the build session. *Trigger:* any move of the app to another instance.
 
 ## Done
+
+- ✅ 2026-09-27 **Housekeeping: demo-practices skill created from the build record; supplemental §3 corrected.**
+  - `skills/demo-practices/SKILL.md` was verified rule by rule against `BUILD_LOG.md`, the git history and `TODO.md`: 1 confirmed, 9 corrected, 2 added.
+  - It landed in the template repo (authoritative), this repo and `~/.claude/skills/demo-practices/`, identical.
+  - appian-supplemental §3 now says reads work from 26.6.90 and writes from 26.6.95. The version is 2026-09-27, and the template also gained the 2026-09-26 §9 promotion; all three copies are identical.
+  - Both `CLAUDE.md` files point at the skill.
+  - The ruling that draw numbers and record ids carry no demo significance is recorded; beat 2 and the plan narrative are now id-free.
 
 - ✅ 2026-09-27 **Fix session: stage-for-approval and optional cleanup buttons; runbook without resets.**
   - **Rulings recorded** (`PROJECT_INSTRUCTIONS.md`, the runbook):
