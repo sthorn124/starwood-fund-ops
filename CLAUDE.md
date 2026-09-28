@@ -4,8 +4,6 @@ This file is the generic operating core for an Appian application built through 
 
 **Skill precedence.** The user-level **appian-supplemental** skill governs environment, platform, and Dev MCP facts and the portable working method. A project skill (a `<prefix>-standards` or client-standards skill), if the build has one, governs SAIL styling, naming, colours, and this build's layout applications. This file governs the project's data model, vocabulary, and business rules and wins on conflict for project matters. appian-supplemental wins over the vendor pack and the docs only where it records a measured correction. Surprising environment behaviour discovered in a build is recorded in the build log as a promotion candidate first; it reaches appian-supplemental only through the promotion gate (§9), and the project file then keeps at most an application pointer.
 
-**Demo practices.** `skills/demo-practices/SKILL.md` (installed at user level beside appian-supplemental) holds the judgment rules for demo builds; read it during planning as well as building — before a plan or build prompt is written or accepted, and at the start of every build session.
-
 ## 1. Grounding order at session start
 
 Read, in this order, before anything else:
