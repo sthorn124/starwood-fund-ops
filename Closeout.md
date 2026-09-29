@@ -78,7 +78,7 @@ The throwaway `zz_feedLauncher28c` was created for the feed arrivals, then delet
   - The views turn datetimes into dates with `todate()`, which the docs say returns the GMT date. The email formats in the viewer's zone.
   - Measured tonight as the same designer: the email reads 09/28, the Approvals tab 09/29, for the same decisions.
   - The old seeded times never crossed midnight UTC, which hid it.
-  - Between 8 AM and 8 PM Eastern both agree. Deferred with a trigger: fix before any demo or rehearsal after 8 PM Eastern.
+  - From midnight to 8 PM Eastern both agree. Deferred with a trigger: fix before any demo or rehearsal after 8 PM Eastern.
 - **Zero-day spans.** The cycle line says "in approval 0 days so far" (and will say "decided in 0 days" after a same-day decision). This is true, and left as is.
 
 ## Not verified, and why
