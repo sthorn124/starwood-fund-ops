@@ -41,7 +41,7 @@ What has actually been built in the environment, with object identifiers and the
 - **STAGED (gate 2 — measured on three models, 2026-09-22) — a process model that carries a start form cannot be read or modified over the Dev MCP.** `getProcessModel`, `updateProcessModel` and `createProcessModelNode` fail with `Unexpected error: 'interfaceUuid'`; the `updateProcessModel` that sets the form persists and then errors on its own readback; later calls read first and persist nothing. Working form: build complete, set `startForm` last, treat the model as frozen; or split the start form into a three-node launcher that starts the real model asynchronously. Recorded in `reference/mcp-capability-boundaries.md` §4. *Trigger:* the next Dev MCP generation (re-test `getProcessModel` on `SA Upload and Create Subscription`), or the next build that needs a start form.
 - **STAGED (gate 1, 2026-09-22) — `tostring()` of a Decimal keeps 7 significant digits** (`tostring(2604252.23)` = "2604252", `tostring(186977333.5)` = "1.869773e+08"), `text(v, "0.############")` prints binary noise ("2604252.229999999981") and mangles negatives (`text(-21509, "0.##")` = "2150-9.00"), while `fixed(v, 4, true)` is exact for these magnitudes. `todate("2026-11-16")` fails ("Date out of range"); `todate("11/16/2026")` works; ISO dates are parsed with `date(left, mid, right)`. `a!toJson` prints a large decimal in scientific notation (`1.869773335E8`), which `a!fromJson` reads back. Working form: carry numbers as `fixed(…, 4, true)` text through JSON and PVs. *Trigger:* the next rule that serialises a decimal or parses a date string.
 - **STAGED (gate 1, 2026-09-22) — Write Records does not clear a field set to `null`** in the record constructor (the old value survives); `updateRecordData` with an empty CSV cell does (2026-09-21). *Trigger:* the next process that must null a column.
-- **STAGED (gate 1, 2026-09-22) — the Start Process smart service cannot be configured over the Dev MCP** (`customInputs` in any type spelling → `acSchemaId is null`), and a subprocess node cannot map a child's non-parameter PV to an output (`Unknown output`). Working form: synchronous subprocess plus a query for the row the child wrote. *Trigger:* the next call into a child whose result is not a parameter.
+- **[TRIGGER FIRED 2026-09-28, second fix session — reproduced in a second model, held at gate 2; see below]** **STAGED (gate 1, 2026-09-22) — the Start Process smart service cannot be configured over the Dev MCP** (`customInputs` in any type spelling → `acSchemaId is null`), and a subprocess node cannot map a child's non-parameter PV to an output (`Unknown output`). Working form: synchronous subprocess plus a query for the row the child wrote. *Trigger:* the next call into a child whose result is not a parameter.
 - **STAGED (gate 1, 2026-09-22) — `deleteRecordData` does not cascade through CASCADING relationships**; children are deleted explicitly, children first. *Trigger:* the next cleanup of a parent row.
 - **STAGED (gate 1, 2026-09-22) — objects created without `appUuid` are outside the application** (five Phase 2b rules, a constant and nine interfaces were absent from `listApplicationObjects` until `addObjectsToApplication`), while `createInterface(parentFolderUuid)` without `appUuid` looked fine at creation. Working form: always pass `appUuid`; check `listApplicationObjects` at close-out. *Trigger:* the next close-out.
 - **STAGED (gate 1, 2026-09-22, instance-specific) — Doc Center findings**, recorded in full in `reference/mcp-capability-boundaries.md` (before §10): models are data rows and can be created by insert; xlsx extraction works directly with no per-field confidence; the save step throws on `[]` for a scalar field and stalls the calling subprocess; the LLM response is cached per document; `AIA_API_Extraction_ConvertInstanceIdToMap` is the read surface. *Trigger:* Phase 5 (malformed template) and the next Doc Center model.
@@ -122,6 +122,9 @@ What has actually been built in the environment, with object identifiers and the
 
   The 2026-09-22 `generalComments` removal cured a stall and was never measured on the cached path; this was. Re-verify per instance. *Trigger:* the next change to a Doc Center model's fields.
 - **STAGED (gate 1, 2026-09-28, fix session) — a process whose start event carries an email trigger can be started directly with `testProcessModel`, passing the parameters the trigger maps** (`emailFrom`, `emailSubject`, `emailBody`). The handler ran exactly as for a mailed reply, with the sender as passed (rows 64 and 66 on draw 79, both from the authorized address). This replaces the throwaway loop-test sender, and it is the only way to test an authorized reply without a real mailbox. Only the model's administrators can do it (`SD Administrators`; the initiator role is empty, read back 2026-09-28). *Trigger:* the next loop test of the reply path.
+
+- **Ruling, 2026-09-28 (second fix session), on "a subprocess node cannot map a child's non-parameter PV to an output": reproduced, held at gate 2.** Building `SD Send Reminder Now`, a subprocess node's output `outcome` on `SD Chase Approval Step` (whose `outcome` PV is not a parameter) was refused by `updateProcessModel` with HTTP 400 "Unknown output 'outcome' — use customOutputs for custom ACPs". The working form held: a synchronous subprocess, then a script node that reads the rows the child wrote. Two observations in two models, so it is measured. It is not promoted, because the error names the problem and the fix costs one round: it fails gate 3. *New trigger:* a session that loses more than one round to it.
+- **STAGED (gate 1, 2026-09-28, second fix session) — `updateProcessModel` with only `processVariables` adds a PV and leaves every node in place.** On a 45-node model, sending the full list of 48 PVs plus one new one returned 49 PVs and all 45 nodes intact. The PV list is a full replacement, so the full list must be sent. *Trigger:* the next PV added to a large model.
 
 ## Entries
 
@@ -2032,3 +2035,102 @@ Promotion checkpoint: current through 2026-09-27 — Housekeeping: demo-practice
 **Promotion candidates:** 3 newly staged at gate 1 (a grid-cell layout the validator accepts but the browser prints; the Doc Center field deletion on the cached path; starting an email receiver directly). 1 reversal ruled (side-by-side in a grid cell). 2 triggers fired and held at gate 1 (sail repeated labels; script-task outputs). None promoted. The repo and user-level `appian-supplemental` are unchanged.
 
 Promotion checkpoint: current through 2026-09-28 — Fix session: system-assigned draw numbers, docs tie rendering, mismatch staging button, review banner, #12 specimen.
+
+## 2026-09-28 — Second fix session: the Asset Manager at step 2, the accelerator stop, the manual reminder, the chased-step listing, labelled rows, the one-draw runbook
+
+**Scope.**
+- **Design work and readbacks:** the Dev MCP (`appian`) as `scott.thorn@appian.com`, a member of `SD Administrators`, `SD Users` and the three draw step groups. Every designer read is full scope.
+- **sail:** `~/.sail-sd.accountant` (`sd.accountant`, Priya Raman, `SD Draw Demo Approvers`) and `~/.sail-sd.assetmanager` (`sd.assetmanager`, Elena Marchetti, `SD Draw Asset Managers`).
+- **Runtime MCP:** not called.
+- **Preflight:**
+  - Dev MCP 26.6.95, build 20260911-210447, matches the pin (App Market 26.6.100 available, already in TODO); sail 26.6.95.
+  - The design read returned 27 record types. The supplemental skill copies are identical.
+  - The groups read back as recorded. Both personas are live. The `alex.analyst`, `sam.supervisor` and `test.presenter` directories belong to other builds and get HTTP 500 on this site. The default `~/.sail` is empty.
+  - Readbacks: `SD_ESCALATION_TEST_MINUTES` = 0, `SD_SMS_MODE` = STAGED.
+
+**What changed, by object.**
+- **Ruling** (`PROJECT_INSTRUCTIONS.md`, "One-draw demo"): the chain order, the accelerator target, Send Reminder Now, the chased-step listing, labelled rows, and failure-first order with no stage-for-approval click.
+- **Chain:**
+  - Constant **`SD_DRAW_CHAIN_ROLES`** (`…_577895`).
+  - `SD_buildIngestedApprovalChain` **v2** (`…_571195`; generator `gen_ingest_rules.py`), with inputs `confirmedBy` and `confirmedAt`:
+    - roles in the constant's order; names from the prior chain, matched by role;
+    - order 1 Approved at `confirmedAt`, acted by the confirmer, source RECONCILIATION, activated at the draw's `createdAt`;
+    - order 2 In Progress;
+    - rule test on draw 105 as `sd.accountant`: Priya Raman / Elena Marchetti / Daniel Osei … Thomas Bergman in the new order.
+  - `SD Receive Capital Call` (`0000f06f-5661-…`):
+    - PV `confirmedAt` added (49 PVs; all 45 nodes intact);
+    - node 15 sets it to `now()`;
+    - node 23 passes it and `confirmedBy`;
+    - node 28 writes `currentStep` 2 ("Activate draw (In Progress, step 2 Asset Manager)");
+    - node 30's outcome says so;
+    - all read back.
+  - The `SD Draw Asset Managers` description now says order 2 on new draws.
+- **Accelerator** (`0000f06e-a54d-…`):
+  - parameter **`targetRole`**; node 4 derives `stopAtStep` from that role's order on the draw's own chain (blank keeps `stopAtStep`, default the CEO);
+  - description rewritten;
+  - constant **`SD_ADVANCE_DRAW_PM`** (`…_577901`).
+- **Send Reminder Now:**
+  - process **`SD Send Reminder Now`** (`0000f077-f3d0-8000-26a3-7f0000014e7a`; `gen_reminder_now.py` → `reminder_now_payload.json`):
+    - 9 nodes as DESIGNER: read the draw → the waiting step → XOR → `SD Chase Approval Step` synchronously with rung REMINDER, then rung SMS (rungs as PV defaults) → the outcome read from the rows the runs logged → else REFUSED;
+    - administrator `SD Administrators` only;
+  - constant **`SD_SEND_REMINDER_NOW_PM`** (`…_577932`).
+- **Reminder threading:** `SD_buildStepReminderEmail` **v3**: the subject is "Re: " plus the step email's subject.
+- **Needs chasing:** `SD_getChaseRows` **v5**:
+  - one query of all REMINDER / SMS rows;
+  - also lists a step chased at its current step whatever its age;
+  - Why "Reminder sent today · text staged";
+  - aging rows unchanged.
+- **Labels:** `SD_getDrawListRows` **v3**: `rowLabel` and `packageLabel` for unconfirmed rows, from one document query.
+- **Page:** `SD_page_draws` **v14**:
+  - the Draw column shows `rowLabel`; the Investment column shows the package for unconfirmed rows;
+  - the staging card's row 2 is **A draw in approval** (picker + **Advance to President**, **Send Reminder Now** (synchronous, result line from `fv!processInfo.pv.outcome`), **Advance to CEO**), replacing Stage for Approval;
+  - the feed row's copy is in the new beat order.
+  - The docs gate was run (a!startProcess processInfo, column widths); the pack's columns rule (one AUTO column) holds.
+  - Designer render `error: null`; the picker lists the six draws in approval, newest first.
+- **Throwaway:** `zz_feedLauncher28b` (`0000f077-f531-…`) was created, used for the two feed arrivals, and deleted; absence confirmed.
+
+**The end-to-end test, run once as on stage** (feeds through the throwaway launcher with the buttons' own constants; tasks completed as the designer, because sail cannot open them):
+- **Beat 0:** mismatch draw **106** (staged the previous session) still open for beat 3.
+- **Beat 1:** malformed template at 02:21:51 → draw **107** Ingestion Failed at 02:23:18 (**87 s**), with the reason and the AI comparison ("Compared with THSV_Draw67_Budget_Template.xlsx (Draw #82 …) by AI (Claude Sonnet 4.6)"). As `sd.accountant` via sail: its row "Not loaded · 10:21 PM". The alert in Gmail was not checked.
+- **Beat 2:**
+  - The corrected package arrived at 02:23:57 → draw **108**. Extraction instance 894 stored at 75 s; the reconciliation task 268443618 open by ~90 s.
+  - Supporting documents: invoice and lien waiver classified at ~54 s; the pay application read at 52.0 s + 65.4 s ($2,490,296.23).
+  - As `sd.accountant` via sail: the row "New draw · 10:23 PM" with "+ 3 supporting files", opened by its label; the Summary's Reconcile Extraction card.
+  - Designer render: "Ties ✓ $2,604,252.23", the pay application "Ties", the invoice "Received · filed as Invoice", "Lien waiver received", Draw Number #83.
+  - Confirmed (`completeTask`, `confirmedBy` = the designer) at 02:27:55 → **#83**, In Progress at **step 2**. Order 1 Priya Raman Approved 02:27:55, activated 02:23:57. Order 2 Elena In Progress. Corroboration TIES. The step 2 process registered by 02:28:10.
+- **Beat 3:** as `sd.accountant` via sail, "New draw · 6:44 PM" (the mismatch PDF named beneath) opened draw 106's Summary with its Reconcile Extraction card.
+- **Beat 4:**
+  - As `sd.assetmanager` via sail: Awaiting My Action 2 (#66, #83); #83's Summary shows "Your approval is pending — Asset Manager, step 2 of 9", Review & Approve, "Accountant ✓ 09/29".
+  - The task 268443958 was completed as the designer: APPROVE, lines 6922 (A&E - Architectural, adjustment 21,000 → 31,000) and 6929 (contingency, (57,753) → (67,753)). Two line events were written at step 2, attributed to the designer.
+  - The draw moved to step 3; Elena's decision is dated 09/30 02:27 UTC (the monotonic rule).
+- **Beat 5:**
+  - **Advance to President** (targetRole "President") at 02:29:10: step 8 at 02:30:22 (**72 s**), its task registered by 02:30:30 (**80 s**); step email row 71.
+  - **Send Reminder Now:** **13.2 s**, "SENT: draw #83 (step 8 · President): reminder sent to SD Draw Demo Approvers · text staged to +1 ••• ••• 6630"; rows 72 (REMINDER, "Re: …Step 8 of 9 (President) [SD-DRAW-108-S8]") and 73 (SMS, STAGED).
+  - As `sd.accountant` via sail: **Needs chasing (3)** — #12 "Step 6 waiting 10 days" + "Text staged, not sent Sep 28, 6:46 PM"; #83 "Reminder sent today · text staged"; #70 (its Sep 26 reminder).
+  - The reminder's content, read from the rule: the banner "Reminder: this approval is still waiting and the draw is funding in 48 days…", then the President's step email, carrying the Asset Manager's edit.
+  - **Advance to CEO** at 02:31:34: completed in **32 s**, one decision (superseding the President task); CEO task started (process 39532); the CEO step email (row 74) sent 02:32:10.
+- **Regression:** the accelerator with no target on **#82** (draw 105, old chain, step 1) at 02:32:13 → step 9 by 02:34:12 (~2 min); CEO task 268445158 live; the Asset Manager kept order 3.
+- **Also read as `sd.accountant` via sail:** #83's Approvals tab (order 1 "reconciliation · scott.thorn@appian.com", the comment) and Budget Detail's Line History (two edits).
+
+**Not verified.**
+- **Browser only:**
+  - the staging card's new row (geometry and the three clicks; the processes behind them were run directly);
+  - the reminder **threading in Gmail** and its look there;
+  - the malformed-template alert in Gmail (sent by the unchanged failure branch);
+  - the persona clicks of Confirm and of the Asset Manager's Approve with an edit.
+
+  The last two were completed by the designer, so #83 reads "reconciliation · scott.thorn@appian.com" and "Scott Thorn" in the Line History. On stage both carry the persona, because the forms save `loggedInUser()`.
+- **Beat 6** (the CEO's replies) and **beat 7** (treasury) were not run: #83 waits at the CEO for Scott's Gmail replies. The brief's test ended at the CEO email.
+
+**Findings.**
+- A live Asset Manager approval is dated a day after the confirmation (the monotonic rule; a ruling is owed).
+- Chase rows sent by hand carry the escalation notes (a Deferred item).
+- The subprocess-output candidate reproduced.
+- `updateProcessModel` with only PVs keeps the nodes (newly staged).
+
+**Promotion candidates:**
+- 1 newly staged at gate 1: the PV-only `updateProcessModel`.
+- 1 trigger fired and held at gate 2: the subprocess output.
+- None promoted. The repo and user-level `appian-supplemental` copies are unchanged and identical.
+
+Promotion checkpoint: current through 2026-09-28 — Second fix session: the Asset Manager at step 2, the accelerator stop, the manual reminder, the chased-step listing, labelled rows, the one-draw runbook.

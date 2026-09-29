@@ -57,50 +57,75 @@ a!localVariables(
   local!isAdmin: a!defaultValue(a!isUserMemberOfGroup(username: loggedInUser(), groups: cons!SD_ADMINISTRATORS_GROUP), false),
   local!feedState,
   local!feedAt,
-  /* Stage for Approval: the eligible draws (most recent first), the choice, and the draw last started with a live check */
-  local!stageCandidates: if(local!isAdmin, rule!SD_getStageForApprovalCandidates(rows: local!rows), {}),
-  local!stageIds: if(a!isNullOrEmpty(local!stageCandidates), {}, a!forEach(items: local!stageCandidates, expression: tointeger(fv!item.drawId))),
-  local!stageChoice,
-  local!stageEffective: if(
-    a!isNullOrEmpty(local!stageIds),
-    null,
-    if(and(not(a!isNullOrEmpty(local!stageChoice)), contains(local!stageIds, tointeger(local!stageChoice))), tointeger(local!stageChoice), index(local!stageIds, 1, null))
-  ),
-  local!stageDrawId,
-  local!stageError: false,
-  local!stageCheck: 0,
-  local!stageStatus: a!refreshVariable(
-    value: if(a!isNullOrEmpty(local!stageDrawId), null, rule!SD_getDrawDetail(drawId: local!stageDrawId)),
-    refreshInterval: if(a!isNullOrEmpty(local!stageDrawId), null, 0.5),
-    refreshOnVarChange: local!stageCheck
-  ),
-  local!stageDone: and(
-    not(a!isNullOrEmpty(local!stageStatus)),
-    tostring(a!defaultValue(index(local!stageStatus, "status", ""), "")) = "In Progress",
-    tointeger(a!defaultValue(index(local!stageStatus, "currentStep", 0), 0)) = 3,
-    not(a!isNullOrEmpty(index(local!stageStatus, "openTaskId", null)))
-  ),
-  local!stageLine: if(
-    local!stageError,
-    "Stage for Approval could not be started.",
-    if(
-      a!isNullOrEmpty(local!stageDrawId),
-      "",
-      a!localVariables(
-        local!n: "#" & a!defaultValue(index(local!stageStatus, "drawNumber", null), local!stageDrawId),
-        local!step: tointeger(a!defaultValue(index(local!stageStatus, "currentStep", 0), 0)),
-        local!st: tostring(a!defaultValue(index(local!stageStatus, "status", ""), "")),
-        if(
-          local!stageDone,
-          "Draw " & local!n & " is staged for approval: step 3 of 9 · Asset Manager (" & a!defaultValue(index(local!stageStatus, "currentApprover", ""), "") & ") · the task is live for SD Draw Asset Managers.",
-          if(
-            and(local!st = "In Progress", local!step = 3),
-            "Draw " & local!n & " is at the Asset Manager step; its task is being issued.",
-            if(
-              or(local!st <> "In Progress", local!step > 3),
-              "Draw " & local!n & " is " & local!st & " at step " & local!step & ".",
-              "Staging draw " & local!n & ": approving steps 1–2 as the chain's named approvers, then issuing the Asset Manager task (about 45 seconds; this line re-checks every 30 seconds)."
+  /* A draw in approval (second fix session 2026-09-28; replaces Stage for Approval, retired with the reordered chain):
+     advance it to the President or the CEO (the accelerator with targetRole, cons!SD_ADVANCE_DRAW_PM) or send its current
+     step a reminder now (SD Send Reminder Now, synchronous). The draws in approval, newest first. */
+  local!moveCandidates: if(
+    local!isAdmin,
+    a!localVariables(
+      local!inApproval: if(
+        a!isNullOrEmpty(local!rows),
+        {},
+        index(local!rows, wherecontains("In Progress", a!forEach(items: local!rows, expression: tostring(a!defaultValue(fv!item.status, "")))), {})
+      ),
+      if(
+        a!isNullOrEmpty(local!inApproval),
+        {},
+        todatasubset(
+          a!forEach(
+            items: local!inApproval,
+            expression: a!map(
+              drawId: tointeger(fv!item.id),
+              label: "#" & a!defaultValue(fv!item.drawNumber, fv!item.id) & " · " & a!defaultValue(fv!item.investmentName, "") & " · step " & a!defaultValue(fv!item.currentStep, "?") & " of " & a!defaultValue(fv!item.totalSteps, 9) & " · " & a!defaultValue(fv!item.currentRole, "")
             )
+          ),
+          a!pagingInfo(startIndex: 1, batchSize: -1, sort: a!sortInfo(field: "drawId", ascending: false))
+        ).data
+      )
+    ),
+    {}
+  ),
+  local!moveIds: if(a!isNullOrEmpty(local!moveCandidates), {}, a!forEach(items: local!moveCandidates, expression: tointeger(fv!item.drawId))),
+  local!moveChoice,
+  local!moveEffective: if(
+    a!isNullOrEmpty(local!moveIds),
+    null,
+    if(and(not(a!isNullOrEmpty(local!moveChoice)), contains(local!moveIds, tointeger(local!moveChoice))), tointeger(local!moveChoice), index(local!moveIds, 1, null))
+  ),
+  local!moveDrawId,
+  local!moveAction,
+  local!moveResult,
+  local!moveError: false,
+  local!moveCheck: 0,
+  local!moveStatus: a!refreshVariable(
+    value: if(a!isNullOrEmpty(local!moveDrawId), null, rule!SD_getDrawDetail(drawId: local!moveDrawId)),
+    refreshInterval: if(or(a!isNullOrEmpty(local!moveDrawId), local!moveAction = "REMINDER"), null, 0.5),
+    refreshOnVarChange: local!moveCheck
+  ),
+  local!moveTarget: if(local!moveAction = "PRESIDENT", "President", if(local!moveAction = "CEO", "CEO", "")),
+  local!moveDone: and(
+    local!moveTarget <> "",
+    not(a!isNullOrEmpty(local!moveStatus)),
+    tostring(a!defaultValue(index(local!moveStatus, "currentRole", ""), "")) = local!moveTarget,
+    not(a!isNullOrEmpty(index(local!moveStatus, "activeStepProcessId", null)))
+  ),
+  local!moveLine: if(
+    local!moveError,
+    "Could not be started. Check that the draw is still in approval.",
+    if(
+      a!isNullOrEmpty(local!moveDrawId),
+      "",
+      if(
+        local!moveAction = "REMINDER",
+        a!defaultValue(local!moveResult, "Sending the reminder…"),
+        a!localVariables(
+          local!n: "#" & a!defaultValue(index(local!moveStatus, "drawNumber", null), local!moveDrawId),
+          local!step: a!defaultValue(index(local!moveStatus, "currentStep", "?"), "?"),
+          local!role: tostring(a!defaultValue(index(local!moveStatus, "currentRole", ""), "")),
+          if(
+            local!moveDone,
+            "Draw " & local!n & " is at step " & local!step & " of 9 · " & local!role & " (" & a!defaultValue(index(local!moveStatus, "currentApprover", ""), "") & "): the task is live and the step email is on its way.",
+            "Advancing draw " & local!n & " to the " & local!moveTarget & " (narrate the following days): now at step " & local!step & " · " & local!role & ". About 90 seconds; this line re-checks every 30 seconds."
           )
         )
       )
@@ -525,10 +550,15 @@ a!localVariables(
                 value: a!richTextDisplayField(
                   value: {
                     a!richTextItem(
-                      text: if(
-                        a!isNullOrEmpty(fv!row.drawNumber),
-                        if(tostring(a!defaultValue(fv!row.status, "")) = "Ingestion Failed", "Not loaded", "New draw"),
-                        "#" & fv!row.drawNumber
+                      /* second fix session 2026-09-28: rowLabel (rule!SD_getDrawListRows) names an unconfirmed draw by its received
+                         time ("New draw · 6:44 PM"), so two of them are tellable apart on stage and by sail */
+                      text: a!defaultValue(
+                        fv!row.rowLabel,
+                        if(
+                          a!isNullOrEmpty(fv!row.drawNumber),
+                          if(tostring(a!defaultValue(fv!row.status, "")) = "Ingestion Failed", "Not loaded", "New draw"),
+                          "#" & fv!row.drawNumber
+                        )
                       ),
                       link: a!recordLink(recordType: 'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw', identifier: fv!row.id),
                       linkStyle: "STANDALONE",
@@ -546,12 +576,20 @@ a!localVariables(
               ),
               a!gridColumn(
                 label: "Investment",
+                /* an unconfirmed draw shows its package (template + supporting files) under, or instead of, the investment */
                 value: a!richTextDisplayField(
-                  value: a!richTextItem(
-                    text: a!defaultValue(fv!row.investmentName, "—"),
-                    link: a!recordLink(recordType: 'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw', identifier: fv!row.id),
-                    linkStyle: "STANDALONE"
-                  )
+                  value: {
+                    a!richTextItem(
+                      text: a!defaultValue(fv!row.investmentName, a!defaultValue(fv!row.packageLabel, "—")),
+                      link: a!recordLink(recordType: 'recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw', identifier: fv!row.id),
+                      linkStyle: "STANDALONE"
+                    ),
+                    if(
+                      or(a!isNullOrEmpty(fv!row.investmentName), a!isNullOrEmpty(fv!row.packageLabel)),
+                      "",
+                      {char(10), a!richTextItem(text: fv!row.packageLabel, color: "#6B7280", size: "SMALL")}
+                    )
+                  }
                 ),
                 width: "MEDIUM_PLUS",
                 backgroundColor: if(a!defaultValue(fv!row.actionForViewer, false), "#E8F0FC", "NONE")
@@ -644,11 +682,11 @@ a!localVariables(
       )
       ,
       /* Demo staging (SD Administrators only; fix session 2026-09-27). Demo prep is clickable only: this card stages what the
-         beats need and nothing is reset, reused or cleaned by requirement. Row 1 — the feed arrives: the corrected package
-         (beat 1), the malformed template or the mismatch package (beat 3) goes through a!startProcess(cons!SD_RECEIVE_CAPITAL_CALL_PM, …) exactly as
-         Receive Capital Call sends it. Row 2 — Stage for Approval (the one pre-demo click): approves steps 1–2 of an ingested
-         draw as its named approvers and issues a fresh Asset Manager task (SD Stage Draw for Approval; eligibility is
-         rule!SD_isStageForApprovalEligible, re-checked by the process). Row 3 — Clean Up Old Runs, optional: removes every
+         beats need and nothing is reset, reused or cleaned by requirement. Row 1 — the feed arrives (order since the second fix
+         session 2026-09-28: mismatch package before the demo, malformed template beat 1, corrected package beat 2) goes through a!startProcess(cons!SD_RECEIVE_CAPITAL_CALL_PM, …) exactly as
+         Receive Capital Call sends it. Row 2 — a draw in approval (second fix session 2026-09-28; Stage for Approval is retired:
+         a confirmed draw starts at the Asset Manager): Advance to President / Advance to CEO (the accelerator with targetRole)
+         and Send Reminder Now (SD Send Reminder Now: the chase mechanism for the current step, at once). Row 3 — Clean Up Old Runs, optional: removes every
          ingested draw that is not a named specimen, after a second click (SD Clean Up Old Runs, synchronous, with a report). */
       a!cardLayout(
         contents: {
@@ -676,7 +714,7 @@ a!localVariables(
                         "The feed arrival could not be started. Check that the package documents in SD_FEED_PACKAGE_TEMPLATE, SD_FEED_PACKAGE_SUPPORTING, SD_FEED_PACKAGE_MISMATCH_SUPPORTING and SD_FEED_PACKAGE_FAILING_TEMPLATE still exist.",
                         if(
                           a!isNullOrEmpty(local!feedState),
-                          "Beat 1: the corrected package (" & document(cons!SD_FEED_PACKAGE_TEMPLATE, "name") & " and " & count(cons!SD_FEED_PACKAGE_SUPPORTING) & " supporting PDFs) ingests. Beat 3: the malformed template (" & document(cons!SD_FEED_PACKAGE_FAILING_TEMPLATE, "name") & ") fails validation and sends the alert; the mismatch package (the same template with a pay application that does not tie to Hard Costs, no lien waiver) shows the tie-out catching it. All three go through the same intake path as Receive Capital Call.",
+                          "Before the demo: the mismatch package (the same template with a pay application that does not tie to Hard Costs, no lien waiver); its reconciliation task waits for beat 3. Beat 1: the malformed template (" & document(cons!SD_FEED_PACKAGE_FAILING_TEMPLATE, "name") & ") fails validation and sends the alert. Beat 2: the corrected package (" & document(cons!SD_FEED_PACKAGE_TEMPLATE, "name") & " and " & count(cons!SD_FEED_PACKAGE_SUPPORTING) & " supporting PDFs) ingests. All three go through the same intake path as Receive Capital Call.",
                           a!match(value: local!feedState, equals: "FAILING", then: "Malformed template", equals: "MISMATCH", then: "Mismatch package", default: "Corrected package") & " staged at " & text(local!feedAt, "h:mm a") & ". The new draw appears within about 10 seconds (reload this page); " &
                           a!match(value: local!feedState, equals: "FAILING", then: "the ingestion failure alert follows in about 90 seconds.", equals: "MISMATCH", then: "the accountant's reconciliation task follows in about 90 seconds, with the pay application reading Does not tie.", default: "the accountant's reconciliation task follows in about 90 seconds.")
                         )
@@ -735,7 +773,7 @@ a!localVariables(
             stackWhen: {"PHONE"},
             marginBelow: "STANDARD"
           ),
-          /* row 2: stage a draw for approval (the pre-demo click) */
+          /* row 2: a draw in approval — advance it, or send its step a reminder now */
           a!columnsLayout(
             columns: {
               a!columnLayout(
@@ -743,13 +781,13 @@ a!localVariables(
                   a!richTextDisplayField(
                     labelPosition: "COLLAPSED",
                     value: {
-                      a!richTextItem(text: "Stage for approval", size: "SMALL", style: "STRONG", color: "#16294D"),
+                      a!richTextItem(text: "A draw in approval", size: "SMALL", style: "STRONG", color: "#16294D"),
                       char(10),
                       a!richTextItem(
                         text: if(
-                          a!isNullOrEmpty(local!stageIds),
-                          "No ingested draw is at step 1 or 2 with a live task. Stage the corrected package and confirm its reconciliation first.",
-                          "Before the demo: approves steps 1–2 of the chosen draw as its named approvers (dates a day apart) and issues a fresh Asset Manager task."
+                          a!isNullOrEmpty(local!moveIds),
+                          "No draw is in approval.",
+                          "Beat 5: advance the chosen draw to the President (the chain approves over the following days), send its step a reminder now (the reminder on the step's thread and the staged text; it then shows in Needs chasing), and advance it to the CEO."
                         ),
                         color: "#1F2937",
                         size: "SMALL"
@@ -759,59 +797,108 @@ a!localVariables(
                   ),
                   a!dropdownField(
                     labelPosition: "COLLAPSED",
-                    choiceLabels: a!forEach(items: local!stageCandidates, expression: tostring(fv!item.label)),
-                    choiceValues: local!stageIds,
-                    value: local!stageEffective,
-                    saveInto: local!stageChoice,
-                    showWhen: not(a!isNullOrEmpty(local!stageIds)),
+                    choiceLabels: a!forEach(items: local!moveCandidates, expression: tostring(fv!item.label)),
+                    choiceValues: local!moveIds,
+                    value: local!moveEffective,
+                    saveInto: local!moveChoice,
+                    showWhen: not(a!isNullOrEmpty(local!moveIds)),
                     marginBelow: "EVEN_LESS"
                   ),
                   a!richTextDisplayField(
                     labelPosition: "COLLAPSED",
                     value: {
                       a!richTextItem(
-                        text: local!stageLine,
-                        color: if(local!stageDone, "#1E7E46", if(local!stageError, "#B42318", "#1F2937")),
+                        text: local!moveLine,
+                        color: if(or(local!moveDone, and(local!moveAction = "REMINDER", left(a!defaultValue(local!moveResult, ""), 4) = "Draw")), "#1E7E46", if(local!moveError, "#B42318", "#1F2937")),
                         size: "SMALL",
-                        style: if(local!stageDone, "STRONG", "PLAIN")
+                        style: if(local!moveDone, "STRONG", "PLAIN")
                       ),
                       if(
-                        or(a!isNullOrEmpty(local!stageDrawId), local!stageDone),
+                        or(a!isNullOrEmpty(local!moveDrawId), local!moveDone, local!moveAction = "REMINDER"),
                         "",
                         {
                           " ",
                           a!richTextItem(
                             text: "Check now",
-                            link: a!dynamicLink(saveInto: { a!save(local!stageCheck, local!stageCheck + 1), a!save(local!dataVersion, local!dataVersion + 1) }),
+                            link: a!dynamicLink(saveInto: { a!save(local!moveCheck, local!moveCheck + 1), a!save(local!dataVersion, local!dataVersion + 1) }),
                             linkStyle: "STANDALONE",
                             size: "SMALL"
                           )
                         }
                       )
                     },
-                    showWhen: or(not(a!isNullOrEmpty(local!stageDrawId)), local!stageError),
+                    showWhen: or(not(a!isNullOrEmpty(local!moveDrawId)), local!moveError),
                     marginBelow: "NONE"
                   )
                 }
               ),
               a!columnLayout(
                 contents: a!buttonArrayLayout(
-                  buttons: a!buttonWidget(
-                    label: "Stage for Approval",
-                    style: "OUTLINE",
-                    size: "SMALL",
-                    disabled: a!isNullOrEmpty(local!stageEffective),
-                    saveInto: a!startProcess(
-                      processModel: cons!SD_STAGE_FOR_APPROVAL_PM,
-                      processParameters: a!map(drawId: local!stageEffective),
-                      onSuccess: { a!save(local!stageDrawId, local!stageEffective), a!save(local!stageError, false), a!save(local!stageCheck, local!stageCheck + 1) },
-                      onError: a!save(local!stageError, true)
+                  buttons: {
+                    a!buttonWidget(
+                      label: "Advance to President",
+                      style: "OUTLINE",
+                      size: "SMALL",
+                      disabled: a!isNullOrEmpty(local!moveEffective),
+                      saveInto: a!startProcess(
+                        processModel: cons!SD_ADVANCE_DRAW_PM,
+                        processParameters: a!map(drawId: local!moveEffective, targetRole: "President"),
+                        onSuccess: { a!save(local!moveDrawId, local!moveEffective), a!save(local!moveAction, "PRESIDENT"), a!save(local!moveResult, null), a!save(local!moveError, false), a!save(local!moveCheck, local!moveCheck + 1) },
+                        onError: a!save(local!moveError, true)
+                      )
+                    ),
+                    a!buttonWidget(
+                      label: "Send Reminder Now",
+                      style: "OUTLINE",
+                      size: "SMALL",
+                      loadingIndicator: true,
+                      disabled: a!isNullOrEmpty(local!moveEffective),
+                      saveInto: a!startProcess(
+                        processModel: cons!SD_SEND_REMINDER_NOW_PM,
+                        processParameters: a!map(drawId: local!moveEffective),
+                        isSynchronous: true,
+                        onSuccess: {
+                          a!save(local!moveDrawId, local!moveEffective),
+                          a!save(local!moveAction, "REMINDER"),
+                          a!save(local!moveError, false),
+                          a!save(
+                            local!moveResult,
+                            a!localVariables(
+                              local!out: tostring(a!defaultValue(fv!processInfo.pv.outcome, "")),
+                              if(
+                                left(local!out, 6) = "SENT: ",
+                                "D" & right(mid(local!out, 7, len(local!out)), len(local!out) - 7) & ". It is on the draw's Emails tab and in Needs chasing.",
+                                if(local!out = "", "The reminder process finished without an outcome; check the draw's Emails tab.", local!out)
+                              )
+                            )
+                          ),
+                          a!save(local!dataVersion, local!dataVersion + 1)
+                        },
+                        onError: a!save(local!moveError, true),
+                        onIncomplete: {
+                          a!save(local!moveDrawId, local!moveEffective),
+                          a!save(local!moveAction, "REMINDER"),
+                          a!save(local!moveResult, "The reminder is still being sent; check the draw's Emails tab in a moment.")
+                        }
+                      )
+                    ),
+                    a!buttonWidget(
+                      label: "Advance to CEO",
+                      style: "OUTLINE",
+                      size: "SMALL",
+                      disabled: a!isNullOrEmpty(local!moveEffective),
+                      saveInto: a!startProcess(
+                        processModel: cons!SD_ADVANCE_DRAW_PM,
+                        processParameters: a!map(drawId: local!moveEffective, targetRole: "CEO"),
+                        onSuccess: { a!save(local!moveDrawId, local!moveEffective), a!save(local!moveAction, "CEO"), a!save(local!moveResult, null), a!save(local!moveError, false), a!save(local!moveCheck, local!moveCheck + 1) },
+                        onError: a!save(local!moveError, true)
+                      )
                     )
-                  ),
+                  },
                   align: "END",
                   marginBelow: "NONE"
                 ),
-                width: "MEDIUM"
+                width: "WIDE"
               )
             },
             alignVertical: "TOP",

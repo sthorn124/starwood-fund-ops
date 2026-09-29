@@ -1,0 +1,330 @@
+{
+ "processVariables": [
+  {
+   "name": "drawId",
+   "type": "Number (Integer)",
+   "isParameter": true,
+   "isRequired": true
+  },
+  {
+   "name": "outcome",
+   "type": "Text",
+   "isParameter": true
+  },
+  {
+   "name": "state",
+   "type": "Map"
+  },
+  {
+   "name": "stepOrder",
+   "type": "Number (Integer)"
+  },
+  {
+   "name": "canSend",
+   "type": "Boolean"
+  },
+  {
+   "name": "drawLabel",
+   "type": "Text"
+  },
+  {
+   "name": "stepLabel",
+   "type": "Text"
+  },
+  {
+   "name": "rungReminder",
+   "type": "Text",
+   "value": "\"REMINDER\""
+  },
+  {
+   "name": "rungSms",
+   "type": "Text",
+   "value": "\"SMS\""
+  }
+ ],
+ "nodes": [
+  {
+   "id": 1,
+   "type": "core.0",
+   "name": "Start",
+   "coordinates": [
+    50,
+    200
+   ],
+   "connections": [
+    {
+     "targetNodeId": 3,
+     "activityChained": false
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "type": "internal.16",
+   "name": "Read the draw (rules)",
+   "coordinates": [
+    180,
+    200
+   ],
+   "connections": [
+    {
+     "targetNodeId": 4,
+     "activityChained": false
+    }
+   ],
+   "data": {
+    "customOutputs": [
+     {
+      "expression": "rule!SD_getDrawState(pv!drawId)",
+      "saveInto": "pv!state"
+     }
+    ]
+   },
+   "assignment": {
+    "attended": false,
+    "runAs": "DESIGNER"
+   }
+  },
+  {
+   "id": 4,
+   "type": "internal.16",
+   "name": "The waiting step (rules)",
+   "coordinates": [
+    320,
+    200
+   ],
+   "connections": [
+    {
+     "targetNodeId": 5,
+     "activityChained": false
+    }
+   ],
+   "data": {
+    "customOutputs": [
+     {
+      "expression": "tointeger(a!defaultValue(index(pv!state, \"currentStep\", null), null))",
+      "saveInto": "pv!stepOrder"
+     },
+     {
+      "expression": "and(a!defaultValue(index(pv!state, \"found\", false), false), tostring(a!defaultValue(index(pv!state, \"drawStatus\", \"\"), \"\")) = \"In Progress\", tostring(a!defaultValue(index(index(pv!state, \"current\", null), \"status\", \"\"), \"\")) = \"In Progress\", not(a!isNullOrEmpty(index(pv!state, \"currentStep\", null))))",
+      "saveInto": "pv!canSend"
+     },
+     {
+      "expression": "\"#\" & a!defaultValue(index(pv!state, \"drawNumber\", null), \"draw \" & pv!drawId)",
+      "saveInto": "pv!drawLabel"
+     },
+     {
+      "expression": "\"step \" & a!defaultValue(index(pv!state, \"currentStep\", \"?\"), \"?\") & \" \u00b7 \" & a!defaultValue(index(index(pv!state, \"current\", null), \"role\", \"\"), \"\")",
+      "saveInto": "pv!stepLabel"
+     }
+    ]
+   },
+   "assignment": {
+    "attended": false,
+    "runAs": "DESIGNER"
+   }
+  },
+  {
+   "id": 5,
+   "type": "core.4",
+   "name": "A step is waiting?",
+   "coordinates": [
+    460,
+    200
+   ],
+   "connections": [
+    {
+     "targetNodeId": 6,
+     "activityChained": false
+    },
+    {
+     "targetNodeId": 9,
+     "activityChained": false
+    }
+   ],
+   "decision": {
+    "conditions": [
+     {
+      "expression": "=not(a!defaultValue(pv!canSend, false))",
+      "targetNodeId": 9
+     }
+    ],
+    "defaultPath": 6
+   }
+  },
+  {
+   "id": 6,
+   "type": "internal.38",
+   "name": "Reminder (chase, sync)",
+   "coordinates": [
+    600,
+    200
+   ],
+   "connections": [
+    {
+     "targetNodeId": 7,
+     "activityChained": false
+    }
+   ],
+   "data": {
+    "inputs": [
+     {
+      "name": "drawId",
+      "expression": "pv!drawId"
+     },
+     {
+      "name": "stepOrder",
+      "expression": "pv!stepOrder"
+     },
+     {
+      "name": "rung",
+      "expression": "pv!rungReminder"
+     },
+     {
+      "name": "pmUUID",
+      "value": "0000f075-2b51-8000-2614-7f0000014e7a"
+     },
+     {
+      "name": "isAsynchronous",
+      "value": 0
+     },
+     {
+      "name": "isTransparent",
+      "value": 1
+     },
+     {
+      "name": "inheritSecurity",
+      "value": 0
+     },
+     {
+      "name": "chainsInto",
+      "value": 0
+     }
+    ]
+   },
+   "assignment": {
+    "attended": false,
+    "runAs": "DESIGNER"
+   }
+  },
+  {
+   "id": 7,
+   "type": "internal.38",
+   "name": "Text (chase, sync)",
+   "coordinates": [
+    740,
+    200
+   ],
+   "connections": [
+    {
+     "targetNodeId": 8,
+     "activityChained": false
+    }
+   ],
+   "data": {
+    "inputs": [
+     {
+      "name": "drawId",
+      "expression": "pv!drawId"
+     },
+     {
+      "name": "stepOrder",
+      "expression": "pv!stepOrder"
+     },
+     {
+      "name": "rung",
+      "expression": "pv!rungSms"
+     },
+     {
+      "name": "pmUUID",
+      "value": "0000f075-2b51-8000-2614-7f0000014e7a"
+     },
+     {
+      "name": "isAsynchronous",
+      "value": 0
+     },
+     {
+      "name": "isTransparent",
+      "value": 1
+     },
+     {
+      "name": "inheritSecurity",
+      "value": 0
+     },
+     {
+      "name": "chainsInto",
+      "value": 0
+     }
+    ]
+   },
+   "assignment": {
+    "attended": false,
+    "runAs": "DESIGNER"
+   }
+  },
+  {
+   "id": 8,
+   "type": "internal.16",
+   "name": "Outcome (from the logged rows)",
+   "coordinates": [
+    880,
+    200
+   ],
+   "connections": [
+    {
+     "targetNodeId": 2,
+     "activityChained": false
+    }
+   ],
+   "data": {
+    "customOutputs": [
+     {
+      "expression": "a!localVariables(local!msgs: rule!SD_getDrawEmailMessages(drawId: pv!drawId), local!mine: if(a!isNullOrEmpty(local!msgs), {}, index(local!msgs, wherecontains(true, a!forEach(items: local!msgs, expression: and(or(fv!item.kind = \"REMINDER\", fv!item.kind = \"SMS\"), tointeger(a!defaultValue(fv!item.stepOrder, 0)) = pv!stepOrder, fv!item.messageAt >= pp!starttime))), {})), local!kinds: if(a!isNullOrEmpty(local!mine), {}, a!forEach(items: local!mine, expression: fv!item.kind)), local!rem: if(a!isNullOrEmpty(local!kinds), null, index(local!mine, index(wherecontains(\"REMINDER\", local!kinds), 1, 0), null)), local!sms: if(a!isNullOrEmpty(local!kinds), null, index(local!mine, index(wherecontains(\"SMS\", local!kinds), 1, 0), null)), \"SENT: draw \" & pv!drawLabel & \" (\" & pv!stepLabel & \"): reminder \" & if(a!isNullOrEmpty(local!rem), \"not logged\", lower(index(local!rem, \"outcome\", \"?\")) & \" to \" & index(local!rem, \"toAddress\", \"?\")) & \" \u00b7 text \" & if(a!isNullOrEmpty(local!sms), \"not logged\", lower(index(local!sms, \"outcome\", \"?\")) & \" to \" & index(local!sms, \"toAddress\", \"?\")))",
+      "saveInto": "pv!outcome"
+     }
+    ]
+   },
+   "assignment": {
+    "attended": false,
+    "runAs": "DESIGNER"
+   }
+  },
+  {
+   "id": 9,
+   "type": "internal.16",
+   "name": "Refused",
+   "coordinates": [
+    460,
+    360
+   ],
+   "connections": [
+    {
+     "targetNodeId": 2,
+     "activityChained": false
+    }
+   ],
+   "data": {
+    "customOutputs": [
+     {
+      "expression": "\"REFUSED: draw \" & a!defaultValue(pv!drawLabel, pv!drawId) & \" has no step waiting for a decision (status \" & a!defaultValue(index(pv!state, \"drawStatus\", \"?\"), \"?\") & \"). Nothing was sent.\"",
+      "saveInto": "pv!outcome"
+     }
+    ]
+   },
+   "assignment": {
+    "attended": false,
+    "runAs": "DESIGNER"
+   }
+  },
+  {
+   "id": 2,
+   "type": "core.1",
+   "name": "End",
+   "coordinates": [
+    1020,
+    200
+   ],
+   "connections": []
+  }
+ ]
+}

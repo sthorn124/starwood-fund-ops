@@ -12,14 +12,16 @@ This file is the build's high-level checklist and its state of record for what i
 
 Industry: real estate private equity, fund operations. Use case: **draw approval**, the funding of capital call draws for renovation and development projects at properties the fund holds. It continues the subscription-intake story on the same platform: Blue Granite's capital entered Harborline Real Assets Fund II through intake, and this flow deploys it.
 
-Beat by beat, as ruled 2026-09-27 (`PROJECT_INSTRUCTIONS.md`, "Demo order and demo prep"; success before failure; no beat depends on a record id or business number):
-1. The corrected package arrives from the feed and ingests through Doc Center.
-2. The accountant reconciles and confirms it.
-3. A malformed template arrives and fails, and an AI comparison explains why. (Optionally, since 2026-09-28, the mismatch package arrives and the tie-out catches the pay application.)
-4. QIU data and the chain on a draw staged for approval.
-5. The Asset Manager edits and approves in the UI.
-6. The CEO approves by a conversational email reply.
+Beat by beat, as ruled 2026-09-28 (`PROJECT_INSTRUCTIONS.md`, "One-draw demo"; failure opens, recovery follows; no beat depends on a record id or business number):
+1. A malformed template arrives and is refused, and an AI comparison explains why.
+2. The corrected package arrives, ingests through Doc Center, and the accountant confirms it; the draw is born at the Asset Manager's desk.
+3. The mismatch package (staged before the demo) shows the tie-out catching the pay application; closed unconfirmed.
+4. The Asset Manager reviews the chain and QIU, edits a line and approves.
+5. The chain runs on to the President; a reminder goes out and the draw shows in Needs chasing; on to the CEO.
+6. The CEO asks, hedges and approves by conversational email replies; #12 shows the over-limit refusal.
 7. Treasury is notified.
+
+~~Beat order ruled 2026-09-27 (success before failure; a draw staged for approval).~~ Superseded 2026-09-28.
 
 ~~Phase 0 order: 1. Draw #66 arrives. 2. Ingestion fails, and an AI diff explains why. 3. The corrected template ingests through Doc Center.~~ Superseded 2026-09-27.
 
@@ -148,7 +150,7 @@ The canonical definition is in `PROJECT_INSTRUCTIONS.md` § Data model. Field vo
 - ✅ 2026-09-22 **`SD Draw` record views**, four tabs against `mockups/draw-summary.html`: Summary (action strip, progress, Draw Origin with tie-out, Draw Funding Detail, Budget Summary roll-up + Remaining Contingency, Funding History, QIU Detail), Budget Detail, Approvals, Documents. Record title expression set. All figures computed from the rows.
 - [ ] **Related actions:**
   - ~~"Record decision", visible only to the current step's role~~ — superseded 2026-09-22 by the Summary's action strip, which links the current step's assignee group straight to the open task (`SD_getOpenTaskId`);
-  - "Advance draw (demo)", visible to administrators only — still open; the accelerator is started through `testProcessModel` today.
+  - ~~"Advance draw (demo)", visible to administrators only — still open; the accelerator is started through `testProcessModel` today.~~ ✅ 2026-09-28: built as the staging card's **Advance to President** / **Advance to CEO** (administrators only), not as a related action.
 - ✅ 2026-09-22 **Task form restyled** (`SD_form_drawApprovalDecision`) against `mockups/task-approval.html`; the step task node now passes `drawId` and `stepOrder`. "Save for Later" is not built (no draft save on a task form without a process change).
 - ✅ 2026-09-22 **Draws page added to `SASite`** (`updateSite`, existing pages passed by uuid; their stubs `2rcKrQ` / `VRvmbQ` / `tO9EuA` were preserved, so the earlier "regenerates every stub" warning did not apply to this form of the call). `SD Draw Approvers` added as a site viewer.
   - [ ] **Page group** ("Draws" grouping in the site navigation) — a Designer step; not exposed over the Dev MCP. *Owner: Scott. Trigger: before the demo, if the flat page bar reads wrong.*
@@ -375,6 +377,11 @@ Rescoped 2026-09-26: 6b is the conversation lane on the 6a receiver and message 
 - ✅ 2026-09-28 **Stage Mismatch Package** (fix session): a third feed button on the staging card; beat 3's mismatch option runs live.
 - ✅ 2026-09-28 **Review clears the banner** (fix session): the Summary's email-reply review card only while its task is open; Mark Reviewed clears it; no "task not found" state.
 - ✅ 2026-09-28 **Gateway #12 specimen** (fix session): the stray test answer row removed; the chase ladder's reminder and staged text on the thread; #12 is the Needs chasing row.
+- ✅ 2026-09-28 **The Asset Manager at step 2** (second fix session, ruled): ingested chains are built from `SD_DRAW_CHAIN_ROLES` (1 Accountant, 2 Asset Manager, 3 Accounting Controller … 9 CEO); the accountant's confirmation approves order 1 and the draw starts at step 2 with the Asset Manager's task live. Existing draws keep their chains.
+- ✅ 2026-09-28 **Accelerator stop point** (second fix session): `targetRole` President or CEO, default CEO; started from the staging card (**Advance to President** / **Advance to CEO**), which closes the Phase 2 "Advance draw (demo)" item.
+- ✅ 2026-09-28 **Send Reminder Now** (second fix session): the staging card runs the chase mechanism for a chosen draw's current step at once; the reminder threads with the step email.
+- ✅ 2026-09-28 **Chased-step listing and labelled rows** (second fix session): Needs chasing lists a step already chased whatever its age; unconfirmed Draws rows carry their received time and package.
+- ✅ 2026-09-28 **One-draw runbook** (second fix session): failure opens, recovery follows; the demo tested end to end once (see `BUILD_LOG.md`).
 - ✅ 2026-09-26 **Site-reachable email-reply review** (Summary card, Draws YOUR ACTION and KPI, Emails tab link; standing rule: nothing requires Tempo).
 - ✅ 2026-09-26 **Guardrail reorder**: interpretation before the limit check; questions and hedges flow on over-limit draws, decisions are refused.
 - [ ] **Designer setup** for the escalations, the chase trigger and the digest schedule (TODO; Scott), then one escalation fired end to end by the session.

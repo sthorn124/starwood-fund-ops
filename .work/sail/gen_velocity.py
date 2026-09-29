@@ -45,8 +45,11 @@ a!localVariables(
 
 REMINDER = r'''/* Draw approval (Phase 6c): the escalation reminder for a step that has waited. It is the step email itself
    (rule!SD_buildApprovalEmail, the draw as it stands now) under an amber banner saying how long the step has waited and
-   when the draw funds. Subject "Reminder · Draw #<n> · funding in <d> days · awaiting your approval", ending with the
-   reply token [SD-DRAW-<id>-S<step>] so a reply is read like any other. Sent, like the step email, to the step's group,
+   when the draw funds. Since the second fix session 2026-09-28 the subject is "Re: " plus the step email's own subject
+   (which ends with the reply token [SD-DRAW-<id>-S<step>]), so Gmail threads the reminder with the step email and a
+   reply is read like any other; the banner says it is a reminder. (It was "Reminder · Draw #<n> · funding in <d> days
+   · awaiting your approval [token]", which Gmail filed as a separate conversation.) No waiting threshold here: a
+   reminder sent the day the step opened reads "is still waiting". Sent, like the step email, to the step's group,
    from and reply-to the receiver address. Returns a map: subject, html, text (the line logged on the draw), bytes,
    daysWaiting, daysToFunding. */
 a!localVariables(
@@ -57,7 +60,12 @@ a!localVariables(
   local!toFunding: index(local!d, "daysToFunding", null),
   local!fundingText: if(a!isNullOrEmpty(local!toFunding), "funding date not set", "funding " & rule!SD_fmtRelativeDays(days: local!toFunding)),
   local!overLimit: todecimal(a!defaultValue(index(local!d, "amount", 0), 0)) > todecimal(cons!SD_EMAIL_APPROVAL_MAX),
-  local!subject: "Reminder · Draw #" & local!drawNo & " · " & local!fundingText & " · awaiting your approval [SD-DRAW-" & ri!drawId & "-S" & ri!stepOrder & "]",
+  local!baseSubject: tostring(a!defaultValue(index(local!base, "subject", ""), "")),
+  local!subject: if(
+    local!baseSubject = "",
+    "Reminder · Draw #" & local!drawNo & " · " & local!fundingText & " · awaiting your approval [SD-DRAW-" & ri!drawId & "-S" & ri!stepOrder & "]",
+    "Re: " & local!baseSubject
+  ),
   local!lead: "Reminder: this approval " & if(local!waiting < 1, "is still waiting", "has waited " & local!waiting & if(local!waiting = 1, " day", " days")) & " and the draw is " & local!fundingText & ". " &
     if(local!overLimit, "The approval request is repeated below; please record your decision in the system.", "The approval request is repeated below; reply to this email with your decision."),
   local!banner: "<tr><td style=""background:#FDF3E0;color:#92600A;padding:10px 18px;font-size:13px;line-height:18px;font-weight:bold;border-bottom:1px solid #F3D9A4;font-family:Arial,Helvetica,sans-serif;"">" & rule!SD_htmlEscape(text: local!lead) & "</td></tr>",
@@ -100,7 +108,10 @@ a!localVariables(
 CHASE = r'''/* Draw approval (Phase 6c): the "Needs chasing" rows — the one query behind the Draws page's Needs chasing view and the
    daily chase digest. A draw is listed when its current approval step has waited SD_CHASE_AGE_DAYS or more (days since
    the step was activated, from today), or when an email reply on it is waiting for the draw approval team's review
-   (an open exception with its review task still open; fix 2026-09-28). Ranked by amount, largest first, then by days to funding, soonest first: the money at stake
+   (an open exception with its review task still open; fix 2026-09-28), or — second fix session 2026-09-28 — when a
+   reminder or a text has been logged at its current step, whatever its age (a manual "Send reminder now" lists the
+   step at once; its Why reads e.g. "Reminder sent today · text staged"). Aging rows read as before ("Step 6 waiting
+   9 days", with the last chase beneath). Ranked by amount, largest first, then by days to funding, soonest first: the money at stake
    before the calendar. Each row says who is sitting on what: the step's role and named approver, the group the task
    is assigned to, the role's authorized email address (SD_EMAIL_REPLY_ADDRESSES) and when the step was last chased
    (the latest REMINDER or SMS logged at that step). ri!rows takes the Draws page's rows (rule!SD_getDrawListRows) so
@@ -108,6 +119,27 @@ CHASE = r'''/* Draw approval (Phase 6c): the "Needs chasing" rows — the one qu
 a!localVariables(
   local!all: if(a!isNullOrEmpty(ri!rows), rule!SD_getDrawListRows(), ri!rows),
   local!threshold: tointeger(cons!SD_CHASE_AGE_DAYS),
+  /* every REMINDER and SMS row, read once (oldest first); a draw's chases at its current step are picked from here */
+  local!chaseMsgs: a!forEach(
+    items: a!queryRecordType(
+      recordType: @MSG@,
+      fields: {@MSG_DRAWID@, @MSG_STEP@, @MSG_KIND@, @MSG_OUTCOME@, @MSG_AT@},
+      filters: a!queryFilter(field: @MSG_KIND@, operator: "in", value: {"REMINDER", "SMS"}),
+      pagingInfo: a!pagingInfo(startIndex: 1, batchSize: 1000, sort: a!sortInfo(field: @MSG_AT@, ascending: true))
+    ).data,
+    expression: a!map(
+      drawId: tointeger(fv!item[@MSG_DRAWID@]),
+      stepOrder: tointeger(a!defaultValue(fv!item[@MSG_STEP@], 0)),
+      kind: tostring(fv!item[@MSG_KIND@]),
+      outcome: tostring(a!defaultValue(fv!item[@MSG_OUTCOME@], "")),
+      messageAt: fv!item[@MSG_AT@]
+    )
+  ),
+  local!chaseKeys: if(
+    a!isNullOrEmpty(local!chaseMsgs),
+    {},
+    a!forEach(items: local!chaseMsgs, expression: fv!item.drawId & ":" & fv!item.stepOrder)
+  ),
   local!flags: if(
     a!isNullOrEmpty(local!all),
     {},
@@ -115,6 +147,12 @@ a!localVariables(
       items: local!all,
       expression: or(
         and(a!defaultValue(fv!item.inProgress, false), a!defaultValue(fv!item.daysAtStep, 0) >= local!threshold),
+        /* second fix session 2026-09-28: a step already chased is listed whatever its age */
+        and(
+          a!defaultValue(fv!item.inProgress, false),
+          not(a!isNullOrEmpty(local!chaseKeys)),
+          contains(local!chaseKeys, tointeger(fv!item.id) & ":" & tointeger(a!defaultValue(fv!item.currentStep, 0)))
+        ),
         /* fix 2026-09-28: an email reply counts only while its review task is open (as on the Summary) */
         and(a!defaultValue(fv!item.exceptionOpen, false), not(a!isNullOrEmpty(fv!item.exceptionTaskId)))
       )
@@ -134,22 +172,45 @@ a!localVariables(
         local!aging: and(local!inProgress, a!defaultValue(fv!item.daysAtStep, 0) >= local!threshold),
         local!exception: and(a!defaultValue(fv!item.exceptionOpen, false), not(a!isNullOrEmpty(fv!item.exceptionTaskId))),
         local!step: tointeger(a!defaultValue(fv!item.currentStep, 0)),
-        local!chases: a!localVariables(
-          local!msgs: rule!SD_getDrawEmailMessages(drawId: fv!item.id),
-          if(
-            a!isNullOrEmpty(local!msgs),
-            {},
-            index(
-              local!msgs,
-              wherecontains(
-                true,
-                a!forEach(items: local!msgs, expression: and(or(fv!item.kind = "REMINDER", fv!item.kind = "SMS"), tointeger(a!defaultValue(fv!item.stepOrder, 0)) = local!step))
-              ),
-              {}
-            )
-          )
+        local!key: tointeger(fv!item.id) & ":" & local!step,
+        local!chases: if(
+          or(not(local!inProgress), a!isNullOrEmpty(local!chaseKeys)),
+          {},
+          index(local!chaseMsgs, wherecontains(local!key, local!chaseKeys), {})
         ),
         local!lastChase: if(a!isNullOrEmpty(local!chases), null, index(local!chases, count(local!chases), null)),
+        /* the latest reminder and the latest text at this step, and the day each went ("today", "yesterday", "Sep 28") */
+        local!rems: if(a!isNullOrEmpty(local!chases), {}, index(local!chases, wherecontains("REMINDER", a!forEach(items: local!chases, expression: fv!item.kind)), {})),
+        local!smss: if(a!isNullOrEmpty(local!chases), {}, index(local!chases, wherecontains("SMS", a!forEach(items: local!chases, expression: fv!item.kind)), {})),
+        local!rem: if(a!isNullOrEmpty(local!rems), null, index(local!rems, count(local!rems), null)),
+        local!sms: if(a!isNullOrEmpty(local!smss), null, index(local!smss, count(local!smss), null)),
+        local!remDay: if(
+          a!isNullOrEmpty(local!rem),
+          "",
+          a!localVariables(
+            local!d: text(local!rem.messageAt, "yyyymmdd"),
+            if(local!d = text(now(), "yyyymmdd"), "today", if(local!d = text(now() - 1, "yyyymmdd"), "yesterday", text(local!rem.messageAt, "MMM D")))
+          )
+        ),
+        local!smsDay: if(
+          a!isNullOrEmpty(local!sms),
+          "",
+          a!localVariables(
+            local!d: text(local!sms.messageAt, "yyyymmdd"),
+            if(local!d = text(now(), "yyyymmdd"), "today", if(local!d = text(now() - 1, "yyyymmdd"), "yesterday", text(local!sms.messageAt, "MMM D")))
+          )
+        ),
+        local!smsWord: if(a!isNullOrEmpty(local!sms), "", displayvalue(local!sms.outcome, {"STAGED", "FAILED"}, {"staged", "failed"}, "sent")),
+        local!chaseSummary: if(
+          a!isNullOrEmpty(local!chases),
+          "",
+          if(
+            a!isNullOrEmpty(local!rem),
+            "Text " & local!smsWord & " " & local!smsDay,
+            "Reminder " & if(local!rem.outcome = "FAILED", "failed", "sent") & " " & local!remDay &
+            if(a!isNullOrEmpty(local!sms), "", " · text " & local!smsWord & if(local!smsDay = local!remDay, "", " " & local!smsDay))
+          )
+        ),
         a!map(
           drawId: fv!item.id,
           drawNumber: fv!item.drawNumber,
@@ -182,11 +243,16 @@ a!localVariables(
           reason: if(
             local!aging,
             "Step " & local!step & " waiting " & fv!item.daysAtStep & " days" & if(local!exception, " · email reply to review", ""),
-            "Email reply to review"
+            if(
+              local!chaseSummary <> "",
+              local!chaseSummary & if(local!exception, " · email reply to review", ""),
+              "Email reply to review"
+            )
           ),
           /* what the last chase did, as a phrase: a staged or failed text never reads as sent */
+          /* a chased-only row states its chases in the reason, so the last-chase line is kept for aging rows */
           lastChaseLabel: if(
-            a!isNullOrEmpty(local!lastChase),
+            or(a!isNullOrEmpty(local!lastChase), not(local!aging)),
             "",
             if(index(local!lastChase, "kind", "") = "SMS", "Text", "Reminder") & " " &
             displayvalue(tostring(index(local!lastChase, "outcome", "")), {"STAGED", "FAILED"}, {"staged, not sent", "failed"}, "sent")
@@ -316,6 +382,9 @@ a!localVariables(
   )
 )
 '''
+CHASE = (CHASE.replace("@MSG_DRAWID@", fld(MSG, "drawId")).replace("@MSG_STEP@", fld(MSG, "stepOrder"))
+         .replace("@MSG_KIND@", fld(MSG, "kind")).replace("@MSG_OUTCOME@", fld(MSG, "outcome"))
+         .replace("@MSG_AT@", fld(MSG, "messageAt")).replace("@MSG@", rt(MSG)))
 RESOLVE = RESOLVE.replace("@DRAW@", rt(DRAW)).replace("@DRAW_ID@", fld(DRAW, "id")).replace("@DRAW_ASP@", fld(DRAW, "activeStepProcessId"))
 
 for name, text in [("SD_getEscalationMinutes", ESC), ("SD_buildStepReminderEmail", REMINDER), ("SD_buildStepSms", SMS),

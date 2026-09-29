@@ -23,7 +23,7 @@ pvs = [
   pv("extractionInstance", AIA_TYPE),
   pv("extractionInstanceId", "Number (Integer)"),
   pv("headerJson", "Text"), pv("linesJson", "Text"),
-  pv("confirmedHeaderJson", "Text"), pv("confirmedLinesJson", "Text"), pv("confirmedBy", "Text"),
+  pv("confirmedHeaderJson", "Text"), pv("confirmedLinesJson", "Text"), pv("confirmedBy", "Text"), pv("confirmedAt", "Date and Time"),
   pv("investmentId", "Number (Integer)"), pv("drawNumber", "Number (Integer)"), pv("amount", "Number (Decimal)"),
   pv("fundingDate", "Date"), pv("drawType", "Text"), pv("cashEquityNeeded", "Text"), pv("budgetStatus", "Text"),
   pv("overBudgetReason", "Text"), pv("purpose", "Text"), pv("contingencyExplanation", "Text"), pv("generalComments", "Text"),
@@ -118,7 +118,9 @@ task = dict(id=14, type="internal.17", name="Reconcile extracted draw", coordina
   assignment=dict(attended=True, assignTo="=cons!SD_DRAW_DEMO_APPROVERS_GROUP", reassignPrivileges="REASSIGN_TO_ANY"))
 
 parse_header = script(15, "Parse confirmed header", [1930,200],
-  [('if(or(a!isNullOrEmpty(pv!confirmedHeaderJson), pv!confirmedHeaderJson = "-"), a!map(), a!fromJson(pv!confirmedHeaderJson))', "pv!confirmedHeader")], [16], run_as="DESIGNER")
+  [('if(or(a!isNullOrEmpty(pv!confirmedHeaderJson), pv!confirmedHeaderJson = "-"), a!map(), a!fromJson(pv!confirmedHeaderJson))', "pv!confirmedHeader"),
+   # second fix session 2026-09-28: the confirm timestamp (node 15 runs as the task is submitted) approves order 1
+   ("now()", "pv!confirmedAt")], [16], run_as="DESIGNER")
 parse_fields = script(16, "Read header fields", [2080,200], [
   # ruled 2026-09-28: the draw number is system-assigned at commit, never read from the template
   ('rule!SD_getNextDrawNumber(investmentId: a!localVariables(local!v: %s, if(local!v = "", null, tointeger(local!v))), excludeDrawId: pv!drawId)' % hv("investmentId"), "pv!drawNumber"),
@@ -133,7 +135,7 @@ parse_fields = script(16, "Read header fields", [2080,200], [
 
 commit_header = f"""{{ {rt(DRAW)}({d('id')}: pv!drawId, {d('drawNumber')}: pv!drawNumber, {d('investmentId')}: pv!investmentId, {d('amount')}: pv!amount, {d('fundingDate')}: pv!fundingDate, {d('drawType')}: pv!drawType, {d('cashEquityNeeded')}: or(lower(a!defaultValue(pv!cashEquityNeeded, "")) = "yes", lower(a!defaultValue(pv!cashEquityNeeded, "")) = "y", lower(a!defaultValue(pv!cashEquityNeeded, "")) = "true"), {d('budgetStatus')}: pv!budgetStatus, {d('overBudgetReason')}: pv!overBudgetReason, {d('purpose')}: pv!purpose, {d('contingencyExplanation')}: pv!contingencyExplanation, {d('generalComments')}: if(a!defaultValue(pv!generalComments, "") = "", null, pv!generalComments), {d('submittedBy')}: pv!submittedBy, {d('updatedAt')}: now()) }}"""
 doc_confirmed = f"""{{ {rt(DOC)}({doc('id')}: pv!docRowId, {doc('status')}: "Extracted & Confirmed", {doc('notes')}: "Doc Center extraction confirmed by " & rule!SD_getUserDisplayName(username: pv!confirmedBy) & " " & text(today(), "MM/DD/YYYY")) }}"""
-activate = f"""{{ {rt(DRAW)}({d('id')}: pv!drawId, {d('status')}: "In Progress", {d('currentStep')}: 1, {d('updatedAt')}: now()) }}"""
+activate = f"""{{ {rt(DRAW)}({d('id')}: pv!drawId, {d('status')}: "In Progress", {d('currentStep')}: 2, {d('updatedAt')}: now()) }}"""
 
 nodes += [
   task, parse_header, parse_fields,
@@ -143,12 +145,12 @@ nodes += [
   write(22, "Template Extracted & Confirmed", [2680,200], doc_confirmed, [23], run_as="DESIGNER"),
   script(23, "Assemble QIU and chain", [2830,200],
          [("rule!SD_buildIngestedQiu(drawId: pv!drawId, investmentId: pv!investmentId, asOfDate: today())", "pv!qiuRows"),
-          ("rule!SD_buildIngestedApprovalChain(drawId: pv!drawId, investmentId: pv!investmentId)", "pv!chainRows")], [24], run_as="DESIGNER"),
+          ("rule!SD_buildIngestedApprovalChain(drawId: pv!drawId, investmentId: pv!investmentId, confirmedBy: pv!confirmedBy, confirmedAt: pv!confirmedAt)", "pv!chainRows")], [24], run_as="DESIGNER"),
   xor(24, "QIU available?", [2980,200], "a!isNullOrEmpty(pv!qiuRows)", 26, 25),
   write(25, "Aggregate QIU rows", [3130,200], "pv!qiuRows", [26], run_as="DESIGNER"),
   write(26, "Create approval chain", [3280,200], "pv!chainRows", [27], run_as="DESIGNER"),
   xor(27, "Chain written?", [3430,200], "a!defaultValue(pv!writeError, false)", 20, 28),
-  write(28, "Activate draw (In Progress, step 1)", [3580,200], activate, [29], run_as="DESIGNER"),
+  write(28, "Activate draw (In Progress, step 2 Asset Manager)", [3580,200], activate, [29], run_as="DESIGNER"),
   dict(id=29, type="internal.38", name="Start SD Draw Approval Process", coordinates=[3730,200],
        connections=[conn(30)],
        data=dict(inputs=[dict(name="drawId", expression="pv!drawId"),
@@ -158,7 +160,7 @@ nodes += [
                          dict(name="inheritSecurity", value=False),
                          dict(name="chainsInto", value=False)]),
        assignment=unattended("DESIGNER")),
-  script(30, "Mark assembled", [3880,200], [('"ASSEMBLED: draw " & pv!drawId & " (#" & a!defaultValue(pv!drawNumber, "?") & ") at step 1"', "pv!outcome")], [2]),
+  script(30, "Mark assembled", [3880,200], [('"ASSEMBLED: draw " & pv!drawId & " (#" & a!defaultValue(pv!drawNumber, "?") & ") at step 2 (Asset Manager); order 1 approved by the confirmation"', "pv!outcome")], [2]),
 ]
 for n in nodes:
     if n["id"] == 2: n["coordinates"] = [4030, 200]
