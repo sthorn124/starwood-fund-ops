@@ -225,8 +225,9 @@ email_card = """    a!richTextDisplayField(
 appr_fields = ["id","approvalOrder","role","approverName","status","activatedAt","decisionDate","comments","actedBy","decisionSource"]
 approvals = f"""/* Draw approval: the Approvals view of a draw record (mockups/draw-summary.html, Approvals tab).
    The nine-row chain as data: order, role, approver, status, decision date, time at step (computed), comments.
-   The row in progress is highlighted. Time at step: decided rows count whole days from activation to decision
-   (at least 1); the open row counts from activation to today.
+   The row in progress is highlighted. Time at step: decided rows count calendar days from activation to decision,
+   "< 1 day" when decided the day it was activated (real timestamps since 2026-09-28; the old at-least-1 floor went
+   with the day-apart dates); the open row counts from activation to today.
    Phase 6b: the email exchange lives on its own Emails tab (SD_view_drawEmails); a one-line pointer below the chain
    links to it, with the message count and a pending question when there is one. */
 a!localVariables(
@@ -290,8 +291,8 @@ a!localVariables(
                     a!isNullOrEmpty(fv!row.decisionDate),
                     "—",
                     a!localVariables(
-                      local!days: max(1, tointeger(ceiling(todecimal(todatetime(fv!row.decisionDate) - todatetime(fv!row.activatedAt))))),
-                      local!days & if(local!days = 1, " day", " days")
+                      local!days: max(0, tointeger(todate(fv!row.decisionDate) - todate(fv!row.activatedAt))),
+                      if(local!days = 0, "< 1 day", local!days & if(local!days = 1, " day", " days"))
                     )
                   ),
                   if(

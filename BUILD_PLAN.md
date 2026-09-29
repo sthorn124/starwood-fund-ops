@@ -113,7 +113,7 @@ The canonical definition is in `PROJECT_INSTRUCTIONS.md` § Data model. Field vo
     - Every decision goes through `SD Apply Draw Approval Decision`.
     - Each step transition sends a plain-text placeholder notification; the real layout is Phase 4.
   - ✅ 2026-09-21 **Demo accelerator:** advances every step between the current one and order 9 as Approved, with generated decision dates, in one action.
-    - ✅ 2026-09-21 Decision dates spread 1 day per step (`dayOffsetPerStep` default 1); measured 09-23 → 09-27 against a 10-15 funding date.
+    - ✅ 2026-09-21 Decision dates spread 1 day per step (`dayOffsetPerStep` default 1); measured 09-23 → 09-27 against a 10-15 funding date. *(Superseded 2026-09-28: real timestamps; the parameter is removed.)*
     - ✅ 2026-09-21 Settle phase added: the accelerator waits for a consistent, stable draw state before its first decision (race test passed; 87 s to the CEO task).
   - ✅ 2026-09-21 **Measure `createProcessModel(errorAlertGroupUuid)` persistence:** measured as unmeasurable over MCP (`getProcessModel` exposes no alert-group field); a Designer check is owed in `TODO.md`.
 
@@ -382,6 +382,7 @@ Rescoped 2026-09-26: 6b is the conversation lane on the 6a receiver and message 
 - ✅ 2026-09-28 **Send Reminder Now** (second fix session): the staging card runs the chase mechanism for a chosen draw's current step at once; the reminder threads with the step email.
 - ✅ 2026-09-28 **Chased-step listing and labelled rows** (second fix session): Needs chasing lists a step already chased whatever its age; unconfirmed Draws rows carry their received time and package.
 - ✅ 2026-09-28 **One-draw runbook** (second fix session): failure opens, recovery follows; the demo tested end to end once (see `BUILD_LOG.md`).
+- ✅ 2026-09-28 **Real decision timestamps** (third session, ruled): every decision stamped at the moment it happens (task, email, confirm, accelerator); the transition's +1-day floor and the accelerator's `dayOffsetPerStep` removed; existing dates untouched; the Approvals tab's Time at Step counts calendar days ("< 1 day" for a same-day step). Tested on #84 (draw 112).
 - ✅ 2026-09-26 **Site-reachable email-reply review** (Summary card, Draws YOUR ACTION and KPI, Emails tab link; standing rule: nothing requires Tempo).
 - ✅ 2026-09-26 **Guardrail reorder**: interpretation before the limit check; questions and hedges flow on over-limit draws, decisions are refused.
 - [ ] **Designer setup** for the escalations, the chase trigger and the digest schedule (TODO; Scott), then one escalation fired end to end by the session.
