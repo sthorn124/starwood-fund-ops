@@ -2323,3 +2323,44 @@ So the step email (`text(x)`) already read 09/28 in a New York context, and the 
 **Promotion candidates:** 0 found; none promoted. The `appian-supplemental` copies are unchanged and identical. No staged trigger fired.
 
 Promotion checkpoint: current through 2026-09-29 — Fix session: local-time dates, the Draws list's question indicator, #70's reminder text.
+
+### 2026-09-29 — Fix session (second of the day): attention tags in Current Step; Draws list column widths
+
+**Scope.**
+- Design work and readbacks ran through the Dev MCP as `scott.thorn@appian.com` (full scope).
+- Persona reads ran through sail as `sd.accountant` from `~/.sail-sd.accountant`.
+- The runtime connector was not called.
+- The preflight from this morning's session (same day, same conversation) stands.
+
+**What changed:** `SD_page_draws` **v16**. It was at v15, this morning's deploy, before the edit; the read-back equals the file sent. Generator `gen_page_draws.py`.
+- **The attention tags moved.**
+  - "Question waiting" and "Reply needs review" left the Status column and became their own line in the Current Step cell, under "approver · days": amber #92600A, small, bold, rich text.
+  - Status is `rule!SD_cmp_statusTag(status)` alone again.
+  - The derivations and the team-only visibility are unchanged: `questionWaiting` / `reviewWaiting` from `SD_getDrawListRows` v4.
+  - A chip could not go there. A read-only grid cell takes one component on 26.6 (docs, `a!gridColumn` value). Side by side in a cell is a 26.9 feature and printed component internals in the browser on 2026-09-28. The vendor pack says to use rich text in grid cells instead of side by side. The line follows the YOUR ACTION pattern.
+  - `SD_cmp_statusTag` keeps its optional `notes` input, now unused.
+- **Column widths are relative.**
+  - Draw, Type, Amount, Funding Date and Status 2X; Investment 3X; Current Step 4X (17 shares).
+  - Before: all fixed (NARROW_PLUS ×5, MEDIUM_PLUS for Investment, MEDIUM for Current Step), about 1,550 px by the pack's approximations (NARROW_PLUS ~172, MEDIUM ~260, MEDIUM_PLUS ~430).
+  - Docs (26.6 grid design guidance): with fixed widths, "horizontal scrolling will be automatically enabled when the total of column widths exceeds the grid's width", and extra width goes out by content, which widened Investment. A list-style grid that fits its container uses relative widths, which share the grid's width. Relative and "AUTO" are not mixed.
+  - The docs gate was run (grid column widths, `a!gridColumn` values, tag and rich text in cells).
+
+**Verified, as `sd.accountant` via sail** (from the stored UI JSON, not only the listing):
+- **#12's Current Step cell** is three parts: "6 of 9 · Chief Accounting Officer", a line break, "Robert Chen · 10 days" (grey, small), a line break, "Question waiting" (#92600A, small, bold). `preventWrapping` is false; Status is "In Progress" alone.
+- **#85** is the same ("Thomas Bergman · 1 day", then "Question waiting").
+- **Clean rows are unchanged:** #84, #83, #82, #70, #66, #81, #74, the approved and rejected rows, the Ingesting and Not loaded rows.
+- **The rendered grid's columns** carry the requested widths: Draw 2X, Investment 3X, Type 2X, Amount 2X, Funding Date 2X, Current Step 4X, Status 2X.
+
+**Not verified.**
+- **The absence of horizontal scroll.** sail and the tree carry requested widths, not computed pixels ([S8]), so the fit rests on the documented behaviour of relative widths and is a browser check.
+- **Wrapping, estimated** for a ~1,180 px grid (~69 px per share: 2X ≈ 139 px, Investment ≈ 208 px, Current Step ≈ 278 px):
+  - unconfirmed rows' Draw labels wrap to 2–3 lines;
+  - "THSV_Draw67_Budget_Template.xlsx", one unbroken 32-character word, is close to Investment's width and may not break;
+  - Current Step for Ingesting and Not loaded rows wraps to 2–3 lines;
+  - "6 of 9 · Chief Accounting Officer" is near one line.
+  - These are estimates; the browser check in `TODO.md` names each one.
+- **"Reply needs review"** on a live row: no draw has an open review task.
+
+**Promotion candidates:** 0 found (the width behaviour is documented); none promoted.
+
+Promotion checkpoint: current through 2026-09-29 — Fix session (second of the day): attention tags in Current Step; Draws list column widths.

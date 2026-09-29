@@ -495,7 +495,7 @@ a!localVariables(
                     )
                   }}
                 ),
-                width: "NARROW_PLUS",
+                width: "2X",
                 backgroundColor: {HL}
               ),
               a!gridColumn(
@@ -515,11 +515,11 @@ a!localVariables(
                     )
                   }}
                 ),
-                width: "MEDIUM_PLUS",
+                width: "3X",
                 backgroundColor: {HL}
               ),
-              a!gridColumn(label: "Type", value: a!defaultValue(fv!row.drawType, "—"), width: "NARROW_PLUS", backgroundColor: {HL}),
-              a!gridColumn(label: "Amount", value: {money("fv!row.amount", "true")}, align: "END", width: "NARROW_PLUS", backgroundColor: {HL}),
+              a!gridColumn(label: "Type", value: a!defaultValue(fv!row.drawType, "—"), width: "2X", backgroundColor: {HL}),
+              a!gridColumn(label: "Amount", value: {money("fv!row.amount", "true")}, align: "END", width: "2X", backgroundColor: {HL}),
               a!gridColumn(
                 label: "Funding Date",
                 value: a!richTextDisplayField(
@@ -532,7 +532,7 @@ a!localVariables(
                     )
                   }}
                 ),
-                width: "NARROW_PLUS",
+                width: "2X",
                 backgroundColor: {HL}
               ),
               a!gridColumn(
@@ -553,6 +553,19 @@ a!localVariables(
                           ),
                           color: "#6B7280",
                           size: "SMALL"
+                        ),
+                        /* 2026-09-29: the draw approval team's attention line (rule!SD_getDrawListRows), under "approver · days".
+                           Amber rich text, not a tag chip: a read-only grid cell takes one component on 26.6, so a chip cannot
+                           share the cell with text (side by side in a cell is 26.9) — the YOUR ACTION pattern instead */
+                        if(
+                          a!defaultValue(fv!row.questionWaiting, false),
+                          {{char(10), a!richTextItem(text: "Question waiting", color: "#92600A", size: "SMALL", style: "STRONG")}},
+                          ""
+                        ),
+                        if(
+                          a!defaultValue(fv!row.reviewWaiting, false),
+                          {{char(10), a!richTextItem(text: "Reply needs review", color: "#92600A", size: "SMALL", style: "STRONG")}},
+                          ""
                         )
                       }},
                       if(
@@ -583,22 +596,10 @@ a!localVariables(
                     )
                   )
                 ),
-                width: "MEDIUM",
+                width: "4X",
                 backgroundColor: {HL}
               ),
-              a!gridColumn(
-                label: "Status",
-                /* 2026-09-29: the draw approval team's attention tags beside the status (rule!SD_getDrawListRows) */
-                value: rule!SD_cmp_statusTag(
-                  status: fv!row.status,
-                  notes: {{
-                    if(a!defaultValue(fv!row.questionWaiting, false), "Question waiting", ""),
-                    if(a!defaultValue(fv!row.reviewWaiting, false), "Reply needs review", "")
-                  }}
-                ),
-                width: "NARROW_PLUS",
-                backgroundColor: {HL}
-              )
+              a!gridColumn(label: "Status", value: rule!SD_cmp_statusTag(status: fv!row.status), width: "2X", backgroundColor: {HL})
             }},
             pageSize: 25,
             spacing: "STANDARD",
