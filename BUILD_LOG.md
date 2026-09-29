@@ -2364,3 +2364,52 @@ Promotion checkpoint: current through 2026-09-29 — Fix session: local-time dat
 **Promotion candidates:** 0 found (the width behaviour is documented); none promoted.
 
 Promotion checkpoint: current through 2026-09-29 — Fix session (second of the day): attention tags in Current Step; Draws list column widths.
+
+### 2026-09-29 — Quick session: the keep list cut to pocket specimens; cleanup re-run
+
+**Scope.**
+- Design work, the cleanup run and every readback ran through the Dev MCP as `scott.thorn@appian.com` (full scope).
+- Persona reads ran through sail as `sd.accountant` (`~/.sail-sd.accountant`) and `sd.assetmanager` (`~/.sail-sd.assetmanager`).
+- The runtime connector was not called. This morning's preflight stands (same day).
+
+**Resolved** (`SD_getDrawDetail`): #70 = draw **79** (In Progress at the CEO step, the second-vague email-reply thread); #78 = draw **93** (Rejected at step 9, the mismatch package). The seeds are `SD_SEED_DRAW_IDS` {11, 12, 63, 64, 65, 66}.
+
+**What changed.**
+- **`SD_DEMO_KEEP_DRAW_IDS` v2:** {78, 79, 86, 87, 92, 93, 94, 95, 96} → **{79, 93}**. The read-back holds JSON numbers on an INTEGER constant, and the description names the two specimens.
+- **`PROJECT_INSTRUCTIONS.md`:** the keep list is pocket-only.
+- **`CLAUDE.md`:** the constant row and a pocket-only paragraph above the repeatability sections.
+- **Runbook fallbacks** that named removed specimens (the failed ingest, #74, #69, the aside specimens) now point to a live run or a staging button.
+
+**Found at session start.**
+- Draws 97–114 were already gone. `SD_getCleanupCandidates` listed only 78, 86, 87, 92, 94, 95 and 96, plus three new Ingesting shells, so a cleanup under the old keep list had run between sessions. That is presumably the staging card's button; this session did not run it.
+- The three shells were **115** (malformed template), **116** (mismatch package) and **117** (corrected package), created at 8:45–8:46 AM EDT, 1–2 minutes before this session read the list.
+- I waited for them to settle before cleaning:
+  - 115 went Ingestion Failed;
+  - 116 and 117 reached their reconciliation tasks (processes 268477611 and 268477612);
+  - 116's mismatch pay application was read ($2,527,796.23), and 117's pay application ($2,490,296.23), invoice and lien waiver were classified or read.
+- Waiting meant no classification worker could rewrite a document row after its delete, and it put the two ingestion processes into the plan's cancel list, because the plan cancels only processes that hold a task.
+
+**Cleanup run:** `SD Clean Up Old Runs` via `testProcessModel` (process 268477643, 23.1 s), with the explicit list **78, 86, 87, 92, 94, 95, 96, 115, 116, 117**. The ten draws were #69, #73, #74, #77, #79, #80, the Sep 25 failed ingest (96), 115, 116 and 117.
+- **Report:** "REMOVED 10 of 10 draws … 4 budget-line events, 28 email messages, 27 documents, 60 QIU rows, 54 approval rows, 96 budget lines. Cancelled 3 open processes; 1 had already closed. No errors."
+- **The plan's processes:** 268476914, 268477611, 268477612 and 268477207.
+- **Stranded pipeline instances from the build** (draws 67–73's, listed in TODO) are outside the plan. Only processes that hold a task for a cleaned draw are cancelled, and no Dev MCP tool lists or cancels other instances, so they stay a Process Monitoring task.
+
+**Verified.**
+- **By absence, as the designer (full scope):**
+  - `SD_getCleanupCandidates()` returns [];
+  - `listRecordData` over every child table holds only draws 11, 12, 63–66, 79 and 93: budget lines (66, 79, 93), approvals (the seeds, 79, 93), QIU (66, 79, 93), documents (66, 79, 93) and email messages (12, 79, 93);
+  - the budget-line event table is empty.
+- **As `sd.accountant` via sail:**
+  - the Draws list is exactly **#66, #12, #70, #78, #65, #64, #11, #63**;
+  - Awaiting My Action reads 0, with no YOUR ACTION rows;
+  - #12's Current Step reads "Robert Chen · 10 days" then "Question waiting";
+  - **Needs chasing (2):** #12 "Step 6 waiting 10 days · Text staged, not sent Sep 28, 6:46 PM" and #70 "Reminder sent Sep 26".
+- **As `sd.assetmanager` via sail:** the same eight rows; no attention tag on #12 (team-only, as built); **#66 YOUR ACTION** (Awaiting My Action 1).
+
+**Not as the brief expected:** "no YOUR ACTION rows for any persona" does not hold for `sd.assetmanager`. The row is seeded #66's live step-3 task (536876873), and seeds are outside the cleanup. I did not act on it: completing the task changes the seeded chain, and cancelling its step process is ruled out in `CLAUDE.md`. A ruling is owed (`TODO.md`, Before demo).
+
+**Not verified:** the list's look in the browser (unchanged code; nothing to add to the existing checks).
+
+**Promotion candidates:** 0 found; none promoted.
+
+Promotion checkpoint: current through 2026-09-29 — Quick session: the keep list cut to pocket specimens; cleanup re-run.

@@ -1,92 +1,92 @@
-# Closeout — 2026-09-29 — Fix session: attention tags in Current Step; Draws list column widths
+# Closeout — 2026-09-29 — Quick session: keep list cut to pocket specimens, cleanup re-run
 
 ## Scope and identity
 
-- **Design work and readbacks:** the Dev MCP as `scott.thorn@appian.com` (full scope).
-- **Persona reads:** sail as `sd.accountant` (Priya Raman), from `~/.sail-sd.accountant`.
+- **Constant change, cleanup run and readbacks:** the Dev MCP as `scott.thorn@appian.com` (full scope).
+- **Persona reads:** sail as `sd.accountant` and as `sd.assetmanager`.
 - **Runtime connector:** not called.
-- **Preflight:** the one from this morning's session stands (same day, same conversation):
-  - Dev MCP 26.6.95 matches the pin; sail 26.6.95;
-  - both draw personas are live; the groups read back as recorded.
+- **Preflight:** this morning's stands (same day).
 
 ## What changed
 
-One object: the Draws page, `SD_page_draws`, from v15 (this morning's version, confirmed before the edit) to **v16**. The read-back equals the file sent.
+- **The keep list:** `SD_DEMO_KEEP_DRAW_IDS` went from nine draws to **{79, 93}**:
+  - **#70 = draw 79,** the second-vague reply thread at the CEO step;
+  - **#78 = draw 93,** the mismatch package rejected at step 9.
+  - The seeds (#11, #12, #63–#66) stay excluded automatically.
+  - The read-back is numbers on an INTEGER constant (v2).
+- **Recorded:**
+  - in `PROJECT_INSTRUCTIONS.md`: the keep list is pocket-only; everything else a demo needs is produced live or by a staging button;
+  - in `CLAUDE.md`: the same;
+  - in the runbook: fallbacks that named removed specimens now point to a live run or a staging button.
 
-**1. The attention tags moved into Current Step.**
-- "Question waiting" and "Reply needs review" now sit on their own line in the Current Step cell, under "approver · days", in amber (#92600A), small and bold.
-- The Status column shows the status chip alone again.
-- The derivations and the team-only visibility are unchanged.
+## What I found first
 
-They're an amber text line rather than a chip because a read-only grid cell holds a single component on 26.6. The docs' list of cell contents is text, rich text, a link, an image, a tag field and so on, one per cell. Putting a chip beside text needs side-by-side in a cell, which is 26.9 and printed component internals in your browser on 09-28. The vendor pack says the same: use rich text in grid cells. So the line follows the YOUR ACTION pattern in the Draw column.
+- **Draws 97–114 were already gone.** A cleanup under the old keep list had run since my last session; I assume it was the staging card's button.
+- **Three new Ingesting shells, 115–117,** had been staged at 8:45–8:46 AM (malformed, mismatch, corrected), one or two minutes before I read the list.
+- **I waited for them to settle before deleting** (115 failed; 116 and 117 reached their reconciliation tasks; every supporting PDF was classified or read). This did two things:
+  - no background classification could write a row back after its delete;
+  - the two pipelines' processes were cancelled by the cleanup, which cancels only processes holding a task.
 
-**2. The columns share the width instead of adding up past it.**
-- **Before:** fixed widths, five columns at NARROW_PLUS, Investment at MEDIUM_PLUS and Current Step at MEDIUM. That's about 1,550 px by the pack's approximations (NARROW_PLUS ~172, MEDIUM ~260, MEDIUM_PLUS ~430), more than a laptop grid is wide.
-- **Why it scrolled:** the docs say fixed widths turn on horizontal scrolling when their total exceeds the grid, and extra room goes out by content. That's how Investment grew.
-- **Now:** relative widths, which the docs recommend for a list that fits its container:
+## The cleanup
 
-| Column | Width |
+`SD Clean Up Old Runs`, run directly with the explicit list **78, 86, 87, 92, 94, 95, 96, 115, 116, 117**. Those are #69, #73, #74, #77, #79, #80, the Sep 25 failed ingest (96), and the three shells from this morning.
+
+| Removed | Count |
 |---|---|
-| Draw | 2X |
-| Investment | 3X (narrower) |
-| Type | 2X |
-| Amount | 2X |
-| Funding Date | 2X |
-| Current Step | 4X (room for the tag line) |
-| Status | 2X (at the end) |
+| Draws | 10 of 10 |
+| Budget lines | 96 |
+| Approval rows | 54 |
+| QIU rows | 60 |
+| Documents | 27 |
+| Email messages | 28 |
+| Budget-line events | 4 |
+| Processes cancelled | 3 (1 more had already closed) |
 
-On a ~1,180 px grid that's roughly 139 px per 2X column, 208 px for Investment and 278 px for Current Step.
+It took 23 seconds with no errors.
 
-## Verified (as `sd.accountant` via sail, read from sail's stored UI JSON)
+The stuck pipeline instances from the build (draws 67–73's, in TODO) are outside the cleanup, and no tool here can cancel them. They stay a Process Monitoring job.
 
-| Check | Result |
-|---|---|
-| #12 Current Step | "6 of 9 · Chief Accounting Officer" / "Robert Chen · 10 days" (grey, small) / **"Question waiting"** (amber, small, bold), each on its own line |
-| #12 Status | "In Progress" chip alone |
-| #85 (your draw 113) | "9 of 9 · CEO" / "Thomas Bergman · 1 day" / "Question waiting" |
-| Clean rows | unchanged: #84, #83, #82, #70, #66, #81, #74, the approved and rejected rows, the Ingesting and Not loaded rows |
-| Column config | the rendered grid carries Draw 2X, Investment 3X, Type 2X, Amount 2X, Funding Date 2X, Current Step 4X, Status 2X |
+## Verified
 
-## Not verified, and why
+- **By absence (designer, full scope):** no cleanup candidates remain. Every child table (budget lines, approvals, QIU, documents, email messages, line events) holds rows only for the seeds, #70 and #78; the line-event table is empty.
+- **As `sd.accountant` via sail:**
+  - **the list is exactly #66, #12, #70, #78, #65, #64, #11, #63;**
+  - Awaiting My Action is **0**, with no YOUR ACTION rows;
+  - #12's Current Step reads "Robert Chen · 10 days" then **Question waiting**;
+  - **Needs chasing (2):** #12 "Step 6 waiting 10 days · Text staged, not sent Sep 28, 6:46 PM" and #70 "Reminder sent Sep 26".
+- **As `sd.assetmanager` via sail:** the same eight rows, and no tag on #12 (the tag is for the draw approval team only, as built). But see the ruling below.
 
-- **No horizontal scroll.** sail and the design tree carry the widths requested, not the pixels drawn, so neither can prove the absence of a scroll bar. The config is what the docs say fits. The screen itself is your check.
-- **"Reply needs review" on a live row:** no draw has an open review task right now.
+## Not as the brief expected
 
-## Browser check (one glance, in `TODO.md`)
-
-As `sd.accountant`, the Draws page at a laptop width (1,280–1,440 px, browser at 100%):
-
-1. **No scroll bar** under the grid; Status is the last column, fully visible.
-2. **#12 and #85:** "Question waiting" in amber on the third line of Current Step; Status is the chip alone.
-3. **Places that may wrap badly** (estimated, not measured):
-   - **Draw column, unconfirmed rows:** "New draw · Sep 28, 10:51 PM" plus YOUR ACTION takes 2–3 lines.
-   - **Investment column, unconfirmed rows:** the file name "THSV_Draw67_Budget_Template.xlsx" is one 32-character word with no break points, about the column's width. Check that it doesn't spill into Type.
-   - **Current Step, Ingesting and Not loaded rows:** "Doc Center extraction · Accountant reconciliation" and "received … · resubmit via Receive Capital Call" take 2–3 lines.
-   - **Current Step, "6 of 9 · Chief Accounting Officer":** close to one line; it may wrap.
+- **"No YOUR ACTION rows for any persona" does not hold for `sd.assetmanager`.** They see **#66 YOUR ACTION** (Awaiting My Action 1). That's seeded #66's live step-3 task, and seeds are outside the cleanup. I left it alone:
+  - completing the task would change the seeded chain;
+  - cancelling its step process is ruled out in `CLAUDE.md`.
 
 ## Rulings needed
 
-- **Still open from this morning:**
-  - #84's stored Sep 29 received date (leave it, or correct that one row);
-  - #12's pending question.
+- **#66's live Asset Manager task:** complete it (approve or reject), or accept it as list history? `TODO.md`, Before demo.
+- **Still open:** #12's pending question (you clear it by answering).
+- **Closed as moot:** #84's stored date (the draw no longer exists).
 
 ## Promotion candidates
 
-- **0 found:** the width behaviour is documented.
-- **None promoted.** The supplemental skill copies are unchanged.
+- **0 found.** None promoted.
 - **Checkpoint:** current through this session's entry.
 
 ## TODO changes
 
-- **Rewritten:**
-  - the Draws browser check (no-scroll check, the tag's new place, the wrap list);
-  - beat 6, step 1 (the tag now appears in Current Step).
+- **Added, Before demo:** the #66 ruling.
+- **Added, Browser checks:** a note that checks naming removed draws run on the next live draw.
+- **Closed:**
+  - the #84 ruling (moot);
+  - #84's date check (moved to the next rehearsal draw).
+- **Rewritten:** the tag check now names #12 alone; the runbook fallbacks.
 - **Done:** this session.
 
 ## BUILD_PLAN.md changes
 
-- ✅ 2026-09-29 Draws list layout: the attention line in Current Step, relative column widths.
+- ✅ 2026-09-29 Keep list cut to pocket specimens, and the list cleaned.
 
 ## Commit
 
-"fix: attention tags in Current Step; Draws list column widths". Pushed to `origin/main`, then verified that HEAD equals `origin/main` and the tree is clean.
+"fix: keep list cut to pocket specimens". Pushed to `origin/main`, then verified that HEAD equals `origin/main` and the tree is clean.
