@@ -37,7 +37,7 @@ a!localVariables(
   ),
   local!ids: if(a!isNullOrEmpty(local!lines), {}, a!forEach(items: local!lines, expression: tointeger(fv!item.id))),
   local!name: rule!SD_getUserDisplayName(username: ri!actor),
-  local!today: text(today(), "MMM D, YYYY"),
+  local!today: text(todate(local(now(), cons!SD_BUSINESS_TIMEZONE)), "MMM D, YYYY"),
   local!candidates: if(
     or(a!isNullOrEmpty(local!edits), a!isNullOrEmpty(local!ids)),
     {},

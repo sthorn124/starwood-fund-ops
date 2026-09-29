@@ -10,7 +10,8 @@ rows_rule = f"""/* Draw approval: the Draws list rows for the viewer, one map pe
    "New draw · 6:44 PM" / "Not loaded · 6:03 PM" before, the received time, with the date when not today) and
    packageLabel (unconfirmed rows only: the template file name plus the supporting files — one named, several counted),
    read from the draws' SD Draw Document rows in one query, so a staged mismatch and a live ingest are told apart on
-   stage and by sail, which refuses two identical link labels. */
+   stage and by sail, which refuses two identical link labels.
+   2026-09-29: questionWaiting / reviewWaiting, the team's attention tags (the page shows them beside the status). */
 a!localVariables(
   local!ids: a!queryRecordType(
     recordType: {rt(DRAW)},
@@ -23,9 +24,20 @@ a!localVariables(
       local!d: rule!SD_getDrawDetail(drawId: fv!item),
       local!status: tostring(a!defaultValue(index(local!d, "status", ""), "")),
       local!fd: index(local!d, "fundingDate", null),
+      /* 2026-09-29: the draw approval team's attention tags on the Draws list, from the same open-only derivations as the
+         Summary's two cards — a question from the approver with no answer after it while its step still awaits a decision
+         (rule!SD_getPendingQuestion, read only for the team and only for a draw in approval: and() does not short-circuit),
+         and an email reply whose review task is open (exceptionTaskId, which SD_getDrawDetail looks up only for the team) */
+      local!team: a!defaultValue(index(local!d, "viewerIsSpecialist", false), false),
+      local!questionWaiting: if(
+        and(local!team, local!status = "In Progress"),
+        a!defaultValue(index(rule!SD_getPendingQuestion(drawId: fv!item), "pending", false), false),
+        false
+      ),
+      local!reviewWaiting: and(local!team, not(a!isNullOrEmpty(index(local!d, "exceptionTaskId", null)))),
       a!update(
         local!d,
-        {{"bucket", "sortAll"}},
+        {{"bucket", "sortAll", "questionWaiting", "reviewWaiting"}},
         a!localVariables(
           /* 6c: actionForViewer = a step or reconciliation task, or an email-exception review, open for the viewer */
           local!bucket: if(a!defaultValue(index(local!d, "actionForViewer", false), false), 1, if(local!status = "In Progress", 2, 3)),
@@ -35,7 +47,7 @@ a!localVariables(
             0,
             if(local!bucket = 3, -tointeger(todate(local!fd) - date(2000, 1, 1)), tointeger(todate(local!fd) - date(2000, 1, 1)))
           ),
-          {{local!bucket, local!bucket * 100000 + local!key + 50000}}
+          {{local!bucket, local!bucket * 100000 + local!key + 50000, local!questionWaiting, local!reviewWaiting}}
         )
       )
     )

@@ -78,7 +78,7 @@ a!localVariables(
     documentName: if(a!isNullOrEmpty(local!doc), null, local!doc[@C_NAME@]),
     drawId: local!docDrawId,
     drawNumber: if(local!drawPos = 0, null, index(local!draws, local!drawPos, null)[@D_NUM@]),
-    receivedDate: if(a!isNullOrEmpty(local!doc), null, a!defaultValue(local!doc[@C_RECEIVED@], todate(local!doc[@C_UPLOADED@])))
+    receivedDate: if(a!isNullOrEmpty(local!doc), null, a!defaultValue(local!doc[@C_RECEIVED@], todate(local(local!doc[@C_UPLOADED@], cons!SD_BUSINESS_TIMEZONE))))
   )
 )
 '''

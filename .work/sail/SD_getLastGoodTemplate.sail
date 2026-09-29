@@ -74,6 +74,6 @@ a!localVariables(
     documentName: if(a!isNullOrEmpty(local!doc), null, local!doc['recordType!{f3e0033f-2047-4c68-8f6f-cf32166091e9}SD Draw Document.fields.{fbdf2e7f-9289-4130-82a5-bda409cccf85}documentName']),
     drawId: local!docDrawId,
     drawNumber: if(local!drawPos = 0, null, index(local!draws, local!drawPos, null)['recordType!{c9d3a947-71aa-4024-879e-363873a12860}SD Draw.fields.{9aa1030b-f76b-49aa-bef6-99eb90327804}drawNumber']),
-    receivedDate: if(a!isNullOrEmpty(local!doc), null, a!defaultValue(local!doc['recordType!{f3e0033f-2047-4c68-8f6f-cf32166091e9}SD Draw Document.fields.{2e8183a8-cc80-4093-92c3-f77c04777ac5}receivedDate'], todate(local!doc['recordType!{f3e0033f-2047-4c68-8f6f-cf32166091e9}SD Draw Document.fields.{5e348596-a740-4af9-82ac-423ed4f15b63}uploadedAt'])))
+    receivedDate: if(a!isNullOrEmpty(local!doc), null, a!defaultValue(local!doc['recordType!{f3e0033f-2047-4c68-8f6f-cf32166091e9}SD Draw Document.fields.{2e8183a8-cc80-4093-92c3-f77c04777ac5}receivedDate'], todate(local(local!doc['recordType!{f3e0033f-2047-4c68-8f6f-cf32166091e9}SD Draw Document.fields.{5e348596-a740-4af9-82ac-423ed4f15b63}uploadedAt'], cons!SD_BUSINESS_TIMEZONE))))
   )
 )

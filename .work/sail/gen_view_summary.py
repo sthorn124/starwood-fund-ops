@@ -201,7 +201,7 @@ a!localVariables(
     joinarray(
       a!forEach(
         items: local!approvedRows,
-        expression: fv!item.role & " ✓ " & if(a!isNullOrEmpty(fv!item.decisionDate), "", text(todate(fv!item.decisionDate), "MM/DD"))
+        expression: fv!item.role & " ✓ " & if(a!isNullOrEmpty(fv!item.decisionDate), "", text(todate(local(fv!item.decisionDate)), "MM/DD"))
       ),
       " · "
     )
@@ -230,7 +230,7 @@ a!localVariables(
     "",
     "Received " & text(todate(index(local!d, "receivedDate", null)), "MMM D") & " · " & if(
       not(a!isNullOrEmpty(index(local!d, "daysToDecide", null))),
-      if(tostring(a!defaultValue(index(local!d, "status", ""), "")) = "Rejected", "rejected in ", "decided in ") & index(local!d, "daysToDecide", 0) & if(index(local!d, "daysToDecide", 0) = 1, " day", " days") & if(a!isNullOrEmpty(index(local!d, "decidedAt", null)), "", " (" & text(todate(index(local!d, "decidedAt", null)), "MMM D") & ")"),
+      if(tostring(a!defaultValue(index(local!d, "status", ""), "")) = "Rejected", "rejected in ", "decided in ") & index(local!d, "daysToDecide", 0) & if(index(local!d, "daysToDecide", 0) = 1, " day", " days") & if(a!isNullOrEmpty(index(local!d, "decidedAt", null)), "", " (" & text(todate(local(index(local!d, "decidedAt", null))), "MMM D") & ")"),
       if(
         a!isNullOrEmpty(index(local!d, "daysInApproval", null)),
         tostring(a!defaultValue(index(local!d, "status", ""), "")),
@@ -276,7 +276,7 @@ a!localVariables(
                   char(10),
                   a!richTextItem(
                     text: {{
-                      if(a!defaultValue(index(local!d, "ingesting", false), false), "Received ", "With you since ") & if(a!isNullOrEmpty(index(local!d, "currentActivatedAt", null)), "—", text(todate(index(local!d, "currentActivatedAt", null)), "MMM D")),
+                      if(a!defaultValue(index(local!d, "ingesting", false), false), "Received ", "With you since ") & if(a!isNullOrEmpty(index(local!d, "currentActivatedAt", null)), "—", text(if(a!defaultValue(index(local!d, "ingesting", false), false), todate(index(local!d, "currentActivatedAt", null)), todate(local(index(local!d, "currentActivatedAt", null)))), "MMM D")),
                       if(a!isNullOrEmpty(index(local!d, "daysToFunding", null)), "", " · funds scheduled " & rule!SD_fmtRelativeDays(days: index(local!d, "daysToFunding", null)))
                     }},
                     color: "#6B7280",
@@ -560,7 +560,7 @@ a!localVariables(
                 ),
                 char(10),
                 a!richTextItem(
-                  text: local!approvedCount & " of " & local!totalSteps & " approved · started " & if(a!isNullOrEmpty(local!started), "—", text(todate(local!started), "MM/DD")),
+                  text: local!approvedCount & " of " & local!totalSteps & " approved · started " & if(a!isNullOrEmpty(local!started), "—", text(todate(local(local!started)), "MM/DD")),
                   color: "#6B7280",
                   size: "SMALL"
                 )

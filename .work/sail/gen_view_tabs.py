@@ -249,7 +249,7 @@ a!localVariables(
     rule!SD_cmp_drawFactStrip(detail: local!d),
     a!cardLayout(
     contents: {{
-      {heading('"Approval Detail"', '"Sequential chain of " & count(local!rows) & " · drives routing and the summary progress" & if(a!isNullOrEmpty(local!started), "", " · started " & text(todate(local!started), "MM/DD/YYYY"))')},
+      {heading('"Approval Detail"', '"Sequential chain of " & count(local!rows) & " · drives routing and the summary progress" & if(a!isNullOrEmpty(local!started), "", " · started " & text(todate(local(local!started)), "MM/DD/YYYY"))')},
       a!gridField(
         labelPosition: "COLLAPSED",
         data: local!rows,
@@ -265,7 +265,7 @@ a!localVariables(
                 a!isNullOrEmpty(fv!row.decisionDate),
                 a!richTextItem(text: "—"),
                 {{
-                  a!richTextItem(text: text(todate(fv!row.decisionDate), "MM/DD/YYYY")),
+                  a!richTextItem(text: text(todate(local(fv!row.decisionDate)), "MM/DD/YYYY")),
                   /* seeded rows carry source "seed"; only real decisions (task, email, system) show their source and actor */
                   if(
                     or(a!isNullOrEmpty(fv!row.decisionSource), lower(fv!row.decisionSource) = "seed"),
@@ -291,14 +291,14 @@ a!localVariables(
                     a!isNullOrEmpty(fv!row.decisionDate),
                     "—",
                     a!localVariables(
-                      local!days: max(0, tointeger(todate(fv!row.decisionDate) - todate(fv!row.activatedAt))),
+                      local!days: max(0, tointeger(todate(local(fv!row.decisionDate)) - todate(local(fv!row.activatedAt)))),
                       if(local!days = 0, "< 1 day", local!days & if(local!days = 1, " day", " days"))
                     )
                   ),
                   if(
                     local!s = "In Progress",
                     a!localVariables(
-                      local!days: max(0, tointeger(today() - todate(fv!row.activatedAt))),
+                      local!days: max(0, tointeger(today() - todate(local(fv!row.activatedAt)))),
                       if(local!days = 0, "< 1 day", local!days & if(local!days = 1, " day", " days"))
                     ),
                     "—"

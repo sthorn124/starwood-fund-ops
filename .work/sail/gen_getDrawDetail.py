@@ -152,14 +152,14 @@ a!localVariables(
     /* what the Draws list and its KPI mean by "yours" (6c): a step or reconciliation task, or an email reply to review */
     actionForViewer: or(and(local!viewerIsAssignee, not(a!isNullOrEmpty(local!openTaskId))), local!exceptionForViewer),
     decidedAt: local!decidedAt,
-    daysToDecide: if(or(a!isNullOrEmpty(local!decidedAt), a!isNullOrEmpty(local!receivedDate)), null, max(0, tointeger(todate(local!decidedAt) - todate(local!receivedDate)))),
+    daysToDecide: if(or(a!isNullOrEmpty(local!decidedAt), a!isNullOrEmpty(local!receivedDate)), null, max(0, tointeger(todate(local(local!decidedAt)) - todate(local!receivedDate)))),
     daysInApproval: if(or(local!decided, a!isNullOrEmpty(local!receivedDate)), null, max(0, tointeger(today() - todate(local!receivedDate)))),
     daysReceivedToFunding: if(or(a!isNullOrEmpty(local!fundingDate), a!isNullOrEmpty(local!receivedDate)), null, tointeger(todate(local!fundingDate) - todate(local!receivedDate))),
     daysToFunding: if(a!isNullOrEmpty(local!fundingDate), null, tointeger(todate(local!fundingDate) - today())),
     daysAtStep: if(
       local!ingesting,
       if(a!isNullOrEmpty(local!draw[{d("receivedDate")}]), 0, max(0, tointeger(today() - todate(local!draw[{d("receivedDate")}])))),
-      if(a!isNullOrEmpty(local!activatedAt), null, max(0, tointeger(today() - todate(local!activatedAt))))
+      if(a!isNullOrEmpty(local!activatedAt), null, max(0, tointeger(today() - todate(local(local!activatedAt)))))
     )
   )
 )

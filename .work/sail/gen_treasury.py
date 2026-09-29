@@ -39,7 +39,7 @@ a!localVariables(
   local!completion: local!approvedCount & " of " & local!total & " approvals complete" & if(
     a!isNullOrEmpty(local!final),
     "",
-    " · final approval by " & local!final.approverName & " (" & local!final.role & ") on " & if(a!isNullOrEmpty(local!final.decisionDate), "—", text(todate(local!final.decisionDate), "MMMM D, YYYY")) & if(local!finalSource = "", "", " " & local!finalSource)
+    " · final approval by " & local!final.approverName & " (" & local!final.role & ") on " & if(a!isNullOrEmpty(local!final.decisionDate), "—", text(todate(local(local!final.decisionDate, cons!SD_BUSINESS_TIMEZONE)), "MMMM D, YYYY")) & if(local!finalSource = "", "", " " & local!finalSource)
   ),
   local!band: "background:#16294D;color:#FFFFFF;padding:6px 12px;font-size:11px;font-weight:bold;letter-spacing:0.5px;",
   local!th: "background:#E8EEF7;color:#16294D;padding:5px 8px;border-bottom:1px solid #C9D4EF;font-size:10px;font-weight:bold;text-align:left;",
@@ -64,7 +64,7 @@ a!localVariables(
     "<tr><td colspan=""4"" style=""" & local!value & """>No approval chain on this draw</td></tr>",
     concat(a!forEach(
       items: local!approvals,
-      expression: "<tr><td style=""" & local!value & "text-align:center;width:44px;"">" & fv!item.approvalOrder & "</td><td style=""" & local!value & """>" & rule!SD_htmlEscape(text: fv!item.role) & "</td><td style=""" & local!value & """>" & rule!SD_htmlEscape(text: fv!item.approverName) & "</td><td style=""" & local!value & if(tostring(a!defaultValue(fv!item.status, "")) = "Approved", "color:#1E7E46;", "color:#6B7280;") & """>" & rule!SD_htmlEscape(text: a!defaultValue(fv!item.status, "")) & if(a!isNullOrEmpty(fv!item.decisionDate), "", " " & text(todate(fv!item.decisionDate), "MM/DD/YYYY")) & "</td></tr>"
+      expression: "<tr><td style=""" & local!value & "text-align:center;width:44px;"">" & fv!item.approvalOrder & "</td><td style=""" & local!value & """>" & rule!SD_htmlEscape(text: fv!item.role) & "</td><td style=""" & local!value & """>" & rule!SD_htmlEscape(text: fv!item.approverName) & "</td><td style=""" & local!value & if(tostring(a!defaultValue(fv!item.status, "")) = "Approved", "color:#1E7E46;", "color:#6B7280;") & """>" & rule!SD_htmlEscape(text: a!defaultValue(fv!item.status, "")) & if(a!isNullOrEmpty(fv!item.decisionDate), "", " " & text(todate(local(fv!item.decisionDate, cons!SD_BUSINESS_TIMEZONE)), "MM/DD/YYYY")) & "</td></tr>"
     ))
   ),
   local!html: concat(

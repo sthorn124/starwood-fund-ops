@@ -222,7 +222,7 @@ a!localVariables(
           rule!SD_htmlEscape(text: fv!item.role),
           rule!SD_htmlEscape(text: fv!item.approverName),
           "<span style=""display:inline-block;padding:2px 8px;border-radius:10px;background:" & local!chipBg & ";color:" & local!chipFg & ";font-size:10px;font-weight:bold;"">" & rule!SD_htmlEscape(text: local!status) & "</span>",
-          if(a!isNullOrEmpty(fv!item.decisionDate), "—", text(fv!item.decisionDate, "MM/DD/YYYY")),
+          if(a!isNullOrEmpty(fv!item.decisionDate), "—", text(todate(local(fv!item.decisionDate, cons!SD_BUSINESS_TIMEZONE)), "MM/DD/YYYY")),
           if(local!isCurrent, "<b>&#9664; Current step — your approval is requested</b>", if(a!isNullOrEmpty(fv!item.comments), "—", rule!SD_htmlEscape(text: fv!item.comments)))
         },
         aligns: {"center", "left", "left", "left", "left", "left"},

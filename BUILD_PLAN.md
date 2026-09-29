@@ -383,6 +383,9 @@ Rescoped 2026-09-26: 6b is the conversation lane on the 6a receiver and message 
 - ✅ 2026-09-28 **Chased-step listing and labelled rows** (second fix session): Needs chasing lists a step already chased whatever its age; unconfirmed Draws rows carry their received time and package.
 - ✅ 2026-09-28 **One-draw runbook** (second fix session): failure opens, recovery follows; the demo tested end to end once (see `BUILD_LOG.md`).
 - ✅ 2026-09-28 **Real decision timestamps** (third session, ruled): every decision stamped at the moment it happens (task, email, confirm, accelerator); the transition's +1-day floor and the accelerator's `dayOffsetPerStep` removed; existing dates untouched; the Approvals tab's Time at Step counts calendar days ("< 1 day" for a same-day step). Tested on #84 (draw 112).
+- ✅ 2026-09-29 **Local dates** (ruled; rehearsals run at night): screens date a datetime in the viewer's zone, processes (emails, `receivedDate`, the QIU as-of date, the budget-edit note) in `SD_BUSINESS_TIMEZONE`; verified on #84 and the seeded draws.
+- ✅ 2026-09-29 **Draws list attention tags**: amber Question waiting / Reply needs review beside the status for the draw approval team, from the Summary's derivations; clears when answered or reviewed.
+- ✅ 2026-09-29 **#70's reminder row** reworded to the current reminder text (one row, text only); runbook beat 6 follows the tag.
 - ✅ 2026-09-26 **Site-reachable email-reply review** (Summary card, Draws YOUR ACTION and KPI, Emails tab link; standing rule: nothing requires Tempo).
 - ✅ 2026-09-26 **Guardrail reorder**: interpretation before the limit check; questions and hedges flow on over-limit draws, decisions are refused.
 - [ ] **Designer setup** for the escalations, the chase trigger and the digest schedule (TODO; Scott), then one escalation fired end to end by the session.

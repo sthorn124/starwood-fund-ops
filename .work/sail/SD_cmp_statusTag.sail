@@ -2,9 +2,12 @@
    Approved / Extracted & Confirmed / Funded / Read / Classified and read / Classified only → green; In Progress → blue;
    Not read / Not classified → amber; Rejected, Ingestion Failed → red; everything else (Pending, Attached, Received, …) → grey.
    Read / Not read are a Phase 5.5 AI reading; Classified and read / Classified only / Not classified are the Phase 5.6
-   Doc Center treatments of a supporting document. */
+   Doc Center treatments of a supporting document.
+   2026-09-29: optional ri!notes (Text, multiple) adds one amber tag per non-empty note after the status tag — the Draws
+   list's "Question waiting" / "Reply needs review". Callers that pass nothing get the single status tag, as before. */
 a!localVariables(
   local!s: trim(a!defaultValue(ri!status, "")),
+  local!notes: if(a!isNullOrEmpty(ri!notes), {}, reject(fn!isnull, a!forEach(items: ri!notes, expression: if(trim(a!defaultValue(fv!item, "")) = "", null, trim(fv!item))))),
   local!bg: a!match(
     value: local!s,
     equals: "Approved", then: "#E6F4EC",
@@ -37,11 +40,17 @@ a!localVariables(
   ),
   a!tagField(
     labelPosition: "COLLAPSED",
-    tags: a!tagItem(
-      text: if(local!s = "", "—", local!s),
-      backgroundColor: local!bg,
-      textColor: local!fg
-    ),
+    tags: {
+      a!tagItem(
+        text: if(local!s = "", "—", local!s),
+        backgroundColor: local!bg,
+        textColor: local!fg
+      ),
+      a!forEach(
+        items: local!notes,
+        expression: a!tagItem(text: fv!item, backgroundColor: "#FDF3E0", textColor: "#92600A")
+      )
+    },
     size: "SMALL",
     align: a!defaultValue(ri!align, "START")
   )

@@ -38,7 +38,7 @@ a!localVariables(
   local!approvedLine: if(
     a!isNullOrEmpty(local!approvedRows),
     "",
-    joinarray(a!forEach(items: local!approvedRows, expression: fv!item.role & " ✓ " & if(a!isNullOrEmpty(fv!item.decisionDate), "", text(todate(fv!item.decisionDate), "MM/DD"))), " · ")
+    joinarray(a!forEach(items: local!approvedRows, expression: fv!item.role & " ✓ " & if(a!isNullOrEmpty(fv!item.decisionDate), "", text(todate(local(fv!item.decisionDate)), "MM/DD"))), " · ")
   ),
   local!isFinal: if(a!isNullOrEmpty(local!step), false, tointeger(local!step) >= local!total),
   local!approveText: if(
@@ -93,7 +93,7 @@ a!localVariables(
       ),
       secondaryText: if(
         local!found,
-        "Assigned to " & a!defaultValue(local!approver, "—") & " · with you since " & if(a!isNullOrEmpty(local!activatedAt), "—", text(todate(local!activatedAt), "MMM D")) & " · funds scheduled " & if(a!isNullOrEmpty(local!fundingDate), "—", text(local!fundingDate, "MMM D")),
+        "Assigned to " & a!defaultValue(local!approver, "—") & " · with you since " & if(a!isNullOrEmpty(local!activatedAt), "—", text(todate(local(local!activatedAt)), "MMM D")) & " · funds scheduled " & if(a!isNullOrEmpty(local!fundingDate), "—", text(local!fundingDate, "MMM D")),
         a!defaultValue(ri!drawSummary, "")
       ),
       backgroundColor: "#16294D"

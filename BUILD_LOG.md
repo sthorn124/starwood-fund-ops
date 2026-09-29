@@ -2229,3 +2229,97 @@ Promotion checkpoint: current through 2026-09-28 — Second fix session: the Ass
 - None promoted. The `appian-supplemental` copies are unchanged.
 
 Promotion checkpoint: current through 2026-09-28 — Fix session: real decision timestamps, day-spreading removed.
+
+### 2026-09-29 — Fix session: local-time dates, the Draws list's question indicator, #70's reminder text
+
+**Scope.**
+- Design work and every designer readback ran through the Dev MCP as `scott.thorn@appian.com`, a member of `SD Administrators`, `SD Users` and the three step groups (full scope).
+- Persona reads and the one persona write (the test answer) ran through sail as `sd.accountant` (Priya Raman) from `~/.sail-sd.accountant`.
+- The runtime connector was not called.
+
+**Preflight:**
+- Dev MCP 26.6.95 matches the pin (26.6.100 is on the App Market, already in TODO); sail 26.6.95.
+- 27 record types; the `appian-supplemental` copies are identical.
+- `sd.accountant` and `sd.assetmanager` are live; `~/.sail` holds no session.
+- `SD Draw Approvers` holds the three step groups, and `SD Draw Demo Approvers` holds the designer and `sd.accountant` (direct members, read back).
+
+**Rulings recorded** (`PROJECT_INSTRUCTIONS.md`, One-draw demo block):
+- local dates, applied now, which closes the Deferred evening-date trigger;
+- the Draws list's attention tags;
+- the same-template collision stays Deferred with its beat-0 caution.
+
+**Measured first: which zone a process evaluates in.** A throwaway `zz_tzProbe29` (`0000f078-7ff9-…`, started directly as the designer) read `pp!timezone` = America/New_York. On #84's decision time, 02:56:28 UTC on 09-29:
+
+| Expression | Result |
+|---|---|
+| `text(x, "MM/DD/YYYY HH:mm")` | 09/28/2026 22:56 |
+| `todate(x)` | 09/29/2026 (GMT, as the docs say) |
+| `todate(local(x))` | 09/28/2026 |
+| `todate(local(x, "America/New_York"))` | 09/28/2026 |
+
+So the step email (`text(x)`) already read 09/28 in a New York context, and the screens read 09/29 through `todate()`. The pipeline's `today()`, however, had stored 09-29 for draws started at 22:51 and 22:53 EDT, one from the page (`a!startProcess`, draw 111) and one as an async subprocess (draw 112). A programmatically started process therefore evaluates in its model's configured zone, not the initiator's. The docs say the same ("Programmatically launched processes always use the configured time zone"). That is why processes get an explicit zone.
+
+**What changed.**
+- **New constant `SD_BUSINESS_TIMEZONE`** (`…_578422`, TEXT "America/New_York"; the value read back as a JSON string).
+- **Screens use the viewer's zone, `todate(local(x))`:**
+  - `SD_getDrawDetail` **v10** (`daysToDecide`, `daysAtStep`);
+  - `SD_view_drawApprovals` **v7** (started, Decision On, Time at Step);
+  - `SD_view_drawSummary` **v13** ("✓ MM/DD", started, the decided-on date, "With you since"; an Ingesting draw's `currentActivatedAt` is `receivedDate`, a Date, and is dated as one);
+  - `SD_form_drawApprovalDecision` **v5** ("✓ MM/DD", "with you since").
+- **Processes use the business zone, `todate(local(x, cons!SD_BUSINESS_TIMEZONE))`:**
+  - `SD_buildApprovalEmail` **v4** (Approval Status dates);
+  - `SD_buildTreasuryEmail` **v2** (the final-approval date, the chain dates);
+  - `SD_getLastGoodTemplate` **v2** (the uploaded-at fallback);
+  - `SD_planBudgetEdit` **v2** (the edit note's date);
+  - `SD Receive Capital Call` node **4** (`receivedDate`) and node **23** (the QIU as-of date), applied with `updateProcessModelNode` and read back.
+- **Left alone:** the other ~20 `todate()` sites take Date fields (`receivedDate`, `fundingDate`, the QIU as-of date). `local()` would move those back a day. The `text(x)` calls on screens already format in the viewer's zone.
+- **Before sending,** every changed object was compared with its committed source: the five rules by expression diff, the three interfaces and the page by last-save time against the last commit. All matched.
+- **Attention tags:**
+  - `SD_cmp_statusTag` **v5**: optional `notes` (Text, multiple) adds one amber tag (#FDF3E0 / #92600A) per non-empty note. The docs gate was run on `a!tagField` (a list of tags; they wrap and are never split; 40 characters each; a read-only grid column accepts a tag field). Designer renders gave `error: null`: one tag with no notes; status plus two amber tags with notes, the empty note dropped.
+  - `SD_getDrawListRows` **v4**: `questionWaiting` = `SD_getPendingQuestion(...).pending`, evaluated only for a draw In Progress and only when the viewer is in `SD Draw Demo Approvers`, through a nested `if()` because `and()` does not short-circuit. `reviewWaiting` = `exceptionTaskId` set, which `SD_getDrawDetail` looks up only for the team.
+  - `SD_page_draws` **v15**: the Status column passes the two notes. The read-back of both large interfaces equals the file sent.
+- **`SD Draw Email Message` row 54** (#70's reminder, 2026-09-27 00:37 UTC), one row by explicit id, text only:
+  - body "…has waited 0 days and the draw is funding in 50 days…" → "Reminder: this approval is still waiting and the draw is funding in 50 days. The approval request is repeated below; reply to this email with your decision.";
+  - notes "…re-sent as a reminder after 0 days waiting (SD_CHASE_AGE_DAYS 3); …" → "Escalation level 1 on the step task: the step email re-sent as a reminder; to the step's group, from and reply-to the receiver address, reply token kept".
+  - The subject and the other fields are unchanged.
+- **Generators** were edited and regenerated; each diff held only the intended lines. `gen_receive_process.py` now also carries node 4's `ingestionProcessId: pp!id`. That field was on the instance but in no generator (older drift); the regenerated payload's node 4 equals the deployed one.
+- **Runbook** (`TODO.md`) beat 6 step 1 was rewritten for the tag (see TODO changes).
+- **Throwaway `zz_tzProbe29`:** used for the zone probe, the email render inside a process, and one feed. Deleted; `getProcessModel` returns "Does not exist".
+
+**Verified.**
+- **#84, as `sd.accountant` via sail:**
+  - Approvals shows "started 09/28/2026", Decision On 09/28/2026 for orders 1–8 and Time at Step "< 1 day".
+  - Summary shows "8 of 9 approved · started 09/28" and "✓ 09/28" on all eight approved steps.
+  - The CEO's "At this step 1 day" is correct: activated 22:59 EDT on 09-28, and it is now 09-29.
+- **The step email for #84 step 9,** rendered inside a process: Approval Status orders 1–8 read **09/28/2026**.
+- **Seeded draws, as `sd.accountant` via sail:**
+  - #66 reads 10/06 and 10/07, Time at Step "< 1 day" and "1 day" (as in the previous session);
+  - #12 reads 09/14, 09/15, 09/16, 09/17 and 09/19, started 09/12, step 6 at 10 days. Its times all fall after 04:00 UTC, which is the same Eastern date.
+- **Attention tags, as `sd.accountant` via sail:**
+  - #12 and #85 (draw 113, Scott's rehearsal: the CEO asked "what's driving the contingency draw?" at 23:18 EDT, unanswered, read back through `SD_getPendingQuestion`) show "In Progress, Question waiting".
+  - #84 and #70 (reviewed) show only "In Progress".
+  - **Clearing test on #82 (draw 105, at the CEO step):**
+    - The handler (`SD Handle Approval Reply`, `testProcessModel` as the designer, from the authorized address) read "Session test, 2026-09-29: before I sign, what is the retainage balance on this draw?" as QUESTION (2 AI actions, 5.0 s) and logged row 91.
+    - The list then tagged #82 "Question waiting".
+    - The answer was sent from #82's Emails tab (**Your answer** → **Send Answer**, the real control). A fresh read shows the ANSWER "from the draw record by Priya Raman (sd.accountant)", which confirms the acting identity; `SD_getPendingQuestion(105)` reads pending false (4 messages); #82's tag is gone.
+  - The answer was emailed on #82's thread to scott.thorn@appian.com.
+- **#70's reminder, as `sd.accountant` via sail:** the Emails tab shows the new body and note.
+- **Pipeline after the node 4 change:** a malformed-template feed (`SD_FEED_PACKAGE_FAILING_TEMPLATE`, through the throwaway as an async subprocess) made draw **114**:
+  - shell 12:25:34 UTC, `receivedDate` 2026-09-29, `ingestionProcessId` 536910910;
+  - Ingestion Failed at 12:27:05 (90 s) with the standard reason and the AI comparison "Compared with THSV_Draw67_Budget_Template.xlsx (Draw #85, received 09/29/2026)".
+  - At 08:25 EDT the GMT and Eastern dates are the same, so the run proves the node works, not the zone.
+  - The failure alert went to the team.
+
+**Not verified.**
+- **The business zone in a GMT-configured process** has no direct measurement: no process here could be made to run in GMT. It rests on `todate()` acting on GMT, which was measured in a New York context and is documented.
+- **"Reply needs review" on a live row:** no draw has an open review task, so only the component render covers it.
+- **Browser only:** how the two tags sit in the narrow Status column; the evening rehearsal's dates in Gmail and on screen (browser checklist in `TODO.md`).
+- **#84's stored `receivedDate` and QIU as-of date** still read Sep 29 and 09/29/2026. They were stored as GMT dates by the old pipeline and are left as written, per the 2026-09-28 ruling; this is recorded as a known artifact.
+
+**Findings.**
+- A programmatically started process evaluates in its model's configured zone; `todate()` of a datetime is the GMT date. Both are documented, so neither is a promotion candidate (gate 3). They are recorded as the project rule "Dates are local".
+- Generator drift: pipeline node 4's `ingestionProcessId` existed only on the instance. The generator was fixed this session.
+
+**Promotion candidates:** 0 found; none promoted. The `appian-supplemental` copies are unchanged and identical. No staged trigger fired.
+
+Promotion checkpoint: current through 2026-09-29 — Fix session: local-time dates, the Draws list's question indicator, #70's reminder text.

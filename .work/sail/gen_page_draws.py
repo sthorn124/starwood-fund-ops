@@ -586,7 +586,19 @@ a!localVariables(
                 width: "MEDIUM",
                 backgroundColor: {HL}
               ),
-              a!gridColumn(label: "Status", value: rule!SD_cmp_statusTag(status: fv!row.status), width: "NARROW_PLUS", backgroundColor: {HL})
+              a!gridColumn(
+                label: "Status",
+                /* 2026-09-29: the draw approval team's attention tags beside the status (rule!SD_getDrawListRows) */
+                value: rule!SD_cmp_statusTag(
+                  status: fv!row.status,
+                  notes: {{
+                    if(a!defaultValue(fv!row.questionWaiting, false), "Question waiting", ""),
+                    if(a!defaultValue(fv!row.reviewWaiting, false), "Reply needs review", "")
+                  }}
+                ),
+                width: "NARROW_PLUS",
+                backgroundColor: {HL}
+              )
             }},
             pageSize: 25,
             spacing: "STANDARD",

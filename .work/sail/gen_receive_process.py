@@ -56,7 +56,7 @@ def xor(id_, name, xy, cond, when_true, default):
                 connections=[conn(when_true), conn(default)],
                 decision=dict(conditions=[dict(expression="=" + cond, targetNodeId=when_true, label="yes")], defaultPath=default))
 
-shell = f"""{{ {rt(DRAW)}({d('status')}: "Ingesting", {d('receivedDate')}: today(), {d('submittedBy')}: "EY data feed", {d('createdAt')}: now(), {d('updatedAt')}: now()) }}"""
+shell = f"""{{ {rt(DRAW)}({d('status')}: "Ingesting", {d('receivedDate')}: todate(local(now(), cons!SD_BUSINESS_TIMEZONE)), {d('submittedBy')}: "EY data feed", {d('ingestionProcessId')}: pp!id, {d('createdAt')}: now(), {d('updatedAt')}: now()) }}"""
 docrow = f"""{{ {rt(DOC)}({doc('drawId')}: pv!drawId, {doc('document')}: pv!document, {doc('documentName')}: document(pv!document, "name") & "." & document(pv!document, "extension"), {doc('documentType')}: "Budget Template", {doc('status')}: "Received", {doc('receivedDate')}: today(), {doc('uploadedAt')}: now(), {doc('uploadedBy')}: "EY data feed") }}"""
 store_ext = f"""{{ {rt(DRAW)}({d('id')}: pv!drawId, {EXTRACTION_ID}: pv!extractionInstanceId, {d('updatedAt')}: now()) }}"""
 failed = f"""{{ {rt(DRAW)}({d('id')}: pv!drawId, {d('status')}: "Ingestion Failed", {d('updatedAt')}: now()) }}"""
@@ -144,7 +144,7 @@ nodes += [
   write(19, "Commit budget lines", [2530,200], "rule!SD_buildIngestedBudgetLines(drawId: pv!drawId, linesJson: pv!confirmedLinesJson)", [22], run_as="DESIGNER"),
   write(22, "Template Extracted & Confirmed", [2680,200], doc_confirmed, [23], run_as="DESIGNER"),
   script(23, "Assemble QIU and chain", [2830,200],
-         [("rule!SD_buildIngestedQiu(drawId: pv!drawId, investmentId: pv!investmentId, asOfDate: today())", "pv!qiuRows"),
+         [("rule!SD_buildIngestedQiu(drawId: pv!drawId, investmentId: pv!investmentId, asOfDate: todate(local(now(), cons!SD_BUSINESS_TIMEZONE)))", "pv!qiuRows"),
           ("rule!SD_buildIngestedApprovalChain(drawId: pv!drawId, investmentId: pv!investmentId, confirmedBy: pv!confirmedBy, confirmedAt: pv!confirmedAt)", "pv!chainRows")], [24], run_as="DESIGNER"),
   xor(24, "QIU available?", [2980,200], "a!isNullOrEmpty(pv!qiuRows)", 26, 25),
   write(25, "Aggregate QIU rows", [3130,200], "pv!qiuRows", [26], run_as="DESIGNER"),

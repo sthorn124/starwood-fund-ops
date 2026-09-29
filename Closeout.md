@@ -1,130 +1,140 @@
-# Closeout — 2026-09-28 — Fix session: real decision timestamps, day-spreading removed
+# Closeout — 2026-09-29 — Fix session: local-time dates, the Draws list's question indicator, #70's reminder text
 
 ## Scope and identity
 
 - **Design work and every designer readback:** the Dev MCP as `scott.thorn@appian.com`, a member of `SD Administrators`, `SD Users` and the three draw step groups (full scope).
-- **Persona reads:** sail as `sd.accountant` (Priya Raman), from `~/.sail-sd.accountant`.
+- **Persona checks:** sail as `sd.accountant` (Priya Raman), from `~/.sail-sd.accountant`. That includes the one persona write, the test answer.
 - **Runtime connector:** not called.
-- **Preflight:** not re-run for this brief. The second session's preflight from earlier this evening stands: Dev MCP 26.6.95 matches the pin, sail 26.6.95, and both personas were live.
+- **Preflight:**
+  - Dev MCP 26.6.95 matches the pin (26.6.100 is on the App Market, already in TODO); sail 26.6.95.
+  - The design read returned 27 record types.
+  - Both draw personas are live, and the default `~/.sail` is empty.
+  - The groups read back as recorded; the supplemental skill copies are identical.
 
 ## Decisions recorded (`PROJECT_INSTRUCTIONS.md`, One-draw demo block)
 
-- **Decision dates are real timestamps.**
-  - Every approval decision is stamped at the moment it happens, whether it comes from a live task, an email reply, the reconciliation confirm or an accelerator advance.
-  - There is no +1-day floor and no forward-dated step. "The chain approves over the following days" is narration only.
-  - Existing draws' dates are historical data and stay untouched.
-  - The 2026-09-21 `dayOffsetPerStep` ruling is struck as superseded. The owed ruling on the Asset Manager's date is closed.
-- **A draw whose investment matches nothing is numbered #1, as built.** Accepted.
+- **Dates are local.** Applied now because rehearsals run at night. This closes the Deferred evening-date trigger. Stored dates stay as written.
+- **The Draws list flags what the draw approval team owes an answer to:** an amber **Question waiting** or **Reply needs review** beside the status. It uses the Summary's own derivations and clears when answered or reviewed.
+- **The same-template collision stays Deferred,** with the beat-0 caution.
+
+## What I measured before changing anything
+
+A throwaway process formatted #84's decision time, 02:56 UTC on 09-29 (10:56 PM Eastern on the 28th), several ways:
+
+| How the date is made | Result |
+|---|---|
+| `text(x)`, which is how the step email does it | 09/28 (the process ran in New York time) |
+| `todate(x)`, which is how the screens did it | **09/29**: `todate()` takes the GMT date, as the docs say |
+| `todate(local(x))` | 09/28 |
+
+There was a second problem. The ingestion pipeline stores `today()` as the received date, and it stored **09-29** for your draw 111 and my draw 112, both started around 10:50 PM Eastern. A process started from a page or as a background subprocess runs in its model's configured zone, not yours; the docs say the same ("Programmatically launched processes always use the configured time zone").
 
 ## What changed
 
-**1. The transition, `SD Apply Draw Approval Decision` (v9.0, read back).**
-- Node 4 now writes `now()` as the effective date. It was `max(requested, previous decision + 1 day)`.
-- The step's decision date and the next step's `activatedAt` are therefore the moment the transition runs, whatever the source: task, email, confirm or accelerator.
-- The `decisionDate` parameter is kept, so existing subprocess mappings still bind, and it is ignored.
-- Order stays monotonic because time does.
+**1. Local-time dates.**
+- **Screens** now turn a date-and-time into a date in the **viewer's** zone:
+  - the Approvals tab (started, Decision On, Time at Step);
+  - the Summary ("✓ MM/DD", started, the decided-on date, "With you since");
+  - the Approve/Reject task form;
+  - the detail rule's day counts.
+- **Anything a process builds or stores** uses the new constant **`SD_BUSINESS_TIMEZONE`** (America/New_York):
+  - the step email's Approval Status dates;
+  - the treasury email;
+  - the failure-comparison fallback date;
+  - the Asset Manager's edit note;
+  - the pipeline's `receivedDate` (node 4) and QIU as-of date (node 23).
+- The ~20 other `todate()` calls take true Date fields (funding date, received date, the QIU as-of date). They were left alone, because `local()` would move a Date back a day.
+- The pipeline's generator also gained node 4's `ingestionProcessId`, which was on the instance but in no generator.
 
-**2. The accelerator, `SD Advance Draw to CEO Step (Demo Accelerator)` (v13.0, read back).**
-- Each step it advances is stamped `now()`. It was `now() + (iteration + 1) × dayOffsetPerStep`.
-- The `dayOffsetPerStep` parameter is removed.
-- The retired `SD Stage Draw for Approval` still lists that parameter, unmapped, on a node. It is unused and was left.
+**2. The question indicator on the Draws list.**
+- The list rule marks each row `questionWaiting` (a pending question, derived exactly as the Summary's amber card) or `reviewWaiting` (an email reply whose review task is open, as the review card).
+- It does this for the draw approval team only; that's who answers.
+- The shared status-tag component gained an optional `notes` input: each note becomes an amber tag after the status. Every other caller passes nothing and is unchanged.
+- The page's Status column passes "Question waiting" / "Reply needs review".
 
-**3. The Approvals tab, `SD_view_drawApprovals` v6.**
-- The regression showed "1 day" in Time at Step for steps decided seconds apart. The column had a `max(1, …)` floor built for the day-apart dates.
-- It now counts calendar days from activation to decision, reading "< 1 day" for a step decided the day it opened.
-- Chains a day apart still read "1 day".
-- Seeded #66's order 1 (activated and decided 10/06) now reads "< 1 day" instead of "1 day". Its data is unchanged.
+**3. #70's old reminder (message row 54), text only.**
+- **Body:** "…has waited 0 days…" became "Reminder: this approval is still waiting and the draw is funding in 50 days. The approval request is repeated below; reply to this email with your decision."
+- **Note:** "…after 0 days waiting (SD_CHASE_AGE_DAYS 3)…" became "…the step email re-sent as a reminder; …".
+- The subject, time and figures are unchanged.
 
-**4. The runbook (`TODO.md`).**
-- **Beat 4:** Priya's approval is "stamped at the confirm minute", and Elena's is "dated the actual minute, today".
-- **Beat 5 and the accelerator-timing item:** the recorded dates are today's, seconds apart; the days are narration only.
-- **Beat 0 has a new caution:** never start two feeds of the same template within ~2 minutes (see Findings).
+**4. Runbook beat 6.**
+- After the question goes out from Gmail, switch to `sd.accountant`. The main draw's row shows **Question waiting** once the reply has been read (40 s to 2.5 min; refresh).
+- Open the draw: the amber card → **Answer Question** → **Send Answer**. The tag clears.
+- The beat now says the Emails tab already holds the climb (the step emails of the tasks that were issued, the reminder, the staged text), and the Q&A appends to it live.
 
-The throwaway `zz_feedLauncher28c` was created for the feed arrivals, then deleted. Its read now returns "Does not exist".
+**Housekeeping.** Every changed object was compared with its committed source before sending (all matched). The throwaway `zz_tzProbe29` was deleted; its read returns "Does not exist".
 
-## The regression: the demo path, on #84 (draw 112)
+## Verified
 
-| Order | Role · approver | Decided (UTC, 09-29; 10:56–10:59 PM EDT on 09-28) | How |
-|---|---|---|---|
-| 1 | Accountant · Priya Raman | 02:56:28 (the confirm; activated 02:53:07) | reconciliation |
-| 2 | Asset Manager · Elena Marchetti | 02:57:03 | her task |
-| 3–7 | Controller → CFO of Funds | 02:57:45 · 02:57:56 · 02:58:08 · 02:58:20 · 02:58:32 | Advance to President |
-| 8 | President · James Callahan | 02:59:56 | Advance to CEO (34.7 s) |
-| 9 | CEO · Thomas Bergman | In Progress since 02:59:56; step email sent 03:00:15 | — |
+| Check | Account | Result |
+|---|---|---|
+| #84 Approvals | `sd.accountant` via sail | started 09/28/2026; Decision On **09/28/2026** for orders 1–8; Time at Step "< 1 day" |
+| #84 Summary | `sd.accountant` via sail | "8 of 9 approved · started 09/28"; every step "✓ 09/28"; the CEO "at this step 1 day" (activated 10:59 PM on the 28th; now the 29th) |
+| #84 CEO step email | designer, rendered inside a process | Approval Status orders 1–8: **09/28/2026** |
+| Seeded #66 and #12 | `sd.accountant` via sail | unchanged: #66 10/06 and 10/07; #12 09/14–09/19, step 6 at 10 days |
+| Draws list tags | `sd.accountant` via sail | #12 and #85 "In Progress, Question waiting"; #84 and #70 (reviewed) no tag |
+| Tag clears | `sd.accountant` via sail | see the note below the table |
+| #70 reminder text | `sd.accountant` via sail | the Emails tab shows the new body and note |
+| Pipeline after the node 4 change | designer | a malformed-template feed made draw 114: Ingestion Failed in 90 s with the usual reason and AI comparison; the alert went to the team |
 
-- **All decisions are the same day and in time order,** 11 to 84 seconds apart. Each row's activation equals the previous decision.
-- **Send Reminder Now** took 14.8 s: the reminder went on the President's thread and the text was staged.
-- **Step email (the CEO's):** the APPROVAL STATUS table shows orders 1–8 Approved, each **09/28/2026**, with the CEO row highlighted. The funding date reads November 16, 2026.
-- **Summary, as `sd.accountant` via sail:**
-  - "FUNDING DATE November 16, 2026 · in 48 days";
-  - "Received Sep 29 · in approval 0 days so far · 48 days from receipt to funding date";
-  - "8 of 9 approved · started 09/29" with every step "✓ 09/29";
-  - "At this step since today".
-- **Approvals, as `sd.accountant` via sail:** Decision On 09/29/2026 for orders 1–8, with their sources, and Time at Step "< 1 day" on every row (after the v6 fix).
-- **Seeded draws, read back:**
-  - #12's rows 1201–1206 and #66's rows 6601–6603 are exactly as before: same decision dates, activations and last-updated times.
-- **Needs chasing, as `sd.accountant` via sail:**
-  - While #84 sat at the President step: (3) — #12 "Step 6 waiting 10 days" with its staged text, #84 "Reminder sent today · text staged", and #70.
-  - After Advance to CEO: (2) — #12 and #70 exactly as before. #84 left because its chased step is no longer the current one.
+**How the clearing test ran, on #82 (draw 105, at the CEO step):**
+1. The designer fed the reply handler, from your authorized address: "Session test, 2026-09-29: before I sign, what is the retainage balance on this draw?". It was read as QUESTION.
+2. The list tagged #82.
+3. I answered from #82's Emails tab with the real control. The answer shows "from the draw record by Priya Raman (sd.accountant)".
+4. The pending state read false and the tag was gone.
 
-## Findings
-
-- **Two feeds of the same template can collide.** The regression's first corrected feed (draw 110) failed with "required header fields came back blank".
-  - Your draw 111, the same template 25 s later, took the same Doc Center instance (898). 110 read it while it was still blank.
-  - 110 is an Ingestion Failed row and sent you a spurious failure alert. 111 is Ingesting with its task open. I re-ran as 112.
-  - This is not caused by today's change. The pipeline finds its instance as "the newest for this document".
-  - Recorded as the beat-0 caution, a Deferred item with a fix, and a staged promotion candidate.
-- **After 8 PM Eastern, the record views show tomorrow's date.**
-  - The views turn datetimes into dates with `todate()`, which the docs say returns the GMT date. The email formats in the viewer's zone.
-  - Measured tonight as the same designer: the email reads 09/28, the Approvals tab 09/29, for the same decisions.
-  - The old seeded times never crossed midnight UTC, which hid it.
-  - From midnight to 8 PM Eastern both agree. Deferred with a trigger: fix before any demo or rehearsal after 8 PM Eastern.
-- **Zero-day spans.** The cycle line says "in approval 0 days so far" (and will say "decided in 0 days" after a same-day decision). This is true, and left as is.
+**#85 is your draw 113.** The CEO asked "what's driving the contingency draw?" at 11:18 PM last night and nobody has answered, so the tag is right.
 
 ## Not verified, and why
 
-- **Browser only:** the Approvals tab and the Summary with same-day dates (content verified via sail; geometry unaffected), and the staging card's three clicks (their processes ran directly).
-- **Gmail:** the reminder threading and #84's CEO step email in your inbox.
-- **Persona clicks:** Confirm and the Asset Manager's Approve were completed as the designer, so #84 shows "reconciliation · scott.thorn@appian.com" and "task · scott.thorn@appian.com". On stage the forms save the persona.
-- **Beats 6–7** were not run. #84 waits at the CEO, with its email sent at 11:00 PM EDT.
+- **A process running in GMT.** I couldn't make a process run in GMT here, so the business-zone form isn't measured in that context. It rests on `todate()` acting on GMT, which I measured, and on the docs.
+- **"Reply needs review" on a live row.** No draw has an open review task, so only the component render covers it.
+- **Browser only:**
+  - how two tags sit in the narrow Status column;
+  - tonight's rehearsal dates in Gmail and on screen.
+- **#84's stored received date and QIU as-of date** still read Sep 29 and 09/29/2026. The old pipeline stored them as GMT dates, and stored dates are left as written (the 2026-09-28 ruling). It's recorded as a known artifact. New draws store the Eastern date.
 
-## Browser checklist
+## Emails sent this session
 
-1. **As `sd.accountant`, Draws → #84 → Approvals.** Nine rows, 1–8 Approved 09/29/2026 (or 09/28 once the evening-date fix lands), Time at Step "< 1 day" throughout, and the CEO row highlighted.
-2. **As `sd.accountant`, #84 → Summary.** The progress strip "Accountant ✓ … President ✓" with one date, and the cycle line as above.
-3. **Gmail.** The CEO step email for Draw #84 (11:00 PM EDT): its Approval Status table reads 09/28/2026 on every row.
-4. **The next daytime rehearsal (before 8 PM Eastern).** Confirm → Elena's approval → Advance to President → Advance to CEO. Every date reads today in both the email and the record.
+- **One answer on #82's thread** to scott.thorn@appian.com, marked as a session test.
+- **One ingestion-failure alert** for draw 114, sent to the team.
+
+## Browser checklist (also in `TODO.md`)
+
+1. **As `sd.accountant`, Draws.** #12 and #85 show **In Progress** plus an amber **Question waiting**. Check how the two tags sit in the Status column; they should wrap, never split.
+2. **Tonight's rehearsal, after 8 PM Eastern.** Confirm, approve as the Asset Manager, then Advance to President. The Approvals tab, the Summary's "✓" dates and the President step email in Gmail should all show today's date.
+3. **Beat 6.** Send the question from Gmail. The main draw's row gains **Question waiting** within about 2.5 minutes. Answer from the amber card, and the tag clears.
 
 ## Rulings needed
 
-- **Evening-date fix.** Fix the views' dates now (`todate(local(x))`, roughly 30 call sites), or only if the demo or a rehearsal runs after 8 PM Eastern?
-- **Still open from earlier today:** #12's pending question (leave it, or answer it).
+- **#84's stored Sep 29 received date.** Leave it (my default, per the ruling), or correct that one row to 09/28? #84 is last night's rehearsal draw; tonight's rehearsal makes a new one.
+- **Still open:** #12's pending question (leave it, or answer it).
+
+## Known artifacts recorded (`CLAUDE.md`)
+
+- **Evening-ingested draws keep a GMT received date.** This applies to draws from before today's fix; #84 shows it.
 
 ## Promotion candidates
 
-- **1 staged at gate 1:** finding a child run's output as "the newest row for my key" races with a concurrent run on the same key.
-- **Not a candidate:** the `todate()` GMT behaviour is documented (fails gate 3).
+- **0 found.** The two time-zone facts are both documented, so they fail gate 3; they're recorded as the project rule "Dates are local".
+- **No staged trigger fired.**
 - **None promoted.** The supplemental skill copies are identical.
 - **Checkpoint:** current through this session's entry.
 
 ## TODO changes
 
-- **Rewritten:** the runbook's beats 4 and 5 and the accelerator-timing item (dates today, days as narration).
-- **Added, beat 0:** the same-template caution.
-- **Added, Browser checks:** same-day decision dates on #84 (Approvals, Summary, and the CEO email in Gmail).
-- **Added, Deferred:**
-  - two feeds of the same template can share a Doc Center instance;
-  - evening dates read tomorrow on the record views.
-- **Closed:**
-  - the Asset Manager date ruling (ruled and built);
-  - the unmatched-investment numbering ruling (accepted #1).
+- **Rewritten:** runbook beat 6, step 1 (the Question waiting tag, answering from the amber card, the Emails tab as the running record).
+- **Added, Browser checks:** the attention tags and the evening dates.
+- **Added, Before demo:** the ruling on #84's stored received date.
+- **Closed:** the Deferred evening-date item (fixed).
 - **Done:** this session.
 
 ## BUILD_PLAN.md changes
 
-- The 2026-09-21 day-spread item is marked superseded.
-- New ✅ 2026-09-28 **Real decision timestamps**, including the Approvals tab's calendar-day Time at Step, tested on #84.
+- ✅ 2026-09-29 Local dates.
+- ✅ 2026-09-29 Draws list attention tags.
+- ✅ 2026-09-29 #70's reminder row and beat 6.
 
 ## Commit
 
-"fix: real decision timestamps, day-spreading removed". Pushed to `origin/main`, then verified that HEAD equals `origin/main` and the tree is clean.
+"fix: local-time dates, question indicator on the draw list, #70 reminder text". Pushed to `origin/main`, then verified that HEAD equals `origin/main` and the tree is clean.
